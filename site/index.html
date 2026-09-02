@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joshify — Build Log</title>
+<meta name="description" content="A touchscreen Spotify control surface for a Raspberry Pi 5, with a PS1-era visualiser. Live demos and build progress.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+<style>
+  :root{
+    --void:#07060f; --panel:#100d22; --panel-2:#171334; --edge:#2b2352; --edge-2:#3b3170;
+    --cyan:#00e5ff; --magenta:#ff2e88; --lime:#b4ff39; --amber:#ffb020;
+    --ink:#ece9f7; --dim:#8b83b8; --dim-2:#655d92;
+    --display:"Chakra Petch",system-ui,-apple-system,sans-serif;
+    --mono:"Share Tech Mono",ui-monospace,SFMono-Regular,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--void);color:var(--ink);font-family:var(--display);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  a{color:var(--cyan)}
+  h2{font-size:clamp(22px,3.2vw,30px);margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em;font-weight:700;text-wrap:balance}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim-2);margin:0 0 8px}
+  section{padding:56px 0;border-top:1px solid var(--edge)}
+  section > .wrap > p.intro{max-width:66ch;color:var(--dim);font-size:15.5px;margin:0 0 28px;line-height:1.7}
+  section > .wrap > p.intro b{color:var(--ink);font-weight:600}
+
+  /* ---------- hero ---------- */
+  header{padding:52px 0 40px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),transparent);opacity:.5}
+  .h1{font-size:clamp(42px,9vw,92px);line-height:.92;margin:0;font-weight:700;letter-spacing:-.01em;text-transform:uppercase;
+    background:linear-gradient(102deg,var(--cyan),var(--magenta) 58%,var(--lime));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{max-width:60ch;font-size:clamp(16px,2.2vw,19px);color:var(--ink);margin:16px 0 0;line-height:1.55}
+  .tag b{color:var(--cyan);font-weight:600}
+  .stats{display:flex;flex-wrap:wrap;gap:0;margin-top:30px;border:1px solid var(--edge);background:var(--panel)}
+  .stat{flex:1 1 130px;padding:13px 16px;border-right:1px solid var(--edge)}
+  .stat:last-child{border-right:0}
+  .stat b{display:block;font-family:var(--mono);font-size:23px;color:var(--lime);font-variant-numeric:tabular-nums;line-height:1.1}
+  .stat span{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim-2)}
+  .stat.warn b{color:var(--amber)}
+
+  /* ---------- demo ---------- */
+  .console{border:1px solid var(--edge);background:linear-gradient(180deg,var(--panel-2),var(--panel));padding:10px;
+    box-shadow:0 0 0 1px #0c0a19,0 30px 70px -40px #000}
+  .screen{position:relative;aspect-ratio:16/9;width:100%;background:#000;border:1px solid #241d47;overflow:hidden}
+  canvas#gl{display:block;width:100%;height:100%;image-rendering:pixelated}
+  .hud{position:absolute;inset:0;pointer-events:none;font-family:var(--mono)}
+  .hud-tl{position:absolute;top:10px;left:12px;font-size:10.5px;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+  .hud-tl span{color:var(--dim-2)}
+  .hud-tr{position:absolute;top:10px;right:12px;font-size:10.5px;color:var(--dim-2);text-align:right;line-height:1.6}
+  .hud-tr b{color:var(--lime);font-weight:400}
+  .np{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:flex-end;gap:12px}
+  .np-art{width:52px;height:52px;flex:none;border:1px solid var(--edge);image-rendering:pixelated;background:#000}
+  .np-meta{flex:1;min-width:0}
+  .np-title{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #000,0 0 12px rgba(0,0,0,.9)}
+  .np-artist{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-top:1px}
+  .np-bar{height:3px;background:#241d47;margin-top:7px;position:relative;overflow:hidden}
+  .np-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--cyan),var(--magenta));width:18%}
+  .spec{display:flex;align-items:flex-end;gap:2px;height:38px;flex:none}
+  .spec i{width:4px;background:linear-gradient(180deg,var(--lime),var(--cyan));height:4px}
+  .paused{position:absolute;inset:0;display:none;place-items:center;background:rgba(7,6,15,.74)}
+  .paused.on{display:grid}
+  .rack{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-top:10px}
+  .mod{border:1px solid var(--edge);background:var(--panel);padding:9px 10px}
+  .mod h3{margin:0 0 8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim-2);font-weight:400}
+  .btns{display:flex;flex-wrap:wrap;gap:5px}
+  button{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+    background:var(--panel-2);border:1px solid var(--edge);padding:6px 9px;cursor:pointer}
+  button:hover{color:var(--ink);border-color:var(--edge-2)}
+  button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  button[aria-pressed="true"]{color:var(--void);background:var(--cyan);border-color:var(--cyan);font-weight:700}
+  button.mag[aria-pressed="true"]{background:var(--magenta);border-color:var(--magenta)}
+  .row{display:flex;align-items:center;gap:9px;margin-top:7px}
+  .row label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim-2);width:50px;flex:none;text-transform:uppercase}
+  .row output{font-family:var(--mono);font-size:10.5px;color:var(--lime);width:44px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1;min-width:0;accent-color:var(--cyan);height:16px}
+  input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--dim-2);margin:12px 0 0;letter-spacing:.04em}
+  .hint b{color:var(--magenta);font-weight:400}
+
+  /* ---------- findings ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:1px;background:var(--edge);border:1px solid var(--edge)}
+  .cell{background:var(--panel);padding:16px 17px}
+  .cell .verdict{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
+  .v-dead{color:var(--magenta)} .v-route{color:var(--lime)} .v-trap{color:var(--amber)}
+  .cell h4{margin:7px 0 7px;font-size:15px;letter-spacing:.01em;text-transform:uppercase;font-weight:700;text-wrap:balance}
+  .cell p{margin:0;font-size:13.2px;line-height:1.62;color:var(--dim)}
+  .cell code{font-family:var(--mono);color:var(--cyan);font-size:12.2px}
+
+  /* ---------- reversal ---------- */
+  .quote{border-left:2px solid var(--magenta);padding:4px 0 4px 18px;max-width:66ch;margin:0 0 20px}
+  .quote p{margin:0 0 10px;font-size:15.5px;line-height:1.7;color:var(--dim)}
+  .quote p:last-child{margin:0}
+  .quote b{color:var(--ink);font-weight:600}
+  .quote .strike{text-decoration:line-through;color:var(--dim-2)}
+
+  /* ---------- roadmap ---------- */
+  .phases{display:flex;flex-direction:column;gap:1px;background:var(--edge);border:1px solid var(--edge)}
+  .ph{background:var(--panel);padding:12px 16px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .ph .n{font-family:var(--mono);font-size:11px;color:var(--dim-2);width:26px;flex:none;letter-spacing:.1em}
+  .ph .nm{font-weight:600;font-size:14.5px;text-transform:uppercase;letter-spacing:.02em;flex:1;min-width:150px}
+  .ph .ct{font-family:var(--mono);font-size:11px;color:var(--dim-2);flex:none}
+  .ph .st{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--edge-2);color:var(--dim-2);flex:none}
+  .ph.now{background:var(--panel-2)}
+  .ph.now .nm{color:var(--cyan)}
+  .ph.now .st{color:var(--void);background:var(--cyan);border-color:var(--cyan);font-weight:700}
+  .ph.hero .nm{color:var(--magenta)}
+  .ph.hero .st{color:var(--magenta);border-color:var(--magenta)}
+
+  /* ---------- stack + footer ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.08em;border:1px solid var(--edge);background:var(--panel);padding:6px 10px;color:var(--dim)}
+  .chip b{color:var(--cyan);font-weight:400}
+  footer{padding:44px 0 64px;border-top:1px solid var(--edge);font-family:var(--mono);font-size:11.5px;color:var(--dim-2);line-height:2}
+  footer b{color:var(--dim)}
+  @media (max-width:600px){ .spec{display:none} .stat{flex-basis:50%;border-bottom:1px solid var(--edge)} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Build log · updated 2 Sep 2026</p>
+    <h1 class="h1">Joshify</h1>
+    <p class="tag">A touchscreen control surface for Spotify, running on a Raspberry Pi 5 —
+      with a visualiser that renders your album art as a <b>1998 PlayStation tunnel</b>.</p>
+    <div class="stats">
+      <div class="stat"><b>9</b><span>Phases</span></div>
+      <div class="stat"><b>113</b><span>Tasks mapped</span></div>
+      <div class="stat"><b>16</b><span>Decisions logged</span></div>
+      <div class="stat"><b>1</b><span>Spike shipped</span></div>
+      <div class="stat warn"><b>P0</b><span>Current phase</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <p class="eyebrow">Demo 01 · Phase 5 render spike</p>
+    <h2>N2O Tunnel Mode</h2>
+    <p class="intro">Album art mapped onto a tube-shooter tunnel, rendered through a
+      reconstructed <b>PlayStation 1 graphics pipeline</b>. Every artefact is a real
+      hardware limitation of the PSX GPU, reproduced in GLSL — and each one is a toggle.</p>
+
+    <div class="console">
+      <div class="screen">
+        <canvas id="gl"></canvas>
+        <div class="hud">
+          <div class="hud-tl">N2O <span>// TUBE</span></div>
+          <div class="hud-tr"><b id="fps">60</b> FPS<br><span id="res">320×180</span></div>
+          <div class="np">
+            <canvas class="np-art" id="art" width="256" height="256"></canvas>
+            <div class="np-meta">
+              <div class="np-title" id="t-title">Velocity Division</div>
+              <div class="np-artist" id="t-artist">Nitrous Cartel — 172 BPM</div>
+              <div class="np-bar"><i id="t-prog"></i></div>
+            </div>
+            <div class="spec" id="spec"></div>
+          </div>
+        </div>
+        <div class="paused" id="paused">
+          <button id="play" style="font-size:13px;padding:12px 22px">▶ Start visualiser</button>
+        </div>
+      </div>
+      <div class="rack">
+        <div class="mod"><h3>Album source</h3><div class="btns" id="albums"></div></div>
+        <div class="mod"><h3>PS1 artefacts</h3><div class="btns">
+          <button id="f-jitter" aria-pressed="true">Vertex snap</button>
+          <button id="f-affine" aria-pressed="true">Affine UV</button>
+          <button id="f-dither" aria-pressed="true">Dither</button>
+          <button id="f-quant" aria-pressed="true">15-bit</button>
+        </div></div>
+        <div class="mod"><h3>Signal path</h3><div class="btns">
+          <button id="f-crt" aria-pressed="true">CRT</button>
+          <button id="f-fog" aria-pressed="true">Fog</button>
+          <button class="mag" id="f-beat" aria-pressed="true">Beat sync</button>
+        </div></div>
+        <div class="mod"><h3>Transport</h3>
+          <div class="row"><label for="s-bpm">BPM</label><input type="range" id="s-bpm" min="80" max="190" value="172"><output id="o-bpm">172</output></div>
+          <div class="row"><label for="s-speed">Speed</label><input type="range" id="s-speed" min="0" max="60" value="26"><output id="o-speed">26</output></div>
+          <div class="row"><label for="s-res">Grain</label><input type="range" id="s-res" min="1" max="6" value="4"><output id="o-res">320p</output></div>
+        </div>
+      </div>
+    </div>
+    <p class="hint"><b>Try this:</b> switch off Vertex snap and Affine UV. The whole thing
+      collapses into generic modern 3D — those two artefacts <em>are</em> the PS1 look.</p>
+  </div>
+</section>
+
+<section id="research">
+  <div class="wrap">
+    <p class="eyebrow">Before writing code</p>
+    <h2>What the research killed</h2>
+    <p class="intro">Spotify's API has quietly lost a lot of surface area since 2024. Half this
+      project's design comes from finding out <b>what is no longer possible</b> — and then
+      routing around it.</p>
+
+    <div class="grid">
+      <div class="cell">
+        <div class="verdict v-dead">✕ Dead end</div>
+        <h4>Canvas videos</h4>
+        <p>The looping clips Spotify shows have no public API. The only access is
+        reverse-engineered endpoints that violate the ToS and break without notice.
+        <strong>Cut deliberately</strong> rather than shimmed.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-dead">✕ Dead end</div>
+        <h4>Audio analysis</h4>
+        <p><code>audio-features</code> and <code>audio-analysis</code> were deprecated for new
+        apps on 2024-11-27 with no replacement — new apps get <code>403</code>. Beat-synced
+        visuals off Spotify's own data are simply not buildable any more.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-dead">✕ Doesn't exist</div>
+        <h4>Queue reordering</h4>
+        <p>You can read the queue and append to it. There is <strong>no reorder and no remove
+        endpoint</strong>. So the UI won't offer a drag handle that can't work — a missing
+        affordance beats a lying one.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-route">✓ Route found</div>
+        <h4>Tempo via ISRC</h4>
+        <p>Track objects still expose <code>external_ids.isrc</code>, which isn't deprecated.
+        Look that up in a free BPM database and you get a <strong>phase-locked beat pulse</strong>
+        while remote-controlling audio playing somewhere else entirely.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-route">✓ Route found</div>
+        <h4>A real FFT</h4>
+        <p>If the Pi runs <code>librespot</code>, the audio decodes locally. Its pipe backend
+        emits raw <code>s16le/44.1k</code> PCM — tee that stream and you get a
+        <strong>genuine spectrum analyser</strong> off the real waveform. What Winamp actually did.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-trap">⚠ Hardware trap</div>
+        <h4>The Pi Zero has no DSI</h4>
+        <p>The Zero 2 W is the only current Pi without a display connector, so it can't use the
+        official touchscreen — it needs HDMI plus separate touch wiring. <strong>The board that
+        seemed right for a tidy object makes it least tidy.</strong></p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-trap">⚠ Hardware trap</div>
+        <h4>The Pi 5 moved the goalposts</h4>
+        <p>Its DSI connector is 22-pin, not 15 — the official display needs an adapter cable.
+        And the 3.5mm jack is <strong>gone</strong>, so on-device audio needs a USB DAC. Two
+        second orders, avoided.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-trap">⚠ Constraint</div>
+        <h4>No push, ever</h4>
+        <p>There's no websocket for playback state, so it must be polled. Adaptive polling plus
+        local progress interpolation keeps the bar smooth at refresh rate while sitting far
+        under the rate limit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reversal">
+  <div class="wrap">
+    <p class="eyebrow">Decision D-006 → D-010</p>
+    <h2>The call I got wrong</h2>
+    <div class="quote">
+      <p><span class="strike">D-006: No audio-reactive visuals. The endpoints are gone,
+        so all motion must be procedural.</span></p>
+      <p><b>That was too pessimistic.</b> The deprecation removes <em>Spotify's</em> analysis,
+        not every route to a beat signal. Tempo can be resolved by ISRC lookup, and when the Pi
+        plays the audio itself there's a real PCM stream to run an FFT over.</p>
+      <p>So the visualiser got <b>three interchangeable reactivity providers behind one uniform
+        contract</b> — procedural, BPM-locked, and true FFT. The shaders never know which one is
+        feeding them, and quality degrades gracefully instead of failing.</p>
+    </div>
+    <p class="intro" style="margin-bottom:0">The decision log keeps superseded entries with the
+      reasoning intact. <b>Knowing why a wrong turn was wrong is worth as much as the right
+      answer</b> — and it stops a future session re-litigating it.</p>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <p class="eyebrow">113 tasks · exit criterion per phase</p>
+    <h2>Roadmap</h2>
+    <p class="intro">Phases 1–2 are deliberately headless: the polling scheduler and state engine
+      are fully built and tested before a single pixel exists, because <b>debugging a timing
+      engine through a UI is misery</b>.</p>
+    <div class="phases">
+      <div class="ph now"><span class="n">P0</span><span class="nm">Foundation</span><span class="ct">8 tasks</span><span class="st">Current</span></div>
+      <div class="ph"><span class="n">P1</span><span class="nm">Spotify identity &amp; API client</span><span class="ct">11 tasks</span><span class="st">Planned</span></div>
+      <div class="ph"><span class="n">P2</span><span class="nm">Playback state engine</span><span class="ct">10 tasks</span><span class="st">Planned</span></div>
+      <div class="ph"><span class="n">P3</span><span class="nm">Now Playing</span><span class="ct">12 tasks</span><span class="st">Planned</span></div>
+      <div class="ph"><span class="n">P4</span><span class="nm">Control surfaces</span><span class="ct">10 tasks</span><span class="st">Planned</span></div>
+      <div class="ph hero"><span class="n">P5</span><span class="nm">Visualiser + librespot</span><span class="ct">30 tasks</span><span class="st">1 spike done</span></div>
+      <div class="ph"><span class="n">P6</span><span class="nm">Search &amp; library</span><span class="ct">9 tasks</span><span class="st">Planned</span></div>
+      <div class="ph"><span class="n">P7</span><span class="nm">Appliance &amp; hardening</span><span class="ct">12 tasks</span><span class="st">Planned</span></div>
+      <div class="ph"><span class="n">P8</span><span class="nm">Packaging &amp; CI/CD</span><span class="ct">11 tasks</span><span class="st">Planned</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <p class="eyebrow">Choices, with reasons</p>
+    <h2>Stack</h2>
+    <p class="intro">Two processes on the Pi. The server does everything expensive
+      <b>once per track</b>; the UI is a pure renderer of a pushed payload — which keeps OAuth
+      tokens out of the browser and the GPU free for the visualiser.</p>
+    <div class="chips">
+      <span class="chip"><b>TypeScript</b> — one language, shared types</span>
+      <span class="chip"><b>Fastify</b> — localhost only</span>
+      <span class="chip"><b>Svelte</b> — no VDOM runtime</span>
+      <span class="chip"><b>WebGL2</b> — GLES 3.1 via Mesa V3D</span>
+      <span class="chip"><b>Vitest</b> + fake Spotify server</span>
+      <span class="chip"><b>Playwright</b> — E2E, no real creds in CI</span>
+      <span class="chip"><b>Raspberry Pi 5</b> + Touch Display 2</span>
+      <span class="chip"><b>librespot</b> — optional PCM tap</span>
+    </div>
+    <p class="intro" style="margin:26px 0 0">A quiet win: half-resolution rendering was chosen
+      to cut fragment cost 4×, then kept because it looked like the lo-fi aesthetic we wanted.
+      It turns out that's <b>almost exactly the PS1's native output</b>. The performance dial,
+      the art direction and the period reference are the same slider.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>Joshify</b> — built in the open, one phase at a time.<br>
+    Album covers in the demo are generated procedurally; the accent colour driving the fog and
+    beat flash is sampled from the artwork at load.<br>
+    The visualiser is an <b>homage</b> to the 1997–2001 console era, built from original assets.
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var TAU = Math.PI*2;
+  var ALBUMS = [
+    { name:"Velocity Division", artist:"Nitrous Cartel",   pal:["#0a0620","#3d0f6b","#ff2e88","#00e5ff","#b4ff39"], style:0 },
+    { name:"Coolant Bath",      artist:"Hydra Sixteen",    pal:["#001418","#00363d","#00e5ff","#7cf9ff","#ffffff"], style:1 },
+    { name:"Sunstrip Cassette", artist:"Motorway Ghost",   pal:["#1a0700","#5c1a00","#ff7a18","#ffd166","#fff3cf"], style:2 },
+    { name:"Null Sector",       artist:"Concrete Function",pal:["#0b0b0d","#1e1e26","#b4ff39","#5f7d1f","#e9ffd0"], style:3 }
+  ];
+  function drawCover(a){
+    var c=document.createElement("canvas"); c.width=c.height=256;
+    var x=c.getContext("2d"), p=a.pal, i,j,n;
+    var g=x.createLinearGradient(0,0,256,256); g.addColorStop(0,p[0]); g.addColorStop(1,p[1]);
+    x.fillStyle=g; x.fillRect(0,0,256,256);
+    if(a.style===0){
+      for(i=11;i>0;i--){ x.beginPath(); x.arc(128,128,i*13,0,TAU); x.fillStyle=(i%2?p[2]:p[1]); x.globalAlpha=.16+i*.05; x.fill(); }
+      x.globalAlpha=1; x.strokeStyle=p[3]; x.lineWidth=3;
+      for(i=0;i<8;i++){ x.beginPath(); x.moveTo(128,128); x.lineTo(128+Math.cos(i/8*TAU)*180,128+Math.sin(i/8*TAU)*180); x.stroke(); }
+    } else if(a.style===1){
+      x.strokeStyle=p[2]; x.lineWidth=2; x.globalAlpha=.85;
+      for(i=0;i<14;i++){ n=140+i*i*.85; x.beginPath(); x.moveTo(0,n); x.lineTo(256,n); x.stroke(); }
+      for(i=-7;i<=7;i++){ x.beginPath(); x.moveTo(128,140); x.lineTo(128+i*70,256); x.stroke(); }
+      x.globalAlpha=1; x.fillStyle=p[3]; x.beginPath(); x.arc(128,118,46,0,TAU); x.fill();
+      x.fillStyle=p[1]; for(i=0;i<5;i++) x.fillRect(78,104+i*11,100,4);
+    } else if(a.style===2){
+      x.fillStyle=p[2]; for(i=0;i<7;i++) x.fillRect(0,40+i*26,256,26-i*3);
+      x.fillStyle=p[3]; x.beginPath(); x.arc(128,110,54,0,TAU); x.fill();
+      x.fillStyle=p[0]; x.globalAlpha=.5; for(i=0;i<6;i++) x.fillRect(60,96+i*13,136,5); x.globalAlpha=1;
+    } else {
+      x.fillStyle=p[2];
+      for(i=0;i<8;i++) for(j=0;j<8;j++) if(((i*3+j*5)%7)<3) x.fillRect(i*32+3,j*32+3,26,26);
+      x.strokeStyle=p[4]; x.lineWidth=6; x.strokeRect(22,22,212,212);
+    }
+    var d=x.getImageData(0,0,256,256), q=d.data;
+    for(i=0;i<q.length;i+=4){ n=(Math.random()-0.5)*26; q[i]+=n; q[i+1]+=n; q[i+2]+=n; }
+    x.putImageData(d,0,0); return c;
+  }
+  function extractAccent(cv){
+    var d=cv.getContext("2d").getImageData(0,0,256,256).data;
+    var best=[0,229,255], bs=-1, i,r,g,b,mx,mn,sat,lum,sc;
+    for(i=0;i<d.length;i+=44){
+      r=d[i]/255; g=d[i+1]/255; b=d[i+2]/255;
+      mx=Math.max(r,g,b); mn=Math.min(r,g,b);
+      sat = mx===0?0:(mx-mn)/mx; lum=0.299*r+0.587*g+0.114*b;
+      sc = sat*1.9 + (1-Math.abs(lum-0.62)*1.6);
+      if(sc>bs){ bs=sc; best=[d[i],d[i+1],d[i+2]]; }
+    }
+    return [best[0]/255,best[1]/255,best[2]/255];
+  }
+
+  var cv=document.getElementById("gl");
+  var gl=cv.getContext("webgl2",{antialias:false,alpha:false});
+  if(!gl){ document.getElementById("paused").classList.add("on");
+    document.getElementById("play").textContent="WebGL2 unavailable in this browser"; return; }
+
+  function sh(t,s){ var o=gl.createShader(t); gl.shaderSource(o,s); gl.compileShader(o);
+    if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(o)); return o; }
+  function prog(v,f){ var p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,v));
+    gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f)); gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p)); return p; }
+
+  var VS=`#version 300 es
+  precision highp float;
+  in vec3 aPos; in vec2 aUv;
+  uniform mat4 uProj;
+  uniform float uTime,uSpeed,uSeg,uRadius,uJitter,uAffine,uBeat,uCurve,uFogOn;
+  out vec2 vUv; out float vW; out float vFog; out float vRim;
+  void main(){
+    float ring=aPos.z;
+    float z=-(ring*uSeg)+mod(uTime*uSpeed,uSeg);
+    float ease=smoothstep(0.0,70.0,-z);
+    float cx=sin(z*0.028+uTime*0.45)*uCurve*ease;
+    float cy=cos(z*0.019+uTime*0.33)*uCurve*0.62*ease;
+    float r=uRadius*(1.0+uBeat*0.13);
+    vec4 clip=uProj*vec4(aPos.x*r+cx, aPos.y*r+cy, z, 1.0);
+    if(uJitter>0.5){
+      vec3 ndc=clip.xyz/clip.w;
+      ndc.xy=floor(ndc.xy*vec2(150.0,90.0)+0.5)/vec2(150.0,90.0);
+      clip.xyz=ndc*clip.w;
+    }
+    gl_Position=clip;
+    vW=mix(1.0,clip.w,uAffine);
+    vUv=aUv*vW;
+    vFog=uFogOn*clamp((-z)/230.0,0.0,1.0);
+    vRim=abs(aPos.y)*0.5+0.5;
+  }`;
+  var FS=`#version 300 es
+  precision highp float;
+  in vec2 vUv; in float vW; in float vFog; in float vRim;
+  uniform sampler2D uTex; uniform vec3 uAccent; uniform float uDither,uQuant,uBeat;
+  out vec4 o;
+  const mat4 B=mat4(0.0,8.0,2.0,10.0, 12.0,4.0,14.0,6.0, 3.0,11.0,1.0,9.0, 15.0,7.0,13.0,5.0);
+  void main(){
+    vec3 c=texture(uTex,vUv/vW).rgb;
+    c*=0.55+0.55*vRim;
+    c=mix(c,uAccent,uBeat*0.30);
+    c=mix(c,uAccent*0.34+vec3(0.02,0.01,0.06),vFog*vFog);
+    c+=((B[int(mod(gl_FragCoord.x,4.0))][int(mod(gl_FragCoord.y,4.0))]/16.0)-0.5)*(uDither/26.0);
+    c=mix(c,floor(c*31.0+0.5)/31.0,uQuant);
+    o=vec4(clamp(c,0.0,1.0),1.0);
+  }`;
+  var PVS=`#version 300 es
+  precision highp float; in vec2 aP; out vec2 vT;
+  void main(){ vT=aP*0.5+0.5; gl_Position=vec4(aP,0.0,1.0); }`;
+  var PFS=`#version 300 es
+  precision highp float; in vec2 vT; uniform sampler2D uT; uniform float uCrt,uH; out vec4 o;
+  void main(){
+    vec2 uv=vT; vec2 d=uv-0.5;
+    uv=mix(uv,uv+d*dot(d,d)*0.11,uCrt);
+    if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){ o=vec4(0.0,0.0,0.0,1.0); return; }
+    float ab=uCrt*0.0022;
+    vec3 c=vec3(texture(uT,uv+vec2(ab,0.0)).r, texture(uT,uv).g, texture(uT,uv-vec2(ab,0.0)).b);
+    c*=1.0-uCrt*0.20*pow(sin(uv.y*uH*3.14159),2.0);
+    c*=1.0-uCrt*0.55*dot(d,d);
+    o=vec4(c,1.0);
+  }`;
+  var P=prog(VS,FS), PP=prog(PVS,PFS);
+
+  var RINGS=70,SEGS=22,pos=[],uvs=[],idx=[],i,j,a;
+  for(i=0;i<=RINGS;i++) for(j=0;j<=SEGS;j++){
+    a=j/SEGS*TAU; pos.push(Math.cos(a),Math.sin(a),i); uvs.push(j/SEGS*4.0,i*1.0);
+  }
+  for(i=0;i<RINGS;i++) for(j=0;j<SEGS;j++){
+    var A=i*(SEGS+1)+j,Bv=A+1,C=A+(SEGS+1),D=C+1; idx.push(A,C,Bv,Bv,C,D);
+  }
+  var vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+  function buf(data,loc,size){ var b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0); }
+  buf(pos,gl.getAttribLocation(P,"aPos"),3);
+  buf(uvs,gl.getAttribLocation(P,"aUv"),2);
+  var ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+
+  var qvao=gl.createVertexArray(); gl.bindVertexArray(qvao);
+  var qb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,qb);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  var qa=gl.getAttribLocation(PP,"aP");
+  gl.enableVertexAttribArray(qa); gl.vertexAttribPointer(qa,2,gl.FLOAT,false,0,0);
+  gl.bindVertexArray(null);
+
+  var tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+
+  var accent=[0,0.9,1];
+  function loadAlbum(n){
+    var alb=ALBUMS[n], cover=drawCover(alb);
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,cover);
+    accent=extractAccent(cover);
+    document.getElementById("art").getContext("2d").drawImage(cover,0,0);
+    document.getElementById("t-title").textContent=alb.name;
+    document.getElementById("t-artist").textContent=alb.artist+" — "+S.bpm+" BPM";
+    document.querySelectorAll("#albums button").forEach(function(b,k){
+      b.setAttribute("aria-pressed",k===n?"true":"false"); });
+  }
+
+  var fbo=gl.createFramebuffer(), ftex=gl.createTexture(), fw=0,fh=0;
+  gl.bindTexture(gl.TEXTURE_2D,ftex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  function sizeFbo(w,h){
+    if(w===fw&&h===fh) return; fw=w; fh=h;
+    gl.bindTexture(gl.TEXTURE_2D,ftex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,w,h,0,gl.RGB,gl.UNSIGNED_BYTE,null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,ftex,0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    document.getElementById("res").textContent=w+"×"+h;
+  }
+  function persp(fovy,asp,n,f){ var t=1/Math.tan(fovy/2);
+    return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]); }
+
+  var S={bpm:172,speed:26,res:4,jitter:1,affine:1,dither:1,quant:1,crt:1,fog:1,beat:1,run:true};
+  var U={};
+  ["uProj","uTime","uSpeed","uSeg","uRadius","uJitter","uAffine","uBeat","uCurve","uFogOn","uTex","uAccent","uDither","uQuant"]
+    .forEach(function(n){ U[n]=gl.getUniformLocation(P,n); });
+  var PU={uT:gl.getUniformLocation(PP,"uT"),uCrt:gl.getUniformLocation(PP,"uCrt"),uH:gl.getUniformLocation(PP,"uH")};
+
+  var albWrap=document.getElementById("albums");
+  ALBUMS.forEach(function(alb,n){
+    var b=document.createElement("button");
+    b.textContent=String(n+1).padStart(2,"0"); b.title=alb.name;
+    b.setAttribute("aria-pressed",n===0?"true":"false");
+    b.addEventListener("click",function(){ loadAlbum(n); });
+    albWrap.appendChild(b);
+  });
+  function toggle(id,key){ var b=document.getElementById(id);
+    b.addEventListener("click",function(){ S[key]=S[key]?0:1; b.setAttribute("aria-pressed",S[key]?"true":"false"); }); }
+  toggle("f-jitter","jitter"); toggle("f-affine","affine"); toggle("f-dither","dither");
+  toggle("f-quant","quant"); toggle("f-crt","crt"); toggle("f-fog","fog"); toggle("f-beat","beat");
+  function slider(id,out,key,fmt){ var s=document.getElementById(id),o=document.getElementById(out);
+    function up(){ S[key]=+s.value; o.textContent=fmt(S[key]); } s.addEventListener("input",up); up(); }
+  slider("s-bpm","o-bpm","bpm",function(v){
+    var el=document.getElementById("t-artist");
+    el.textContent=el.textContent.replace(/—.*$/,"— "+v+" BPM"); return v; });
+  slider("s-speed","o-speed","speed",function(v){return v;});
+  slider("s-res","o-res","res",function(v){return Math.round(1080/v/2)*2+"p";});
+
+  var bars=[],specEl=document.getElementById("spec");
+  for(i=0;i<22;i++){ var e=document.createElement("i"); specEl.appendChild(e); bars.push(e); }
+
+  var pausedEl=document.getElementById("paused");
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){ S.run=false; pausedEl.classList.add("on"); }
+  document.getElementById("play").addEventListener("click",function(){
+    S.run=true; pausedEl.classList.remove("on"); last=performance.now(); loop(last); });
+
+  loadAlbum(0);
+  var t=0,last=performance.now(),fAcc=0,fCnt=0,pr=0.18;
+  function frame(now){
+    var dt=Math.min((now-last)/1000,0.05); last=now;
+    if(S.run) t+=dt;
+    var dpr=Math.min(window.devicePixelRatio||1,2);
+    var W=Math.round(cv.clientWidth*dpr),H=Math.round(cv.clientHeight*dpr);
+    if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
+    sizeFbo(Math.max(64,Math.round(W/S.res/dpr)),Math.max(36,Math.round(H/S.res/dpr)));
+    var beat=S.beat?Math.pow(1-((t*(S.bpm/60))%1),4):0;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.viewport(0,0,fw,fh);
+    gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT);
+    gl.useProgram(P); gl.bindVertexArray(vao);
+    gl.uniformMatrix4fv(U.uProj,false,persp(1.15,fw/fh,0.5,500));
+    gl.uniform1f(U.uTime,t); gl.uniform1f(U.uSpeed,S.speed); gl.uniform1f(U.uSeg,6.0);
+    gl.uniform1f(U.uRadius,7.0); gl.uniform1f(U.uJitter,S.jitter); gl.uniform1f(U.uAffine,S.affine);
+    gl.uniform1f(U.uBeat,beat); gl.uniform1f(U.uCurve,3.0); gl.uniform1f(U.uFogOn,S.fog);
+    gl.uniform1f(U.uDither,S.dither); gl.uniform1f(U.uQuant,S.quant);
+    gl.uniform3f(U.uAccent,accent[0],accent[1],accent[2]);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,tex); gl.uniform1i(U.uTex,0);
+    gl.drawElements(gl.TRIANGLES,idx.length,gl.UNSIGNED_SHORT,0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.viewport(0,0,cv.width,cv.height); gl.disable(gl.CULL_FACE);
+    gl.useProgram(PP); gl.bindVertexArray(qvao);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,ftex);
+    gl.uniform1i(PU.uT,0); gl.uniform1f(PU.uCrt,S.crt); gl.uniform1f(PU.uH,fh);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+
+    for(i=0;i<bars.length;i++){
+      var bd=Math.abs(Math.sin(t*(1.1+i*0.31)+i))*0.55+beat*(1-i/bars.length)*0.9;
+      bars[i].style.height=(4+bd*32)+"px";
+    }
+    if(S.run){ pr+=dt/210; if(pr>1) pr=0;
+      document.getElementById("t-prog").style.width=(pr*100).toFixed(1)+"%"; }
+    fAcc+=dt; fCnt++;
+    if(fAcc>0.5){ document.getElementById("fps").textContent=Math.round(fCnt/fAcc); fAcc=0; fCnt=0; }
+  }
+  function loop(now){ frame(now); if(S.run) requestAnimationFrame(loop); }
+  frame(performance.now());
+  if(S.run) requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
