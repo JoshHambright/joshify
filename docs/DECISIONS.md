@@ -270,3 +270,22 @@ is one phase of nine, and Phases 1–4 are what make the device worth owning at 
 mode). Autostereograms failed it and were cut.
 **Costs:** Some good ideas sit unbuilt. That's the point.
 **Status:** ✅ Accepted.
+
+---
+
+### D-020 · `Result` ships without combinators until P1-09
+**Chose:** `packages/core` exports `Result`, `ok`, `err`, `isOk`, `isErr` — and
+deliberately no `map` / `mapErr` / `andThen`.
+**Why:** A first pass included them and they were **unsound in ordinary use**.
+TypeScript narrows a variable by its assignment, so `const r: Result<number,
+string> = err('boom')` has the flow type `Err<string>` at every use site despite
+its declared type. A combinator inferring both `T` and `E` from that argument
+only ever sees one branch; the other parameter silently resolves to `unknown`,
+and so does the callback argument. `strictTypeChecked` caught it on its first
+run — which is exactly what Phase 0 exists to do.
+Fixing it properly means threading both parameters through both branches
+(phantom typing). That is real library design and wants real requirements;
+P1-09's error taxonomy provides them. The type guards have no such problem:
+they take the union and narrow it, inferring nothing from a callback.
+**Costs:** Slightly more verbose call sites until P1-09.
+**Status:** ✅ Accepted.

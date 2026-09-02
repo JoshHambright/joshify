@@ -35,7 +35,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | Phase | Title | Tasks | Done | Status |
 |---|---|:---:|:---:|---|
-| 0 | Foundation | 8 | 0 | ⬜ Not started |
+| 0 | Foundation | 8 | 0 | 🟨 Built — awaiting CI |
 | 1 | Spotify identity & API client | 11 | 0 | ⬜ Not started |
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
@@ -54,14 +54,14 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P0-01 | Clear the feature branch and scaffold the pnpm workspace | ⬜ | `packages/core`, `apps/server`, `apps/ui` |
-| P0-02 | Base TypeScript config (strict) shared across workspaces | ⬜ | `strict`, `noUncheckedIndexedAccess` |
-| P0-03 | ESLint + Prettier, wired to a single `pnpm lint` | ⬜ | |
-| P0-04 | Vitest set up with coverage reporting | ⬜ | Coverage floor enforced from P1 |
-| P0-05 | `pnpm verify` composite script (lint + typecheck + test + build) | ⬜ | One command; CI runs exactly this |
-| P0-06 | GitHub Actions CI workflow on push + PR | ⬜ | Node 22, pnpm cache |
-| P0-07 | Repo hygiene: `.gitignore`, `.nvmrc`, `.env.example`, LICENSE | ⬜ | |
-| P0-08 | README skeleton pointing at the docs | ⬜ | |
+| P0-01 | Clear the feature branch and scaffold the pnpm workspace | 🟨 | `packages/core`, `apps/server`, `apps/ui`. pnpm 10 + Node 22 |
+| P0-02 | Base TypeScript config (strict) shared across workspaces | 🟨 | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, project references |
+| P0-03 | ESLint + Prettier, wired to a single `pnpm lint` | 🟨 | `strictTypeChecked`. Caught a real unsound generic on its first run |
+| P0-04 | Vitest set up with coverage reporting | 🟨 | v8 provider, 90% thresholds. Currently 100% |
+| P0-05 | `pnpm verify` composite script (lint + typecheck + test + build) | 🟨 | One command; CI runs exactly this |
+| P0-06 | GitHub Actions CI workflow on push + PR | 🟨 | Node from `.nvmrc`, pnpm cache, `--frozen-lockfile` |
+| P0-07 | Repo hygiene: `.gitignore`, `.nvmrc`, `.env.example`, LICENSE | 🟨 | `.env` gitignored. MIT licence |
+| P0-08 | README skeleton pointing at the docs | 🟨 | Commands, layout, and the docs map |
 
 ---
 
