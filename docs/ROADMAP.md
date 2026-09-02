@@ -20,7 +20,7 @@ a hardware spike well before we've built enough to be painful to change.
 
 ---
 
-## Phase 0 — Foundation
+## Phase 0 — Foundation ✅
 
 *Goal: an empty but rigorous repo. Everything after this is downhill.*
 

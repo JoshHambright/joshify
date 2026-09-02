@@ -8,7 +8,8 @@ desktop over Spotify Connect. Optionally, it can also *be* a Connect target.
 
 The visualiser renders your album art as a 1998 PlayStation tunnel.
 
-> **Status: Phase 0 of 9.** Foundation is in place; no product code yet.
+> **Status: Phase 0 complete, starting Phase 1.** Foundation and CI are green;
+> no product code yet.
 > Progress lives in [`docs/TRACKING.md`](docs/TRACKING.md).
 
 ## Requirements
