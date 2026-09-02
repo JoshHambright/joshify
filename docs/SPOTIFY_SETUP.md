@@ -46,9 +46,9 @@ Requested at authorization time. Joshify asks for the minimum needed:
 | `user-modify-playback-state` | All transport, volume, and device transfer |
 | `user-read-currently-playing` | Currently playing item |
 | `user-read-private` | Detect Premium vs free, for the explanatory screen |
-| `user-library-read` | Saved albums browse (Phase 5) |
-| `playlist-read-private` | Playlist browse (Phase 5) |
-| `playlist-read-collaborative` | Collaborative playlists in browse (Phase 5) |
+| `user-library-read` | Saved albums browse (Phase 6) |
+| `playlist-read-private` | Playlist browse (Phase 6) |
+| `playlist-read-collaborative` | Collaborative playlists in browse (Phase 6) |
 
 We deliberately request **no write scopes for library or playlists**. Joshify
 never modifies your saved music.

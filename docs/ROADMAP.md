@@ -86,7 +86,7 @@ bar.
 
 **Hardware spike (do this early in the phase):** get *something* rendering on the
 real Zero 2 W under `cog` and measure it. If WPE can't do it, we need to know now,
-not at Phase 6.
+not at Phase 7.
 
 **Exit criterion:** on real hardware, a full-screen Now Playing view that tracks
 real playback, re-themes on track change, and holds a steady frame rate.
@@ -108,7 +108,36 @@ and a track scrubbed — entirely by touch, on hardware.
 
 ---
 
-## Phase 5 — Search & library
+## Phase 5 — Visualizer
+
+*Goal: the sick part. Winamp-lineage visuals driven by the album art.*
+
+A WebGL2 post-processing engine that takes the album cover as its source texture
+and runs it through a composable chain of shader passes: Milkdrop-style feedback,
+glitch and datamosh, VHS/CRT degradation, and the classic spectrum bars.
+
+The hard problem is reactivity, since Spotify's audio endpoints are gone. We solve
+it with **three interchangeable providers behind one uniform contract** —
+procedural (always works), BPM-lookup by ISRC (works while remote-controlling),
+and real FFT off the librespot PCM tap (when the Pi plays the audio). The shaders
+never know which one is feeding them.
+
+Presets combine effects into named looks and can shuffle on track change. The
+visualizer is a *mode*, with an auto-enter-on-idle screensaver behaviour.
+
+Key insight: rendering at half resolution cuts fragment cost 4x **and is the
+lofi aesthetic we want anyway**. The performance dial and the art direction are
+the same slider.
+
+Full design in [VISUALIZER.md](./VISUALIZER.md).
+
+**Exit criterion:** on real hardware, a full-screen visualizer holding its frame
+budget, reacting to the beat, with preset switching by touch and a measured
+legibility floor behind the controls.
+
+---
+
+## Phase 6 — Search & library
 
 *Goal: you never need to reach for your phone.*
 
@@ -122,7 +151,7 @@ with the list scrolling smoothly on hardware.
 
 ---
 
-## Phase 6 — Appliance & hardening
+## Phase 7 — Appliance & hardening
 
 *Goal: it stops being a program and becomes a device.*
 
@@ -136,7 +165,7 @@ met, including the 7-day soak.
 
 ---
 
-## Phase 7 — Packaging, CI/CD & the optional audio module
+## Phase 8 — Packaging, CI/CD & the optional audio module
 
 *Goal: someone else can install it.*
 

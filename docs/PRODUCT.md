@@ -83,6 +83,19 @@ untouched for a while, controls fade away and leave only the art.
   albums, artists and playlists, plus browse of saved albums and playlists. Tap
   a result to play it on the active device.
 
+### 5.2b The Visualizer
+
+A full Winamp-lineage visualizer engine that uses **the album art itself as the
+source texture** — Milkdrop-style feedback tunnels, glitch and datamosh, VHS and
+CRT degradation, and the classic spectrum bars.
+
+It is a *mode*, not the whole app: Now Playing by default, an ambient setting with
+effects behind the art, and a full-screen mode it drifts into on idle like a
+screensaver. Legibility is a hard floor — the title stays readable and the
+transport stays hittable at any effect intensity.
+
+Full design: [VISUALIZER.md](./VISUALIZER.md).
+
 ### 5.3 Design principles
 
 1. **The art is the interface.** Chrome recedes; the album is the hero.
@@ -102,7 +115,7 @@ These are the real boundaries of what Joshify can be. They shaped the plan.
 |---|---|
 | **Spotify Premium is required** for every `/me/player` write endpoint. | Joshify is a Premium-only product. Free accounts get a clear explanatory screen, not a broken UI. |
 | **No Canvas API.** The looping videos are served by undocumented, reverse-engineered endpoints that violate Spotify's ToS. | **Cut from scope.** Not built, not shimmed. |
-| **`audio-analysis` and `audio-features` were deprecated for new apps on 2024-11-27**, with no replacement. Also gone: `recommendations`, `related-artists`, `featured-playlists`, category playlists. | **No audio-reactive visuals.** No beat-synced pulsing, no tempo-driven motion. All motion is procedural and time-based. Also: no "discover" features. |
+| **`audio-analysis` and `audio-features` were deprecated for new apps on 2024-11-27**, with no replacement. Also gone: `recommendations`, `related-artists`, `featured-playlists`, category playlists. | No *Spotify-supplied* analysis. Reactivity comes from three other sources instead (VISUALIZER.md) — tempo by ISRC lookup, and a real PCM tap when the Pi plays the audio. No "discover" features, since those endpoints have no substitute. |
 | **The playback queue is read-mostly.** `GET /me/player/queue` and add-to-queue exist; there is **no reorder and no remove** endpoint. | Queue is **view + add + jump-by-skip**. Reordering is impossible via the public API and is explicitly out of scope. Playlist reordering (a different endpoint) is a possible future. |
 | **No push/websocket for playback state.** State must be polled. | An adaptive polling scheduler plus local progress interpolation — see §8.2. |
 | **Redirect URI rules tightened**: Spotify now requires HTTPS, or literal loopback `http://127.0.0.1:{port}` (**not** `localhost`). | Auth is Authorization Code + PKCE against a loopback redirect. Requires a first-run flow that works on a headless-ish appliance — flagged as a Phase 1 spike. |
@@ -209,7 +222,7 @@ Joshify v1.0 is done when, on real Pi Zero 2 W hardware:
 ## 10. Explicitly out of scope for v1
 
 - Spotify Canvas / music videos (§6).
-- Audio-reactive or beat-synced visuals (§6 — API no longer exists).
+- Music discovery / recommendations (§6 — API no longer exists).
 - Queue reordering or removal (§6 — API does not exist).
 - Lyrics (no public API).
 - Multi-user / account switching.

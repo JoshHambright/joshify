@@ -62,14 +62,15 @@ the album art and derived theming genuinely excellent instead.
 
 ---
 
-### D-006 · No audio-reactive visuals
-**Chose:** All motion is procedural and time-based.
-**Why:** Not a choice so much as a fact. `audio-analysis` and `audio-features`
-were deprecated for new applications on 2024-11-27 with no replacement; new apps
-receive `403`. Beat-synced visuals are simply not buildable on the public API.
-**Costs:** No pulsing-to-the-beat. Also rules out `recommendations` and
-`related-artists`, so no discovery features.
-**Status:** ✅ Accepted (forced)
+### D-006 · ~~No audio-reactive visuals~~ — **SUPERSEDED by D-010**
+**Originally chose:** all motion procedural and time-based, on the grounds that
+`audio-analysis`/`audio-features` were deprecated for new apps on 2024-11-27.
+**Why it was wrong:** the deprecation removes *Spotify's* analysis, not every
+possible reactivity signal. Two other routes exist — tempo lookup by ISRC, and a
+real PCM tap when the Pi is the playback device.
+**Status:** ❌ Superseded. The API facts stand; the conclusion drawn from them
+did not. The *derived* consequence — no `recommendations`/`related-artists`, so
+no discovery features — remains true and is unaffected.
 
 ---
 
@@ -90,8 +91,8 @@ remains a possible future.
 chosen feature scope now includes search and library browse — the most
 memory-hungry screens — a beefier board may be a materially better trade.
 **Costs:** TBD.
-**Status:** 🔬 **OPEN** — see [HARDWARE.md](./HARDWARE.md). Blocks P3-01, P6-01,
-P6-02, P6-06, P7-08. Several decisions above (D-004 in particular) relax if this
+**Status:** 🔬 **OPEN** — see [HARDWARE.md](./HARDWARE.md). Blocks P3-01, P7-01,
+P7-02, P7-06, P8-08. Several decisions above (D-004 in particular) relax if this
 changes.
 
 ---
@@ -103,4 +104,41 @@ Web Playback SDK.
 ARM Linux Chromium builds. It is a dead end on this hardware regardless of board.
 **Costs:** A second, non-Node component to install and supervise. Kept opt-in and
 scheduled last so it can be cut freely.
+**Status:** ✅ Accepted
+
+---
+
+### D-010 · Three-tier reactivity behind one uniform contract
+**Chose:** A single `ReactivityProvider` interface filling one GLSL uniform block,
+with three implementations: **Tier 0** procedural (always), **Tier 1** BPM by ISRC
+lookup (remote-control mode), **Tier 2** real FFT off a PCM tap (when the Pi plays
+the audio, or from a mic).
+**Why:** It makes the visualizer's quality degrade gracefully instead of failing.
+Shaders are written once against the contract and never branch on data source.
+It also makes the whole engine testable headlessly by scripting the provider.
+**Costs:** An abstraction where a simpler build would hardcode. Tier 1 gives
+tempo but not downbeat phase (mitigated by tap-tempo, P5-11).
+**Status:** ✅ Accepted. Supersedes D-006. See [VISUALIZER.md](./VISUALIZER.md).
+
+---
+
+### D-011 · Half-resolution rendering as both optimisation and art direction
+**Chose:** Render the visualizer chain at 0.5× and upscale; expose the scale as a
+user-facing "grain" slider. Sharp elements (spectrum bars, text) composite in a
+final full-resolution pass.
+**Why:** Cuts fragment shader work **4×** — by far the largest performance lever.
+And the soft, chunky upscale *is* the lofi/VHS aesthetic being asked for, so the
+performance dial and the look are literally the same control. Rare case where the
+cheap thing is also the better-looking thing.
+**Costs:** Effects needing precision must be explicitly promoted to the sharp pass.
+**Status:** ✅ Accepted
+
+---
+
+### D-012 · Effects are data, not code paths
+**Chose:** A preset is a JSON list of passes with parameters; each effect is a
+standalone fragment shader file.
+**Why:** Adding an effect becomes adding a file, not editing a pipeline. Presets
+become user-editable and shareable. Keeps the engine small while the catalogue grows.
+**Costs:** A small amount of indirection and a uniform-binding layer.
 **Status:** ✅ Accepted

@@ -40,10 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
-| 5 | Search & library | 9 | 0 | ⬜ Not started |
-| 6 | Appliance & hardening | 12 | 0 | ⬜ Not started |
-| 7 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **83** | **0** | |
+| 5 | **Visualizer** | 17 | 0 | ⬜ Not started |
+| 6 | Search & library | 9 | 0 | ⬜ Not started |
+| 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
+| 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
+| | **Total** | **100** | **0** | |
 
 ---
 
@@ -143,62 +144,90 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 ---
 
-## Phase 5 — Search & library
+## Phase 5 — Visualizer
+
+> **Exit criterion:** full-screen visualizer on hardware, holding frame budget, beat-reactive, preset switching by touch, legibility floor measured.
+
+Design: [VISUALIZER.md](./VISUALIZER.md)
+
+| ID | Task | Status | Notes |
+|---|---|:---:|---|
+| P5-01 | WebGL2 render pipeline: ping-pong FBOs, pass chain, uniform contract | ⬜ | Presets are data (JSON), not code paths |
+| P5-02 | 🔬 **Spike: BPM source bake-off.** Coverage test against Josh's real library | ⬜ | GetSongBPM vs AcousticBrainz dump vs Deezer-by-ISRC |
+| P5-03 | `ReactivityProvider` interface + Tier 0 procedural implementation | ⬜ | Always-available floor. Injected, so testable headlessly |
+| P5-04 | Tier 1: ISRC→BPM lookup, permanent disk cache, phase-locked pulse | ⬜ | `external_ids.isrc` is **not** deprecated |
+| P5-05 | Tier 2: PCM tap + FFT + beat detection | ⬜ | librespot `--backend pipe`: s16le, 44.1kHz, stereo. **Gated on V1** |
+| P5-06 | Effect family A — feedback (zoom tunnel, rotational, warp, echo) | ⬜ | The Milkdrop core technique |
+| P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ⬜ | |
+| P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ⬜ | |
+| P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ⬜ | Bars are non-negotiable |
+| P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
+| P5-11 | Tap-tempo / nudge-phase touch control | ⬜ | Fixes Tier 1's missing downbeat phase in two taps |
+| P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ⬜ | `VHS`, `Tunnel`, `Datamosh`, `Ghost`, `Newsprint`, `Vapor` |
+| P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ⬜ | 4x fragment saving **and** the aesthetic |
+| P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ⬜ | |
+| P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | ⬜ | The screensaver behaviour |
+| P5-16 | **Legibility floor test** — contrast behind text at any intensity | ⬜ | Enforced in tests, not by eye |
+| P5-17 | Headless engine tests driven by a scripted reactivity sequence | ⬜ | No GPU needed in CI |
+
+---
+
+## Phase 6 — Search & library
 
 > **Exit criterion:** find and play an arbitrary track from the touchscreen alone, scrolling smoothly.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P5-01 | Search endpoint proxy with debouncing + cancellation | ⬜ | |
-| P5-02 | On-screen keyboard component | ⬜ | Touch-sized, no physical keyboard assumed |
-| P5-03 | Search results UI (tracks / albums / artists / playlists) | ⬜ | |
-| P5-04 | **Virtualised list component** | ⬜ | Biggest memory risk on the Zero 2 W |
-| P5-05 | Saved albums browse | ⬜ | |
-| P5-06 | Playlists browse + playlist detail | ⬜ | |
-| P5-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
-| P5-08 | Thumbnail loading strategy for long lists | ⬜ | Lazy + evict; must not grow unbounded |
-| P5-09 | Performance test: long-list scroll on hardware | ⬜ | Explicit budget, fails CI-on-hardware if exceeded |
+| P6-01 | Search endpoint proxy with debouncing + cancellation | ⬜ | |
+| P6-02 | On-screen keyboard component | ⬜ | Touch-sized, no physical keyboard assumed |
+| P6-03 | Search results UI (tracks / albums / artists / playlists) | ⬜ | |
+| P6-04 | **Virtualised list component** | ⬜ | Biggest memory risk on the Zero 2 W |
+| P6-05 | Saved albums browse | ⬜ | |
+| P6-06 | Playlists browse + playlist detail | ⬜ | |
+| P6-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
+| P6-08 | Thumbnail loading strategy for long lists | ⬜ | Lazy + evict; must not grow unbounded |
+| P6-09 | Performance test: long-list scroll on hardware | ⬜ | Explicit budget, fails CI-on-hardware if exceeded |
 
 ---
 
-## Phase 6 — Appliance & hardening
+## Phase 7 — Appliance & hardening
 
 > **Exit criterion:** all seven PRODUCT.md §9 success criteria measured and met.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P6-01 | 64-bit Raspberry Pi OS Lite base image documented | ⬜ | Zero 2 W is ARM64-capable; 32-bit default is wrong for us |
-| P6-02 | `cog` kiosk on DRM/KMS, no desktop environment | ⬜ | Chromium fallback path documented |
-| P6-03 | systemd unit for `joshify-server` | ⬜ | Restart-on-failure, journald logging |
-| P6-04 | systemd unit for the kiosk UI | ⬜ | Ordered after server readiness |
-| P6-05 | Boot splash → app handoff with no flicker or console text | ⬜ | |
-| P6-06 | Display config: resolution, rotation, blanking policy | ⬜ | |
-| P6-07 | Network-loss resilience + offline state | ⬜ | Shows last known truth, recovers silently |
-| P6-08 | Spotify outage / 5xx resilience | ⬜ | Backoff, no error spam |
-| P6-09 | Unattended token refresh over multi-day runtime | ⬜ | Success criterion #5 |
-| P6-10 | Memory budget enforcement: RSS < 400MB combined | ⬜ | Success criterion #6 |
-| P6-11 | 7-day soak test with leak detection | ⬜ | Success criterion #5 |
-| P6-12 | Cold-boot-to-Now-Playing < 60s measurement | ⬜ | Success criterion #1 |
+| P7-01 | 64-bit Raspberry Pi OS Lite base image documented | ⬜ | Zero 2 W is ARM64-capable; 32-bit default is wrong for us |
+| P7-02 | `cog` kiosk on DRM/KMS, no desktop environment | ⬜ | Chromium fallback path documented |
+| P7-03 | systemd unit for `joshify-server` | ⬜ | Restart-on-failure, journald logging |
+| P7-04 | systemd unit for the kiosk UI | ⬜ | Ordered after server readiness |
+| P7-05 | Boot splash → app handoff with no flicker or console text | ⬜ | |
+| P7-06 | Display config: resolution, rotation, blanking policy | ⬜ | |
+| P7-07 | Network-loss resilience + offline state | ⬜ | Shows last known truth, recovers silently |
+| P7-08 | Spotify outage / 5xx resilience | ⬜ | Backoff, no error spam |
+| P7-09 | Unattended token refresh over multi-day runtime | ⬜ | Success criterion #5 |
+| P7-10 | Memory budget enforcement: RSS < 400MB combined | ⬜ | Success criterion #6 |
+| P7-11 | 7-day soak test with leak detection | ⬜ | Success criterion #5 |
+| P7-12 | Cold-boot-to-Now-Playing < 60s measurement | ⬜ | Success criterion #1 |
 
 ---
 
-## Phase 7 — Packaging, CI/CD & optional audio
+## Phase 8 — Packaging, CI/CD & optional audio
 
 > **Exit criterion:** blank SD card → working Joshify in under 30 minutes via the README.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P7-01 | Multi-arch container build (`linux/arm64`) via buildx + QEMU | ⬜ | |
-| P7-02 | Container image published from CI on tag | ⬜ | |
-| P7-03 | `docker-compose.yml` for the container path | ⬜ | |
-| P7-04 | One-line install script (non-container path) | ⬜ | Installs systemd units + first-run auth |
-| P7-05 | Release pipeline: versioning, changelog, tagged artefacts | ⬜ | |
-| P7-06 | E2E smoke test in CI against the fake Spotify server | ⬜ | Playwright |
-| P7-07 | Installation documentation | ⬜ | Written for a stranger, not for us |
-| P7-08 | Hardware guide: screen, case, wiring, OS flashing | ⬜ | |
-| P7-09 | Optional `librespot` module: install + systemd unit | ⬜ | Opt-in; must not break core install |
-| P7-10 | librespot device appears in Devices screen | ⬜ | |
-| P7-11 | Audio output guide (Zero 2 W has no analogue out — DAC/HAT options) | ⬜ | |
+| P8-01 | Multi-arch container build (`linux/arm64`) via buildx + QEMU | ⬜ | |
+| P8-02 | Container image published from CI on tag | ⬜ | |
+| P8-03 | `docker-compose.yml` for the container path | ⬜ | |
+| P8-04 | One-line install script (non-container path) | ⬜ | Installs systemd units + first-run auth |
+| P8-05 | Release pipeline: versioning, changelog, tagged artefacts | ⬜ | |
+| P8-06 | E2E smoke test in CI against the fake Spotify server | ⬜ | Playwright |
+| P8-07 | Installation documentation | ⬜ | Written for a stranger, not for us |
+| P8-08 | Hardware guide: screen, case, wiring, OS flashing | ⬜ | |
+| P8-09 | Optional `librespot` module: install + systemd unit | ⬜ | Opt-in; must not break core install |
+| P8-10 | librespot device appears in Devices screen | ⬜ | |
+| P8-11 | Audio output guide (Zero 2 W has no analogue out — DAC/HAT options) | ⬜ | |
 
 ---
 
@@ -208,8 +237,11 @@ Things we don't yet know. Resolve and move to DECISIONS.md.
 
 | # | Question | Blocks | Owner |
 |---|---|---|---|
-| Q1 | Exact touchscreen model, resolution and driver? | P6-06, P7-08 | Josh |
+| Q1 | Exact touchscreen model, resolution and driver? | P7-06, P8-08 | Josh |
 | Q2 | Does the headless PKCE loopback flow actually work on-device? | P1-01 | Claude (spike) |
 | Q3 | Can `cog`/WPE hit our frame budget on a Zero 2 W? If not, fallback? | P3-01 | Claude (spike) |
-| Q4 | Container or native install as the *recommended* path on 512MB? | P7-01, P7-04 | Both, after P6 |
-| Q5 | Audio hardware for the optional librespot module? | P7-11 | Josh, if we do it |
+| Q4 | Container or native install as the *recommended* path on 512MB? | P8-01, P8-04 | Both, after P6 |
+| Q5 | Audio hardware for the optional librespot module? | P8-11 | Josh, if we do it |
+| V1 | Promote librespot to Phase 5 to unlock real-FFT visuals? | P5-05 | Josh |
+| V2 | Add a USB/I2S mic for room-listening FFT? (~$8) | P5-05 | Josh |
+| V3 | Which BPM source wins the bake-off? | P5-04 | Claude (spike) |
