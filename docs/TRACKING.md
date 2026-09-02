@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
-| 5 | **Visualizer** | 17 | 0 | ⬜ Not started |
+| 5 | **Visualizer + librespot** | 21 | 0 | ⬜ Not started |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **100** | **0** | |
+| | **Total** | **104** | **0** | |
 
 ---
 
@@ -110,7 +110,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P3-01 | 🔬 **Spike: render on real Zero 2 W under `cog`.** Measure FPS + RSS | ⬜ | **Second-highest risk.** Do before building the real UI |
+| P3-01 | 🔬 **Spike: render on real Pi 5. Chromium vs `cog`.** Measure FPS + RSS | ⬜ | **Second-highest risk.** Settles the kiosk runtime with numbers. Do before building the real UI |
 | P3-02 | Album art fetch + on-disk cache (640px hero, 64px source) | ⬜ | 64px feeds both theme and blur |
 | P3-03 | Server-side theme extraction → token set | ⬜ | Accent, foreground, control tint |
 | P3-04 | Contrast checking / correction on derived colours | ⬜ | Text must stay readable on any album |
@@ -169,6 +169,10 @@ Design: [VISUALIZER.md](./VISUALIZER.md)
 | P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | ⬜ | The screensaver behaviour |
 | P5-16 | **Legibility floor test** — contrast behind text at any intensity | ⬜ | Enforced in tests, not by eye |
 | P5-17 | Headless engine tests driven by a scripted reactivity sequence | ⬜ | No GPU needed in CI |
+| P5-18 | `librespot` install + run as a Spotify Connect target | ⬜ | Promoted from Phase 8 by D-013. **Opt-in** — Tiers 0-1 must work without it |
+| P5-19 | PCM tee: librespot pipe backend -> ALSA **and** -> server | ⬜ | s16le / 44.1kHz / stereo. Must not add audible latency |
+| P5-20 | Audio output on Pi 5: USB DAC support + detection | ⬜ | **Pi 5 has no 3.5mm jack.** USB DAC preferred over a HAT (GPIO/case conflict) |
+| P5-21 | librespot device surfaces in the Devices screen | ⬜ | Moved from P8-10 |
 
 ---
 
@@ -181,7 +185,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md)
 | P6-01 | Search endpoint proxy with debouncing + cancellation | ⬜ | |
 | P6-02 | On-screen keyboard component | ⬜ | Touch-sized, no physical keyboard assumed |
 | P6-03 | Search results UI (tracks / albums / artists / playlists) | ⬜ | |
-| P6-04 | **Virtualised list component** | ⬜ | Biggest memory risk on the Zero 2 W |
+| P6-04 | **Virtualised list component** | ⬜ | Still correct practice; no longer make-or-break on a Pi 5 |
 | P6-05 | Saved albums browse | ⬜ | |
 | P6-06 | Playlists browse + playlist detail | ⬜ | |
 | P6-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
@@ -196,16 +200,16 @@ Design: [VISUALIZER.md](./VISUALIZER.md)
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P7-01 | 64-bit Raspberry Pi OS Lite base image documented | ⬜ | Zero 2 W is ARM64-capable; 32-bit default is wrong for us |
-| P7-02 | `cog` kiosk on DRM/KMS, no desktop environment | ⬜ | Chromium fallback path documented |
+| P7-01 | 64-bit Raspberry Pi OS Lite base image documented | ⬜ | Pi 5 needs **Bookworm 64-bit or later**; Bullseye does not support it |
+| P7-02 | Kiosk browser on DRM/KMS, no desktop environment | ⬜ | Chromium or `cog`, per the P3-01 measurement |
 | P7-03 | systemd unit for `joshify-server` | ⬜ | Restart-on-failure, journald logging |
 | P7-04 | systemd unit for the kiosk UI | ⬜ | Ordered after server readiness |
 | P7-05 | Boot splash → app handoff with no flicker or console text | ⬜ | |
-| P7-06 | Display config: resolution, rotation, blanking policy | ⬜ | |
+| P7-06 | Display config: resolution, rotation, blanking policy | ⬜ | Touch Display 2 via the 22→15-way DSI adapter cable |
 | P7-07 | Network-loss resilience + offline state | ⬜ | Shows last known truth, recovers silently |
 | P7-08 | Spotify outage / 5xx resilience | ⬜ | Backoff, no error spam |
 | P7-09 | Unattended token refresh over multi-day runtime | ⬜ | Success criterion #5 |
-| P7-10 | Memory budget enforcement: RSS < 400MB combined | ⬜ | Success criterion #6 |
+| P7-10 | Memory budget enforcement: RSS < 700MB combined | ⬜ | Success criterion #6. Relaxed by D-008 |
 | P7-11 | 7-day soak test with leak detection | ⬜ | Success criterion #5 |
 | P7-12 | Cold-boot-to-Now-Playing < 60s measurement | ⬜ | Success criterion #1 |
 
@@ -224,7 +228,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md)
 | P8-05 | Release pipeline: versioning, changelog, tagged artefacts | ⬜ | |
 | P8-06 | E2E smoke test in CI against the fake Spotify server | ⬜ | Playwright |
 | P8-07 | Installation documentation | ⬜ | Written for a stranger, not for us |
-| P8-08 | Hardware guide: screen, case, wiring, OS flashing | ⬜ | |
+| P8-08 | Hardware guide: screen, case, wiring, OS flashing | ⬜ | Must call out the 22→15-way DSI cable and the 27W supply |
 | P8-09 | Optional `librespot` module: install + systemd unit | ⬜ | Opt-in; must not break core install |
 | P8-10 | librespot device appears in Devices screen | ⬜ | |
 | P8-11 | Audio output guide (Zero 2 W has no analogue out — DAC/HAT options) | ⬜ | |
@@ -237,11 +241,11 @@ Things we don't yet know. Resolve and move to DECISIONS.md.
 
 | # | Question | Blocks | Owner |
 |---|---|---|---|
-| Q1 | Exact touchscreen model, resolution and driver? | P7-06, P8-08 | Josh |
+| ~~Q1~~ | ~~Board + touchscreen?~~ | — | ✅ **Resolved: Pi 5 + Touch Display 2** (D-008) |
 | Q2 | Does the headless PKCE loopback flow actually work on-device? | P1-01 | Claude (spike) |
-| Q3 | Can `cog`/WPE hit our frame budget on a Zero 2 W? If not, fallback? | P3-01 | Claude (spike) |
-| Q4 | Container or native install as the *recommended* path on 512MB? | P8-01, P8-04 | Both, after P6 |
-| Q5 | Audio hardware for the optional librespot module? | P8-11 | Josh, if we do it |
-| V1 | Promote librespot to Phase 5 to unlock real-FFT visuals? | P5-05 | Josh |
-| V2 | Add a USB/I2S mic for room-listening FFT? (~$8) | P5-05 | Josh |
+| Q3 | Chromium or `cog`/WPE for the kiosk runtime on a Pi 5? | P3-01 | Claude (spike) |
+| Q4 | Container or native install as the *recommended* path? | P8-01, P8-04 | Both, after P7 |
+| Q5 | Which USB DAC for the librespot module? | P5-20 | Josh, before P5 |
+| ~~V1~~ | ~~Promote librespot to Phase 5?~~ | — | ✅ **Resolved: yes** (D-013) |
+| ~~V2~~ | ~~Add a mic for room-listening FFT?~~ | — | ✅ **Resolved: not for now.** Same PCM path, cheap to add later |
 | V3 | Which BPM source wins the bake-off? | P5-04 | Claude (spike) |

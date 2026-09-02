@@ -15,7 +15,7 @@ it isn't tested.
 
 The **riskiest unknowns are pulled forward deliberately**: the two things most
 likely to sink this project are (a) the OAuth first-run flow on a headless
-appliance and (b) whether a Zero 2 W can actually render the UI we want. Both get
+appliance and (b) whether the board can actually render the UI we want. Both get
 a hardware spike well before we've built enough to be painful to change.
 
 ---
@@ -85,8 +85,8 @@ art-derived control theming, transport controls, and the interpolated progress
 bar.
 
 **Hardware spike (do this early in the phase):** get *something* rendering on the
-real Zero 2 W under `cog` and measure it. If WPE can't do it, we need to know now,
-not at Phase 7.
+real Pi 5 hardware and measure it. Settles Chromium vs `cog`/WPE for the kiosk
+runtime with numbers rather than assumption. We need to know now, not at Phase 7.
 
 **Exit criterion:** on real hardware, a full-screen Now Playing view that tracks
 real playback, re-themes on track change, and holds a steady frame rate.
@@ -125,6 +125,11 @@ never know which one is feeding them.
 Presets combine effects into named looks and can shuffle on track change. The
 visualizer is a *mode*, with an auto-enter-on-idle screensaver behaviour.
 
+**This phase also lands the optional `librespot` module** (promoted from Phase 8,
+decision D-013), because its PCM tap is what makes Tier 2 real. Note the Pi 5 has
+no 3.5mm output, so this needs a USB DAC. librespot stays strictly opt-in: Tiers
+0–1 must work fully without it.
+
 Key insight: rendering at half resolution cuts fragment cost 4x **and is the
 lofi aesthetic we want anyway**. The performance dial and the art direction are
 the same slider.
@@ -155,7 +160,7 @@ with the list scrolling smoothly on hardware.
 
 *Goal: it stops being a program and becomes a device.*
 
-Boot-to-app: systemd units, `cog` in kiosk mode on DRM/KMS with no desktop,
+Boot-to-app: systemd units, the kiosk browser on DRM/KMS with no desktop,
 splash screen, display/rotation config, and screen blanking behaviour. Then the
 resilience work: network loss, Spotify outages, token expiry, and a long-run soak
 test for leaks. Finally the on-device performance pass against the §9 budgets.
@@ -173,9 +178,8 @@ Multi-arch (`linux/arm64`) container images built in CI, a one-line install
 script that sets up the systemd services, a release pipeline with versioned
 artefacts, and real installation documentation.
 
-Then the opt-in `librespot` module, so the Pi can *also* be a Connect target.
-It lands last deliberately: it's a bonus, and it must never be able to break the
-core install.
+Packaging for the opt-in `librespot` module built in Phase 5 — installer, systemd
+unit, and the audio-output guide. It must never be able to break the core install.
 
 **Exit criterion:** a clean Pi goes from blank SD card to working Joshify by
 following the README, in under 30 minutes, with no manual code steps.

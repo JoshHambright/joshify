@@ -12,6 +12,11 @@ Last updated: 2026-09-02
 
 **Yes — materially. And the strongest reason isn't performance.**
 
+> ## ✅ DECIDED: Raspberry Pi 5 (decision D-008)
+>
+> Jump to the [buy list](#buy-list) for the parts, including two gotchas that
+> will cost you a second order if you miss them.
+
 ## The finding that changes everything
 
 **The Raspberry Pi Zero and Zero 2 W have no DSI display connector.** They are the
@@ -42,6 +47,8 @@ that makes the object least tidy.
 | Wi-Fi | 2.4GHz only | 2.4 + 5GHz | 2.4 + 5GHz |
 | Idle power | ~0.7W | **~1.0W** | ~2.7W |
 | Active cooling | Not needed | **Not needed** | **Recommended** |
+| Analogue audio out | ❌ none | ✅ 3.5mm | ❌ none (removed) |
+| DSI connector | ❌ none | 15-pin/1mm | 22-pin/0.5mm (needs adapter) |
 | Approx. cost | ~$15 | ~$45–60 | ~$60–80 |
 
 ## What each buys us
@@ -104,36 +111,91 @@ cables, and worse than the "beefier board" it was supposed to undercut.
 
 ---
 
-## Recommendation
+## Recommendation → decided
 
-> ### 🎯 Raspberry Pi 4, 2GB or 4GB, with the official Raspberry Pi Touch Display.
->
-> 4GB if you want zero thought about memory ever; 2GB is genuinely sufficient
-> for Joshify. Passively cooled, single ribbon cable, silent, and it lets us
-> build the *nicer* version of the UI rather than the cleverly-constrained one.
+> ### 🎯 Raspberry Pi 5 (4GB or 8GB) with the official Raspberry Pi Touch Display 2.
 
-Pick the Pi 5 only if you want the board to have a second life as something else
-later, or if you intend to run the visualizer at full resolution with deep effect
-stacks — and you're happy to put a fan on your desk.
+Between the Pi 4 and Pi 5, the Pi 5 wins on headroom: VideoCore VII means the
+visualizer can run deep effect stacks at **full** resolution rather than being
+pinned to half-res. The half-res default (D-011) stays as an art-direction choice
+we can dial up, instead of a limit we're stuck behind.
 
-## What changes in the plan if we move to a Pi 4
+**The accepted costs, stated plainly:**
+
+| Cost | Mitigation |
+|---|---|
+| **Active cooling required** — a fan near the music | Joshify's steady-state load is low, so the fan should rarely spin up hard. Pick a case with a good cooler. |
+| **~2.7W idle** vs the Pi 4's ~1.0W | Negligible in absolute terms for an always-on desk device. |
+| **No 3.5mm jack** — removed on the Pi 5 | USB DAC for librespot. See below. |
+| **5V/5A (27W) USB-C supply** | Use the official one. Under-powering a Pi 5 causes weird, hard-to-debug faults. |
+| **Bookworm 64-bit or later required** | Bullseye does not support the Pi 5 at all. |
+
+---
+
+## Buy list
+
+### Required
+
+| Part | Notes |
+|---|---|
+| **Raspberry Pi 5**, 4GB or 8GB | 4GB is plenty for Joshify. 8GB only if the board will do other things later. |
+| **Official 27W USB-C PSU (5V/5A)** | Not optional. Under-volting a Pi 5 produces confusing instability. |
+| **Active cooling** | Official Active Cooler, or a case with one integrated. |
+| **Raspberry Pi Touch Display 2** | DSI, so one ribbon cable. Touch works with no extra wiring. |
+| **microSD (32GB+, A2)** | Or an NVMe drive via the PCIe connector, if the case supports it. |
+
+### ⚠️ Two gotchas that will cost you a second order
+
+**1. The DSI cable is a different size on the Pi 5.**
+The Pi 5 uses a **22-pin, 0.5mm-pitch** MIPI connector. Every previous full-size
+Pi used **15-pin, 1mm-pitch**. You need a **22-way → 15-way display adapter cable**.
+
+> Touch Display 2 ships with the correct cables. The **original** Touch Display
+> does not — you'd need to buy the adapter separately. And note these are
+> **display** cables: camera adapter cables look identical and do not work.
+
+**2. The Pi 5 has no headphone jack.**
+It was removed. For the librespot module (Phase 5) you need one of:
+
+| Option | Verdict |
+|---|---|
+| **USB DAC / USB sound card** | ✅ **Recommended.** ~$10, C-Media class devices just work, and it leaves the GPIO header free. |
+| **I2S DAC HAT** | Better audio quality, but it **sits on the GPIO header and can physically foul a touchscreen case or stand**. Only if you've checked clearance. |
+| **HDMI audio** | Free, but only useful if something on the HDMI chain has speakers — and our display is DSI, so probably not. |
+
+Resolving which USB DAC is open question **V4**, and it blocks task P5-20 — but
+it's a $10 decision we can defer to just before Phase 5.
+
+### Not needed
+
+- ~~DAC HAT~~ — see above; a USB dongle avoids the case conflict.
+- ~~Microphone~~ — declined for now (V2). The same PCM code path serves it, so
+  it stays cheap to add later if you want room-reactive visuals.
+
+---
+
+## What the Pi 5 changes in the plan
+
+Nothing designed so far is wasted — the architecture stands. It gets easier, and
+the UI gets to be more ambitious.
 
 Nothing is wasted — the architecture stays. It just gets easier, and gets better.
 
 | Item | Change |
 |---|---|
-| **D-004** (pre-rendered blur) | **Relaxed.** Real `backdrop-filter` becomes viable. Keep pre-rendering as a fallback and a nice optimisation, but the UI can be richer. |
+| **D-004** (pre-rendered blur) | **Relaxed.** Real `backdrop-filter` is viable. Pre-rendering stays the default — it leaves more GPU for the shader chain — but we can use real blur where it looks better. |
 | **D-003** (server does the work) | **Keep regardless.** Still correct — it keeps tokens out of the browser and the render thread free. |
-| **Kiosk runtime** (`cog`/WPE) | **Chromium becomes viable.** Better dev/prod parity and easier debugging. We'd re-evaluate at P3-01 rather than committing to WPE now. |
-| **P6-04 / P6-08** (list virtualisation, thumbnail eviction) | Still good practice, but no longer make-or-break. |
-| **P7-10** (RSS < 400MB) | Budget can be relaxed substantially. |
-| **P8-08** (hardware guide) | Much simpler — official display, official case. |
-| **P8-11** (audio out for librespot) | Pi 4 has a **3.5mm analogue jack**; the Zero 2 W has **none** and would have required a DAC/HAT. The optional audio module gets much easier. |
+| **Kiosk runtime** | **Chromium is now the likely default** for WebGL2 support and dev/prod parity. Settled with measurements at P3-01, not assumption. |
+| **P6-04 / P6-08** (list virtualisation, thumbnail eviction) | Still good practice, no longer make-or-break. |
+| **P7-10** (memory budget) | Relaxed from 400MB to **700MB** combined RSS. |
+| **P8-08** (hardware guide) | Simpler, but must call out the 22→15-way DSI cable and the 27W supply. |
+| **librespot** | **Promoted from Phase 8 to Phase 5** (D-013) — its PCM tap unlocks Tier 2 real-FFT visuals. Needs a **USB DAC**, since the Pi 5 has no 3.5mm jack. |
 | **Phase 3 UI ambition** | **Increases.** We can afford motion and effects the Zero 2 W would have forced us to cut. |
-| **Phase 5 (visualizer)** | **Becomes possible at all.** WebGL2 multi-pass shader chains need GLES 3.1, which VideoCore IV does not have. |
+| **Phase 5 (visualizer)** | **Becomes possible at all**, and then some — VideoCore VII can run deep effect stacks at full resolution, not just half-res. |
 
 ## Status
 
-**Decision D-008: pending Josh's call.** The docs currently assume the Zero 2 W;
-if we switch, the affected sections above get updated in the same commit as the
-decision.
+**Decision D-008: ✅ resolved — Raspberry Pi 5.** All docs updated to match.
+
+Remaining hardware question: **V4 — which USB DAC**, blocking P5-20. A ~$10
+decision, deferrable until just before Phase 5.

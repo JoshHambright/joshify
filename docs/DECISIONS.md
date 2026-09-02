@@ -20,8 +20,9 @@ we buy back far more in development speed and testability.
 ### D-002 · Svelte for the UI, not React
 **Chose:** Svelte + Vite.
 **Why:** Svelte compiles to direct DOM operations with no virtual-DOM runtime.
-On a 512MB device sharing RAM with Node and a browser engine, the runtime and
-GC-pressure difference is material, not academic.
+The runtime and GC-pressure difference buys headroom that the visualizer's
+shader chain can spend instead. Less critical on a Pi 5 than it would have been
+on a Zero 2 W, but still the right default.
 **Costs:** Smaller ecosystem than React; fewer off-the-shelf components (we'll
 hand-build the virtualised list and on-screen keyboard).
 **Status:** ✅ Accepted
@@ -39,15 +40,17 @@ can be done once per *track* (200ms is fine) should never be done once per
 
 ---
 
-### D-004 · Pre-rendered blur instead of CSS `backdrop-filter`
-**Chose:** Server downscales album art aggressively and serves it as a small
-image; the UI scales it *up*, letting bilinear filtering produce the blur.
-**Why:** `backdrop-filter` is not usefully GPU-accelerated on VideoCore IV and is
-the single largest rendering risk on a Zero 2 W. A scaled bitmap is essentially
-free on any GPU.
-**Costs:** Slightly less "correct" blur; a server round-trip per track.
-**Status:** ✅ Accepted — **revisit if hardware changes** (see D-008). On a Pi 4/5
-with a proper V3D driver, real `backdrop-filter` becomes viable and nicer.
+### D-004 · Pre-rendered blur, with real `backdrop-filter` now viable — **RELAXED**
+**Originally chose:** server downscales album art aggressively and serves it as a
+small image; the UI scales it *up*, letting bilinear filtering produce the blur.
+**Why:** `backdrop-filter` is not usefully GPU-accelerated on VideoCore IV, and was
+the single largest rendering risk on a Zero 2 W.
+**Now that D-008 has settled on a Pi 5:** VideoCore VII with Mesa V3D supports
+GLES 3.1 and real `backdrop-filter`. We are free to use it where it looks better.
+**Keeping the pre-rendered path anyway** as the default: it's still cheaper, it
+leaves more GPU budget for the Phase 5 shader chain, and it costs nothing now
+that it's built.
+**Status:** 🔄 Relaxed — pre-render by default, real blur available where it wins.
 
 ---
 
@@ -85,15 +88,23 @@ remains a possible future.
 
 ---
 
-### D-008 · Target hardware
-**Chose:** _Open — under active discussion._
-**Why:** Initial target was the Pi Zero 2 W (512MB, VideoCore IV). Given the
-chosen feature scope now includes search and library browse — the most
-memory-hungry screens — a beefier board may be a materially better trade.
-**Costs:** TBD.
-**Status:** 🔬 **OPEN** — see [HARDWARE.md](./HARDWARE.md). Blocks P3-01, P7-01,
-P7-02, P7-06, P8-08. Several decisions above (D-004 in particular) relax if this
-changes.
+### D-008 · Target hardware: **Raspberry Pi 5**
+**Chose:** Raspberry Pi 5, with the official Raspberry Pi Touch Display 2.
+**Why:** The visualizer (D-010) needs multi-pass WebGL2, which needs **GLES 3.1**.
+VideoCore IV on the Zero 2 W does not have it, which ruled the Zero 2 W out
+entirely. Between the Pi 4 and Pi 5, the Pi 5's VideoCore VII gives real headroom
+for full-resolution effect stacks rather than forcing everything to half-res.
+**Costs — all real, all accepted:**
+- **Active cooling is required.** There will be a fan near the music. Mitigated by
+  a good case and the fact that Joshify's steady-state load is low.
+- **~2.7W idle** vs the Pi 4's ~1.0W, for an always-on device.
+- **No 3.5mm output** — the Pi 5 removed it. The librespot module (now Phase 5)
+  needs a USB DAC, an I2S DAC HAT, or HDMI audio. See D-013.
+- **22-pin/0.5mm DSI**, so a 22→15-way adapter cable is needed for the official
+  display. Touch Display 2 includes it; the original Touch Display does not.
+- **5V/5A (27W) USB-C** supply required.
+- Needs **Raspberry Pi OS Bookworm 64-bit or later**.
+**Status:** ✅ Accepted. Resolves Q1. Relaxes D-004 and the memory budget.
 
 ---
 
@@ -142,3 +153,20 @@ standalone fragment shader file.
 become user-editable and shareable. Keeps the engine small while the catalogue grows.
 **Costs:** A small amount of indirection and a uniform-binding layer.
 **Status:** ✅ Accepted
+
+---
+
+### D-013 · librespot promoted to Phase 5; USB DAC for audio out
+**Chose:** Move the optional `librespot` module from Phase 8 to Phase 5, alongside
+the visualizer. Recommend a **USB DAC** for analogue output rather than a HAT.
+**Why:** librespot's PCM tap is what unlocks Tier 2 real-FFT visuals (D-010) — the
+actual Winamp payoff. Shipping the visualizer without it means shipping an
+estimated spectrum when a real one was one phase away.
+On output: the Pi 5 has no 3.5mm jack. An I2S DAC HAT sits on the GPIO header and
+can physically foul a touchscreen case or stand; a USB DAC dongle avoids the
+conflict entirely and "just works" with most C-Media class devices.
+**Costs:** librespot is a non-Node component to install and supervise, arriving
+earlier than planned. It stays **opt-in** — the core install must never depend on
+it, and Tiers 0–1 must remain fully functional without it.
+**Status:** ✅ Accepted. Resolves V1. (V2, a room-listening microphone, is
+declined for now — it reuses the same PCM code path, so it stays cheap to add later.)

@@ -257,19 +257,18 @@ behind text — enforced in tests, not by eye.
 
 ## Hardware consequence
 
-This **significantly strengthens the Pi 4 recommendation in HARDWARE.md.**
+**Resolved: Raspberry Pi 5** (decision D-008).
 
 A multi-pass fragment shader chain at 60fps is precisely what the **Pi Zero 2 W's
 VideoCore IV cannot do** — it has no GLES 3.x, poor driver support, and no memory
 headroom for ping-pong framebuffers on top of Node and a browser.
 
-The **Pi 4's VideoCore VI (Mesa V3D, GLES 3.1)** runs WebGL2 properly and handles
-this comfortably at half-resolution. If we go deep on stacked effects at full
-resolution, the Pi 5's VideoCore VII has real headroom — but the fan tradeoff in
-HARDWARE.md still stands.
+The **Pi 5's VideoCore VII (Mesa V3D, GLES 3.1 + Vulkan 1.2)** has real headroom —
+enough to run deep effect stacks at full resolution rather than being forced to
+half-res. The half-res default (D-011) stays, but as an art-direction choice we
+can dial up, not a constraint we're pinned to.
 
-**With the visualizer in scope, the Zero 2 W moves from "constrained but viable"
-to "cannot do the thing you actually want."**
+Accepted costs: active cooling (a fan near the music) and ~2.7W idle.
 
 ---
 
@@ -277,6 +276,7 @@ to "cannot do the thing you actually want."**
 
 | # | Question | Impact |
 |---|---|---|
-| V1 | Promote `librespot` from Phase 8 to Phase 5 so Tier 2 real-FFT ships with the visualizer? | Tier 2 is the payoff. Without it we ship Tiers 0-1 and add FFT later. |
-| V2 | Add a microphone for room-listening FFT? | ~$8 and unlocks real reactivity without librespot. Needs a hardware decision. |
+| ~~V1~~ | ~~Promote `librespot` to Phase 5?~~ | ✅ **Yes** (D-013). Tier 2 ships with the visualizer as P5-18..P5-21. |
+| ~~V2~~ | ~~Add a microphone for room-listening FFT?~~ | ✅ **Not for now.** Reuses the same PCM path, so it stays cheap to add later. |
 | V3 | Which BPM source wins the P5-02 bake-off? | Coverage vs. offline capability. Resolve with real data from Josh's library. |
+| V4 | Which USB DAC? The **Pi 5 has no 3.5mm jack**, and a DAC HAT can foul the display case. | Blocks P5-20. |

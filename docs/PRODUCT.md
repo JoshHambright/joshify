@@ -1,6 +1,6 @@
 # Joshify — Product Description
 
-**A touchscreen control surface for Spotify, built for a Raspberry Pi Zero 2 W.**
+**A touchscreen control surface for Spotify, built for a Raspberry Pi 5.**
 
 Status: `DRAFT v1` · Last updated: 2026-09-02
 
@@ -119,7 +119,9 @@ These are the real boundaries of what Joshify can be. They shaped the plan.
 | **The playback queue is read-mostly.** `GET /me/player/queue` and add-to-queue exist; there is **no reorder and no remove** endpoint. | Queue is **view + add + jump-by-skip**. Reordering is impossible via the public API and is explicitly out of scope. Playlist reordering (a different endpoint) is a possible future. |
 | **No push/websocket for playback state.** State must be polled. | An adaptive polling scheduler plus local progress interpolation — see §8.2. |
 | **Redirect URI rules tightened**: Spotify now requires HTTPS, or literal loopback `http://127.0.0.1:{port}` (**not** `localhost`). | Auth is Authorization Code + PKCE against a loopback redirect. Requires a first-run flow that works on a headless-ish appliance — flagged as a Phase 1 spike. |
-| **Pi Zero 2 W: 512 MB RAM, 4×Cortex-A53 @1GHz, VideoCore IV.** | Electron is impossible. Chromium is a squeeze. `backdrop-filter` is not usefully accelerated on VC4. Architecture must push expensive work off the render thread — see §8.1. |
+| **Pi 5: 4×Cortex-A76 @2.4GHz, VideoCore VII, 4GB+.** GLES 3.1 and Vulkan 1.2 via Mesa V3D. | Comfortable. Real `backdrop-filter` and multi-pass WebGL2 shader chains both work. We still push expensive work to the server (D-003) — it keeps tokens out of the browser and the render thread free — but it's now a design choice, not a survival tactic. |
+| **Pi 5 has no 3.5mm analogue output** (removed vs. the Pi 4) and needs **active cooling** plus a **5V/5A USB-C** supply. | The optional librespot module needs a **USB DAC**, an I2S DAC HAT, or HDMI audio. A HAT sits on the GPIO header and can foul a touchscreen case, so a USB DAC is usually the cleaner choice. See HARDWARE.md. |
+| **Pi 5's DSI connector is 22-pin/0.5mm**, not the Pi 4's 15-pin/1mm. | A **22-way→15-way adapter cable** is required for the official Touch Display. Touch Display 2 ships with the right cables; the original does not. |
 | **Web Playback SDK needs Widevine DRM**, unavailable on ARM Linux Chromium builds. | In-browser playback on the Pi is a dead end. `librespot` is the only viable on-device audio path. |
 
 ## 7. Optional module: on-device audio
@@ -138,7 +140,7 @@ keeps the default install small and the core app testable without audio.
 Two processes on the Pi, talking over localhost.
 
 ```
-┌─────────────────────────── Raspberry Pi Zero 2 W ───────────────────────────┐
+┌───────────────────────────── Raspberry Pi 5 ────────────────────────────────┐
 │                                                                              │
 │   ┌────────────────────────┐   REST + WebSocket   ┌───────────────────────┐  │
 │   │   joshify-server       │◄────────────────────►│   joshify-ui          │  │
@@ -174,7 +176,7 @@ track and hands the UI a finished payload:
 - The 640px art is fetched once, cached on disk, and served locally.
 
 The UI's per-frame job reduces to: composite two cached bitmaps and animate a
-progress bar. That is achievable on a Zero 2 W.
+progress bar — leaving the GPU free for the visualizer's shader chain (Phase 5).
 
 ### 8.2 Playback state without push
 
@@ -194,20 +196,20 @@ progress bar. That is achievable on a Zero 2 W.
 | Language | **TypeScript** everywhere | Your Node preference; one language across server, UI and tests. |
 | Repo | pnpm workspaces monorepo | Shared types between server and UI, single test/lint run. |
 | Server | Node + Fastify | Small, fast, good TS story. |
-| UI framework | **Svelte** | Compiles away — no runtime VDOM, materially less RAM and GC pressure than React. This matters at 512MB. |
+| UI framework | **Svelte** | Compiles away — no runtime VDOM, less RAM and GC pressure than React. Less critical on a Pi 5, but it keeps headroom for the visualizer. |
 | Bundler | Vite | Fast dev loop, tiny production output. |
-| Kiosk runtime | **WPE WebKit (`cog`)**, Chromium fallback | WPE is purpose-built for embedded, renders straight to DRM/KMS with no desktop, and has a much smaller footprint than Chromium. |
+| Kiosk runtime | **Chromium** in kiosk mode, `cog`/WPE as a fallback | On a Pi 5, Chromium's WebGL2 support and dev/prod parity outweigh WPE's smaller footprint. Confirmed at the P3-01 spike. |
 | Unit tests | Vitest | |
 | E2E | Playwright against a **fake Spotify server** | CI never needs real credentials. |
 | CI/CD | GitHub Actions | Lint, typecheck, test, multi-arch build. |
 | Delivery | ARM64 container + one-line install script | |
 
-**Note:** the Pi Zero 2 W's CPU is ARM64-capable, but 32-bit Raspberry Pi OS is
-still a common default. Joshify targets **64-bit Raspberry Pi OS Lite**.
+**Note:** the Pi 5 requires **Raspberry Pi OS Bookworm (64-bit) or later** —
+Bullseye does not support it. Joshify targets 64-bit Raspberry Pi OS Lite.
 
 ## 9. Success criteria
 
-Joshify v1.0 is done when, on real Pi Zero 2 W hardware:
+Joshify v1.0 is done when, on real Pi 5 hardware:
 
 1. It boots from cold to the Now Playing screen with **no keyboard, mouse or
    desktop**, in under 60 seconds.
@@ -216,7 +218,8 @@ Joshify v1.0 is done when, on real Pi Zero 2 W hardware:
 4. The progress bar animates smoothly with **no visible stutter**.
 5. It runs for **7 days unattended** without a crash, memory leak, or a
    re-authentication prompt.
-6. Total RSS across both processes stays **under 400MB**.
+6. Total RSS across both processes stays **under 700MB**, and the visualizer
+   holds its frame budget without auto-degrading on a default preset.
 7. A stranger can install it from the README in **under 30 minutes**.
 
 ## 10. Explicitly out of scope for v1
