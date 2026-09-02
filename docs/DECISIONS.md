@@ -198,6 +198,12 @@ PS1 rendering artefacts are real hardware behaviours and all reproducible in GLS
 **The guardrail:** the *idiom* is fair game; specific assets are not. No
 reproduction of Sony's boot animation, diamond logo or wordmark, and no N2O
 assets — these are trademarked. Original work in the era's style only.
+**Scope extended** by the theme roster ([THEMES.md](./THEMES.md)) to every
+reference we draw on: the Windows logo/flag/wordmark and Win95/3.1 UI bitmaps,
+the Surge wordmark, Pizza Hut and BOOK IT! branding, Ms. Frizzle, Carmen
+Sandiego, and any MECC/Broderbund/Maxis art asset. Also: **no theme may be named
+after a trademark** — `PLUS!` and `SURGE` are working titles and must be renamed
+before any public release.
 **Costs:** None creatively. It needs stating so we don't drift into it.
 **Status:** ✅ Accepted.
 
@@ -214,3 +220,22 @@ a whole visual system that turns out to feel wrong on the real device.
 **Costs:** A round trip before building. Cheap, and it has already paid for
 itself once (the tunnel spike surfaced D-014 before any engine code existed).
 **Status:** ✅ Accepted. Workflow recorded in `CLAUDE.md`.
+
+---
+
+### D-017 · A theme skins the whole interface, not just the visualiser
+**Chose:** A theme bundles **palette + scene + effect chain + UI chrome +
+transition behaviour**, switched as one unit. Expands D-012 beyond effect chains.
+**Why:** **Microsoft Plus! for Windows 95** (1995) shipped 12 desktop themes that
+each changed wallpaper, colours, icons, cursors, fonts and sounds *together* — it
+skinned the whole machine, not one app. That is a better model for Joshify than
+Winamp skins, which only ever skinned the player. It's also the honest way to use
+a wide set of 90s references: kept separate and named they're a roster, blended
+they're pastiche.
+Related: our auto-enter-on-idle visualiser mode *is* a screensaver, which makes
+the Plus!-era ambient screensavers a direct functional ancestor rather than a
+borrowed reference.
+**Costs:** Themes now need to reach UI components, not just the shader chain — so
+chrome must be tokenised from the start rather than hard-coded. Cheaper to do at
+Phase 3 than to retrofit.
+**Status:** ✅ Accepted. Roster in [THEMES.md](./THEMES.md).

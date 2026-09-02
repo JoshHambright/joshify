@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
-| 5 | **Visualizer + librespot** | 30 | 0 | ⬜ Not started |
+| 5 | **Visualizer + librespot** | 36 | 0 | ⬜ Not started |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **113** | **0** | |
+| | **Total** | **119** | **0** | |
 
 ---
 
@@ -116,7 +116,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-04 | Contrast checking / correction on derived colours | ⬜ | Text must stay readable on any album |
 | P3-05 | Server-side blur pre-render, served as a static image | ⬜ | Avoids `backdrop-filter` on VC4 entirely |
 | P3-06 | Svelte app shell + WebSocket client store | ⬜ | |
-| P3-07 | Theme application via CSS custom properties | ⬜ | UI computes nothing |
+| P3-07 | Theme application via CSS custom properties | ⬜ | UI computes nothing. **Tokenise chrome here** so D-017 themes can reach it |
 | P3-08 | Album art hero component + crossfade on track change | ⬜ | |
 | P3-09 | Drifting blurred backdrop | ⬜ | Procedural motion — no audio-reactivity available |
 | P3-10 | Transport control components (≥48px targets) | ⬜ | |
@@ -148,7 +148,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 > **Exit criterion:** full-screen visualizer on hardware, holding frame budget, beat-reactive, preset switching by touch, legibility floor measured.
 
-Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md)
+Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THEMES.md](./THEMES.md)
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
@@ -182,6 +182,12 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md)
 | P5-28 | Original attract / boot sequence | ⬜ | Also covers the P7-05 boot handoff |
 | P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | ⬜ | The payoff of D-014 |
 | P5-30 | Measure the tunnel on Pi 5 hardware | ⬜ | Folded into the P3-01 measurement |
+| P5-31 | **Theme bundle format**: palette + scene + chain + chrome as one unit | ⬜ | D-017. The Microsoft Plus! model, not the Winamp-skin model |
+| P5-32 | Tokenise UI chrome so themes can reach it | ⬜ | Must land in **Phase 3**, not retrofitted later |
+| P5-33 | `VGA` theme — 16-colour quantise + ordered dither | ⬜ | ~15 lines on top of existing dither; maximally unlike `N2O` |
+| P5-34 | `PLUS!` theme — bevelled chrome + `ambient` scene | ⬜ | **Working title, must be renamed** (D-015). Proves chrome theming works |
+| P5-35 | `ambient` scene — slow geometric solids | ⬜ | The Plus!-era screensaver lineage |
+| P5-36 | Theme switching UI + shuffle-on-track-change | ⬜ | |
 
 ---
 

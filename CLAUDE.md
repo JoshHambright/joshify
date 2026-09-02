@@ -94,10 +94,11 @@ comes back through chat.
 |---|---|
 | `docs/PRODUCT.md` | What we're building, design principles, platform constraints |
 | `docs/ROADMAP.md` | 9 phases, each with an exit criterion |
-| `docs/TRACKING.md` | **Live tracker — 113 tasks.** Update with the work |
+| `docs/TRACKING.md` | **Live tracker — 119 tasks.** Update with the work |
 | `docs/DECISIONS.md` | ADR log. Read before changing an approach |
 | `docs/VISUALIZER.md` | Visualizer engine design (Phase 5) |
 | `docs/PS1_MODE.md` | PS1 / N2O visual mode + the homage-not-reproduction rule |
+| `docs/THEMES.md` | Theme roster — the 90s references, as separate named themes |
 | `spikes/` | Working prototypes. Each has a README on what it proved |
 | `docs/HARDWARE.md` | Board decision + buy list |
 | `docs/SPOTIFY_SETUP.md` | App registration, scopes, secrets |
@@ -124,9 +125,11 @@ Do not rediscover or re-argue these. Full reasoning is in `DECISIONS.md`.
 - **Redirect URIs must be HTTPS or literal `127.0.0.1`.** `localhost` is rejected.
 - **Pi 5 has no 3.5mm jack** (USB DAC needed) and uses a **22-pin DSI** connector
   (adapter cable needed). Needs 5V/5A and active cooling (D-008).
-- **The PS1 aesthetic is homage, never reproduction.** Never reproduce Sony's
-  boot animation, diamond logo or wordmark, or any N2O asset — all trademarked.
-  Original work in the era's idiom only (D-015).
+- **All period aesthetics are homage, never reproduction.** Never reproduce
+  Sony's boot animation or logos, Windows logos/bitmaps, the Surge wordmark,
+  Pizza Hut or BOOK IT! branding, Ms. Frizzle, Carmen Sandiego, or any
+  MECC/Broderbund/Maxis asset — all trademarked. No theme named after a
+  trademark. Original work in the era's idiom only (D-015).
 
 ## Secrets
 
