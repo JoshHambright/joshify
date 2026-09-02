@@ -254,3 +254,19 @@ The 90s dolphin reference arrives at the same answer from the other direction, s
 the period vocabulary and the product requirement agree.
 **Costs:** A second scene to build and tune. Sequenced second, after `VGA`.
 **Status:** ✅ Accepted. See [THEMES.md](./THEMES.md).
+
+---
+
+### D-019 · The theme roster is a backlog; Phases 1–4 are the product
+**Chose:** Schedule four themes (`N2O`, `VGA`, `REEF`, `PLUS!`) and hold the rest
+as a specified backlog outside the tracker. New visual ideas go to the backlog by
+default.
+**Why:** Phase 5 grew from 17 tasks to 41 across three conversations while zero
+production code existed. Each addition was individually defensible and the
+aggregate was drift. Joshify is a **touchscreen Spotify remote**; the visualiser
+is one phase of nine, and Phases 1–4 are what make the device worth owning at all.
+**The test** for promoting anything out of the backlog: does it close a gap in the
+*product*, or only in the reference list? `REEF` passed it (there was no calm
+mode). Autostereograms failed it and were cut.
+**Costs:** Some good ideas sit unbuilt. That's the point.
+**Status:** ✅ Accepted.

@@ -94,7 +94,7 @@ comes back through chat.
 |---|---|
 | `docs/PRODUCT.md` | What we're building, design principles, platform constraints |
 | `docs/ROADMAP.md` | 9 phases, each with an exit criterion |
-| `docs/TRACKING.md` | **Live tracker — 124 tasks.** Update with the work |
+| `docs/TRACKING.md` | **Live tracker — 121 tasks.** Update with the work |
 | `docs/DECISIONS.md` | ADR log. Read before changing an approach |
 | `docs/VISUALIZER.md` | Visualizer engine design (Phase 5) |
 | `docs/PS1_MODE.md` | PS1 / N2O visual mode + the homage-not-reproduction rule |
@@ -102,6 +102,13 @@ comes back through chat.
 | `spikes/` | Working prototypes. Each has a README on what it proved |
 | `docs/HARDWARE.md` | Board decision + buy list |
 | `docs/SPOTIFY_SETUP.md` | App registration, scopes, secrets |
+
+## Scope discipline
+
+**Phases 1–4 are the product.** Joshify is a touchscreen Spotify remote; the
+visualiser is one phase of nine. New visual ideas go to the theme backlog in
+`docs/THEMES.md`, **not** into the tracker, unless they close a gap in the
+*product* rather than in the reference list (D-019).
 
 ## Conventions
 

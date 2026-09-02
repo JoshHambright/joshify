@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
-| 5 | **Visualizer + librespot** | 41 | 0 | ⬜ Not started |
+| 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **124** | **0** | |
+| | **Total** | **121** | **0** | |
 
 ---
 
@@ -190,9 +190,9 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-36 | Theme switching UI + shuffle-on-track-change | ⬜ | |
 | P5-37 | `reef` scene — caustics, god rays, drifting silhouettes | ⬜ | **The calm mode** (D-018). Product gap, not a nice-to-have |
 | P5-38 | `REEF` theme — slow, dark, no strobe, safe to leave running | ⬜ | The tonal opposite of `N2O` |
-| P5-39 | 🔬 **Spike: autostereogram from the depth buffer** | ⬜ | SIRDS is sequential per scanline; needs the iterative backward-sampling approach. **Call it autostereogram, never Magic Eye** (brand) |
-| P5-40 | Autostereogram effect pass, if the spike lands | ⬜ | Defocus and the tunnel resolves into real 3D. Nothing else does this |
-| P5-41 | `LAGOON` theme — airbrush sunset + chrome | ⬜ | Trapper-Keeper register. Working title |
+| P5-39 | ~~Spike: autostereogram from the depth buffer~~ | ❌ | **Cut.** Technically interesting, but off-vision — it serves the effect, not the music. Notes kept in THEMES.md |
+| P5-40 | ~~Autostereogram effect pass~~ | ❌ | **Cut** with P5-39 |
+| P5-41 | ~~`LAGOON` theme~~ | ❌ | **Cut from schedule** — moved to the theme backlog, not a tracked task |
 
 ---
 

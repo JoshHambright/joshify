@@ -97,32 +97,20 @@ It's the mode you leave running.
 **So dolphins arrive as a product requirement wearing a costume.** Logged as
 **D-018**.
 
-### The genuinely novel bit: autostereograms
+### ❌ Autostereograms — considered and cut
 
-Of everything in this document, this is the one nobody else has.
+An autostereogram could be generated live from the `tunnel` scene's depth buffer,
+and defocusing your eyes would resolve the visualiser into genuine 3D.
 
-An autostereogram is generated **from a depth map** — and the `tunnel` and `reef`
-scenes already produce depth. So we can generate one live, per frame, from the
-scene we're already rendering:
+**Cut anyway.** It's a clever effect in search of a reason. Joshify is a music
+appliance — every visual should serve *the music playing right now*, and a
+stereogram serves itself. It also demands the viewer stop and refocus, which is
+the opposite of glanceable (PRODUCT.md §5.3).
 
-```
-scene depth buffer ──► SIRDS pass ──► a stereogram that resolves into
-                                       the actual tunnel you're flying down
-```
-
-Defocus your eyes at the screen and the visualiser pops into genuine 3D. It's
-period-perfect, it's technically real, and it is not a thing any music visualiser
-does.
-
-**Feasibility is not yet proven.** The classic SIRDS algorithm walks each scanline
-sequentially propagating constraints, which doesn't map cleanly to a fragment
-shader. The known workaround is iterative backward sampling — step left by the
-depth-derived separation until you fall off the edge, then sample the pattern.
-That needs a spike before it becomes a task (**P5-39**).
-
-**Naming:** *Magic Eye* is a brand of Magic Eye Inc. The generic terms are
-**autostereogram** and **SIRDS**, and those are what we use — in code, in the UI,
-and in these docs.
+Recorded rather than deleted, per the tracker convention. If it ever returns:
+SIRDS walks each scanline sequentially, so it needs iterative backward sampling
+to work in a fragment shader, and *Magic Eye* is a brand — the generic terms are
+**autostereogram** / **SIRDS**.
 
 ---
 
@@ -183,6 +171,19 @@ This costs nothing creatively. Original work in a period idiom is better than a
 copy, and it keeps the repo publishable.
 
 ---
+
+## Scheduled vs backlog
+
+The roster is a **backlog**, not a plan. Only four themes are scheduled; the rest
+are specified so they're cheap to add later, and are explicitly **not** tracker
+tasks.
+
+| Scheduled | Backlog |
+|---|---|
+| `N2O` ✅ built · `VGA` · `REEF` · `PLUS!` | `SURGE` · `GOOP` · `METROPOLIS` · `FIELD TRIP` · `TRAIL` · `LAGOON` |
+
+A theme leaves the backlog only when it closes a gap in the **product** — as
+`REEF` did with the calm mode (D-018) — not because the reference is good.
 
 ## Sequencing
 
