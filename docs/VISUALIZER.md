@@ -176,8 +176,22 @@ is the source texture for everything above.** Not a backdrop — the actual inpu
 | **Slit-scan** | Each row sampled from a different point in a frame-history buffer |
 | **Displacement** | Art's own luminance drives UV distortion of itself |
 
+### F · Scenes (3D)
+
+Added by D-014: a **scene stage** runs ahead of the post chain, so the families
+above compose over 3D geometry as readily as over a flat album quad.
+
+| Scene | What it does |
+|---|---|
+| **`flat`** | The album cover as a full-screen quad — the default, and what families A-E assumed |
+| **`tunnel`** | The **N2O mode**: a PS1-era tube flown at speed, walls tiled with the album art, rendered through six reproduced PSX hardware artefacts |
+
+The tunnel is fully specified in [PS1_MODE.md](./PS1_MODE.md), with a working
+prototype in [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/). Because it is a scene
+rather than a preset, `tunnel + datamosh` and `tunnel + VHS` come for free.
+
 **Presets** combine these into named looks — `VHS`, `Tunnel`, `Datamosh`,
-`Ghost`, `Newsprint`, `Vapor` — selectable by touch, with a shuffle mode that
+`Ghost`, `Newsprint`, `Vapor`, `N2O` — selectable by touch, with a shuffle mode that
 changes preset on track change. Very Winamp.
 
 ---

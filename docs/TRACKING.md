@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
-| 5 | **Visualizer + librespot** | 21 | 0 | ⬜ Not started |
+| 5 | **Visualizer + librespot** | 30 | 0 | ⬜ Not started |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **104** | **0** | |
+| | **Total** | **113** | **0** | |
 
 ---
 
@@ -148,7 +148,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 > **Exit criterion:** full-screen visualizer on hardware, holding frame budget, beat-reactive, preset switching by touch, legibility floor measured.
 
-Design: [VISUALIZER.md](./VISUALIZER.md)
+Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md)
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
@@ -173,6 +173,15 @@ Design: [VISUALIZER.md](./VISUALIZER.md)
 | P5-19 | PCM tee: librespot pipe backend -> ALSA **and** -> server | ⬜ | s16le / 44.1kHz / stereo. Must not add audible latency |
 | P5-20 | Audio output on Pi 5: USB DAC support + detection | ⬜ | **Pi 5 has no 3.5mm jack.** USB DAC preferred over a HAT (GPIO/case conflict) |
 | P5-21 | librespot device surfaces in the Devices screen | ⬜ | Moved from P8-10 |
+| P5-22 | **Scene stage** ahead of the post chain (`flat` \| `tunnel`) | ⬜ | D-014. Post effects compose over any scene |
+| P5-23 | Tunnel scene: ring geometry, camera, curve-with-near-fade | ⬜ | `smoothstep` ease keeps the near ring centred on the camera |
+| P5-24 | PS1 artefact shader set (all six, individually toggleable) | ⬜ | Port from [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/) |
+| P5-25 | Album art as tunnel texture: 256px, `NEAREST`, `REPEAT` | ⬜ | Ring-aligned V so the scroll wrap is invisible |
+| P5-26 | `N2O` preset — speed, radius and flash bound to `uBeat` | ⬜ | |
+| P5-27 | PS1-idiom UI chrome for Now Playing | ⬜ | **Original assets only** (D-015). PS1 BIOS CD player is the reference |
+| P5-28 | Original attract / boot sequence | ⬜ | Also covers the P7-05 boot handoff |
+| P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | ⬜ | The payoff of D-014 |
+| P5-30 | Measure the tunnel on Pi 5 hardware | ⬜ | Folded into the P3-01 measurement |
 
 ---
 

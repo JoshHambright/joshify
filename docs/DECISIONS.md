@@ -170,3 +170,47 @@ earlier than planned. It stays **opt-in** — the core install must never depend
 it, and Tiers 0–1 must remain fully functional without it.
 **Status:** ✅ Accepted. Resolves V1. (V2, a room-listening microphone, is
 declined for now — it reuses the same PCM code path, so it stays cheap to add later.)
+
+---
+
+### D-014 · A scene stage before the post chain
+**Chose:** Insert a **scene** stage ahead of the post-processing chain. Scenes
+render geometry (`flat` = album quad, `tunnel` = PS1 tube); the post chain then
+composes over whatever the scene drew.
+**Why:** The tunnel needs 3D geometry and a vertex shader, so it cannot be a
+preset in a 2D post-process pipeline. Adding the stage is small, and every
+existing effect keeps working *and* gains the new scenes for free — the tunnel
+can be datamoshed, pixel-sorted or VHS-warped like anything else.
+**Costs:** One more stage to manage, and scenes need their own uniform plumbing
+(they read the same reactivity block, D-010).
+**Status:** ✅ Accepted. See [PS1_MODE.md](./PS1_MODE.md).
+
+---
+
+### D-015 · PS1 / N2O as a first-class visual mode — homage, not reproduction
+**Chose:** Treat the late-90s console aesthetic as a real design direction across
+both the visualiser and the app chrome, built from **original** assets.
+**Why:** Winamp 2 (1998), N2O (1998) and Milkdrop (2001) are one cultural moment,
+not two aesthetics being combined. Building the visualiser and the interface from
+the same year is what makes the object feel authored rather than themed. The six
+PS1 rendering artefacts are real hardware behaviours and all reproducible in GLSL
+— verified in [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/).
+**The guardrail:** the *idiom* is fair game; specific assets are not. No
+reproduction of Sony's boot animation, diamond logo or wordmark, and no N2O
+assets — these are trademarked. Original work in the era's style only.
+**Costs:** None creatively. It needs stating so we don't drift into it.
+**Status:** ✅ Accepted.
+
+---
+
+### D-016 · Visual decisions get a published page before they get a commit
+**Chose:** Prototype anything visual as a published Artifact page for review
+first; only the approved version becomes a task and lands in the repo. Spike
+source is committed under `spikes/` so it outlives the container.
+**Why:** Joshify's target *is* a browser, so a published page runs the same
+GLSL and CSS the Pi will. A prototype is not a mockup of the thing — it is the
+thing, on different hardware. It also kills the worst failure mode here: building
+a whole visual system that turns out to feel wrong on the real device.
+**Costs:** A round trip before building. Cheap, and it has already paid for
+itself once (the tunnel spike surfaced D-014 before any engine code existed).
+**Status:** ✅ Accepted. Workflow recorded in `CLAUDE.md`.

@@ -134,7 +134,14 @@ Key insight: rendering at half resolution cuts fragment cost 4x **and is the
 lofi aesthetic we want anyway**. The performance dial and the art direction are
 the same slider.
 
-Full design in [VISUALIZER.md](./VISUALIZER.md).
+The phase also lands the **PS1 / N2O mode**: a 3D tunnel scene textured with the
+album art and rendered through six reproduced PSX hardware artefacts. This adds a
+*scene stage* ahead of the post chain (D-014), so every existing effect composes
+over the tunnel too. Winamp 2, N2O and Milkdrop are all 1997-2001 — the two
+directions are one era, not a mashup.
+
+Full design in [VISUALIZER.md](./VISUALIZER.md) and [PS1_MODE.md](./PS1_MODE.md).
+A working prototype already exists in [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/).
 
 **Exit criterion:** on real hardware, a full-screen visualizer holding its frame
 budget, reacting to the beat, with preset switching by touch and a measured
