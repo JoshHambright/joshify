@@ -24,7 +24,14 @@ Record the **Client ID** and **Client Secret**.
 
 ## 3. Redirect URI
 
-**This is the fiddly part**, and the subject of spike P1-01.
+✅ **Settled by spike P1-01.** Register exactly:
+
+```
+http://127.0.0.1:8080/callback
+```
+
+The device authorises in its own kiosk browser, so the redirect target and the
+browser are the same machine and loopback resolves correctly.
 
 Spotify tightened redirect URI rules: they must be **HTTPS**, or a **literal
 loopback address**. Specifically:
@@ -33,8 +40,9 @@ loopback address**. Specifically:
 - ❌ `http://localhost:8080/callback` — rejected, `localhost` is no longer allowed
 - ❌ `http://192.168.1.50:8080/callback` — rejected, not HTTPS, not loopback
 
-This is why first-run auth on a headless appliance needs proving before we build
-around it. Do not add a redirect URI until P1-01 tells us the right one.
+Note also that Spotify's **Device Authorization Grant** (`spotify.com/pair`),
+which would be the natural fit for an appliance, is allowlisted to Spotify's own
+TV applications and does **not** work for Dashboard-registered client IDs.
 
 ## 4. Scopes
 

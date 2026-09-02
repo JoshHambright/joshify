@@ -36,7 +36,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | Phase | Title | Tasks | Done | Status |
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
-| 1 | Spotify identity & API client | 11 | 0 | ⬜ Not started |
+| 1 | Spotify identity & API client | 11 | 2 | 🟨 In progress |
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
@@ -44,7 +44,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **121** | **8** | |
+| | **Total** | **121** | **10** | |
 
 ---
 
@@ -72,10 +72,10 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P1-01 | 🔬 **Spike: headless PKCE.** Prove loopback redirect works with no keyboard on the device | ⬜ | **Highest-risk unknown.** Spotify rejects `localhost` and non-HTTPS. Timebox: 1 session |
+| P1-01 | 🔬 **Spike: headless PKCE** | ✅ | **Solved.** Device Grant is allowlisted to Spotify's own TV apps — unusable. PKCE + loopback works; the Pi authorises on its own touchscreen. [`spikes/pkce-loopback/`](../spikes/pkce-loopback/) |
 | P1-02 | Register the Spotify app; document required scopes | ⬜ | Needs Josh — see [SPOTIFY_SETUP.md](./SPOTIFY_SETUP.md) |
 | P1-03 | Store client credentials in GitHub Secrets | ⬜ | Needs Josh. Never committed |
-| P1-04 | PKCE challenge/verifier generation + authorize URL builder | ⬜ | Pure, unit tested |
+| P1-04 | PKCE challenge/verifier generation + authorize URL builder | ✅ | Pure, injectable randomness, 17 tests. Validated against RFC 7636 Appendix B |
 | P1-05 | Token exchange + refresh logic with expiry-ahead scheduling | ⬜ | Refresh at 80% of TTL, not on failure |
 | P1-06 | Token store: encrypted at rest, atomic writes | ⬜ | Survives power loss mid-write |
 | P1-07 | Typed Spotify HTTP client (only the endpoints we need) | ⬜ | |
@@ -263,7 +263,7 @@ Things we don't yet know. Resolve and move to DECISIONS.md.
 | # | Question | Blocks | Owner |
 |---|---|---|---|
 | ~~Q1~~ | ~~Board + touchscreen?~~ | — | ✅ **Resolved: Pi 5 + Touch Display 2** (D-008) |
-| Q2 | Does the headless PKCE loopback flow actually work on-device? | P1-01 | Claude (spike) |
+| ~~Q2~~ | ~~Does headless PKCE work on-device?~~ | — | ✅ **Resolved: yes**, via the Pi's own touchscreen (P1-01) |
 | Q3 | Chromium or `cog`/WPE for the kiosk runtime on a Pi 5? | P3-01 | Claude (spike) |
 | Q4 | Container or native install as the *recommended* path? | P8-01, P8-04 | Both, after P7 |
 | Q5 | Which USB DAC for the librespot module? | P5-20 | Josh, before P5 |
