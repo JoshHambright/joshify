@@ -1,0 +1,697 @@
+<title>N2O Tunnel Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&display=swap">
+<style>
+  :root{
+    --void:#07060f;
+    --panel:#100d22;
+    --panel-2:#171334;
+    --edge:#2b2352;
+    --cyan:#00e5ff;
+    --magenta:#ff2e88;
+    --lime:#b4ff39;
+    --ink:#ece9f7;
+    --ink-dim:#8b83b8;
+    --display:"Chakra Petch",system-ui,sans-serif;
+    --mono:"Share Tech Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--void);
+    color:var(--ink);
+    font-family:var(--display);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 72px}
+
+  /* ---- masthead ---- */
+  .mast{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;align-items:baseline;gap:12px}
+  .brand h1{
+    font-size:clamp(26px,4.4vw,42px);margin:0;font-weight:700;letter-spacing:.02em;
+    text-transform:uppercase;line-height:1;
+    background:linear-gradient(96deg,var(--cyan),var(--magenta) 62%,var(--lime));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .brand .ver{font-family:var(--mono);font-size:12px;color:var(--ink-dim);letter-spacing:.14em}
+  .kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink-dim);margin:0 0 6px
+  }
+  .lede{
+    font-family:var(--mono);font-size:12.5px;color:var(--ink-dim);
+    letter-spacing:.04em;text-align:right;line-height:1.7;max-width:34ch
+  }
+  .lede b{color:var(--cyan);font-weight:400}
+
+  /* ---- the screen ---- */
+  .console{
+    border:1px solid var(--edge);
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border-radius:3px;
+    padding:10px;
+    box-shadow:0 0 0 1px #0c0a19, 0 24px 60px -30px #000;
+  }
+  .screen{
+    position:relative;aspect-ratio:16/9;width:100%;
+    background:#000;border:1px solid #241d47;overflow:hidden;
+  }
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+
+  /* ---- HUD ---- */
+  .hud{position:absolute;inset:0;pointer-events:none;font-family:var(--mono)}
+  .hud-tl{position:absolute;top:10px;left:12px;font-size:10.5px;letter-spacing:.18em;color:var(--cyan);text-transform:uppercase}
+  .hud-tl span{color:var(--ink-dim)}
+  .hud-tr{position:absolute;top:10px;right:12px;font-size:10.5px;letter-spacing:.1em;color:var(--ink-dim);text-align:right;line-height:1.6}
+  .hud-tr b{color:var(--lime);font-weight:400}
+
+  .np{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:flex-end;gap:12px}
+  .np-art{width:54px;height:54px;flex:none;border:1px solid var(--edge);image-rendering:pixelated;background:#000}
+  .np-meta{flex:1;min-width:0}
+  .np-title{
+    font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.03em;
+    text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:var(--ink);text-shadow:0 1px 0 #000,0 0 12px rgba(0,0,0,.9)
+  }
+  .np-artist{font-size:11px;letter-spacing:.14em;color:var(--ink-dim);text-transform:uppercase;margin-top:1px}
+  .np-bar{height:3px;background:#241d47;margin-top:7px;position:relative;overflow:hidden}
+  .np-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--cyan),var(--magenta));width:34%}
+  .spec{display:flex;align-items:flex-end;gap:2px;height:40px;flex:none}
+  .spec i{width:4px;background:linear-gradient(180deg,var(--lime),var(--cyan));height:4px;opacity:.9}
+
+  .paused{
+    position:absolute;inset:0;display:none;place-items:center;background:rgba(7,6,15,.72);
+    pointer-events:auto;
+  }
+  .paused.on{display:grid}
+
+  /* ---- controls ---- */
+  .rack{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+  .mod{border:1px solid var(--edge);background:var(--panel);padding:9px 10px}
+  .mod h3{
+    margin:0 0 8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink-dim);font-weight:400
+  }
+  .btns{display:flex;flex-wrap:wrap;gap:5px}
+  button{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-dim);background:var(--panel-2);border:1px solid var(--edge);
+    padding:6px 9px;cursor:pointer;transition:none;
+  }
+  button:hover{color:var(--ink);border-color:#453a7d}
+  button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+  button[aria-pressed="true"]{color:var(--void);background:var(--cyan);border-color:var(--cyan);font-weight:700}
+  button.mag[aria-pressed="true"]{background:var(--magenta);border-color:var(--magenta)}
+  .row{display:flex;align-items:center;gap:9px;margin-top:7px}
+  .row label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-dim);width:52px;flex:none;text-transform:uppercase}
+  .row output{font-family:var(--mono);font-size:10.5px;color:var(--lime);width:46px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1;min-width:0;accent-color:var(--cyan);height:16px}
+  input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  /* ---- spec sheet ---- */
+  .sheet{margin-top:44px}
+  .sheet > h2{
+    font-size:12px;font-family:var(--mono);letter-spacing:.24em;text-transform:uppercase;
+    color:var(--ink-dim);font-weight:400;margin:0 0 4px;
+  }
+  .sheet > p.intro{
+    margin:0 0 22px;max-width:66ch;line-height:1.65;font-size:15px;color:var(--ink)
+  }
+  .sheet > p.intro b{color:var(--cyan);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:1px;background:var(--edge);border:1px solid var(--edge)}
+  .cell{background:var(--panel);padding:15px 16px}
+  .cell .no{font-family:var(--mono);font-size:10px;color:var(--magenta);letter-spacing:.16em}
+  .cell h4{margin:6px 0 6px;font-size:14.5px;letter-spacing:.02em;text-transform:uppercase;font-weight:700}
+  .cell p{margin:0;font-size:13px;line-height:1.6;color:var(--ink-dim)}
+  .cell code{font-family:var(--mono);color:var(--lime);font-size:12px}
+
+  .note{
+    margin-top:26px;border-left:2px solid var(--magenta);padding:2px 0 2px 16px;
+    max-width:66ch;font-size:13.5px;line-height:1.7;color:var(--ink-dim)
+  }
+  .note b{color:var(--ink);font-weight:600}
+  .foot{margin-top:34px;font-family:var(--mono);font-size:11px;color:var(--ink-dim);letter-spacing:.08em;line-height:1.8}
+  .foot b{color:var(--cyan);font-weight:400}
+  @media (max-width:620px){
+    .lede{text-align:left}
+    .spec{display:none}
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <div>
+      <p class="kicker">Joshify · Phase 5 · render spike</p>
+      <div class="brand">
+        <h1>N2O Tunnel</h1>
+        <span class="ver">VIS_MODE_03</span>
+      </div>
+    </div>
+    <p class="lede">
+      Album art mapped to a tube-shooter tunnel, rendered through a
+      <b>PlayStation 1</b> pipeline. Every artefact below is deliberate.
+    </p>
+  </div>
+
+  <div class="console">
+    <div class="screen">
+      <canvas id="gl"></canvas>
+      <div class="hud">
+        <div class="hud-tl">N2O <span>// TUBE</span></div>
+        <div class="hud-tr"><b id="fps">60</b> FPS<br><span id="res">320×180</span></div>
+        <div class="np">
+          <canvas class="np-art" id="art" width="256" height="256"></canvas>
+          <div class="np-meta">
+            <div class="np-title" id="t-title">Velocity Division</div>
+            <div class="np-artist" id="t-artist">Nitrous Cartel — 172 BPM</div>
+            <div class="np-bar"><i id="t-prog"></i></div>
+          </div>
+          <div class="spec" id="spec"></div>
+        </div>
+      </div>
+      <div class="paused" id="paused">
+        <button id="play" style="pointer-events:auto;font-size:13px;padding:12px 22px">▶ Start visualiser</button>
+      </div>
+    </div>
+
+    <div class="rack">
+      <div class="mod">
+        <h3>Album source</h3>
+        <div class="btns" id="albums"></div>
+      </div>
+      <div class="mod">
+        <h3>PS1 artefacts</h3>
+        <div class="btns">
+          <button id="f-jitter" aria-pressed="true">Vertex snap</button>
+          <button id="f-affine" aria-pressed="true">Affine UV</button>
+          <button id="f-dither" aria-pressed="true">Dither</button>
+          <button id="f-quant" aria-pressed="true">15-bit</button>
+        </div>
+      </div>
+      <div class="mod">
+        <h3>Signal path</h3>
+        <div class="btns">
+          <button id="f-crt" aria-pressed="true">CRT</button>
+          <button id="f-fog" aria-pressed="true">Fog</button>
+          <button class="mag" id="f-beat" aria-pressed="true">Beat sync</button>
+        </div>
+      </div>
+      <div class="mod">
+        <h3>Transport</h3>
+        <div class="row">
+          <label for="s-bpm">BPM</label>
+          <input type="range" id="s-bpm" min="80" max="190" value="172">
+          <output id="o-bpm">172</output>
+        </div>
+        <div class="row">
+          <label for="s-speed">Speed</label>
+          <input type="range" id="s-speed" min="0" max="60" value="26">
+          <output id="o-speed">26</output>
+        </div>
+        <div class="row">
+          <label for="s-res">Grain</label>
+          <input type="range" id="s-res" min="1" max="6" value="4">
+          <output id="o-res">320p</output>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="sheet">
+    <h2>What the hardware actually did</h2>
+    <p class="intro">
+      The PS1 look isn't nostalgia filters — it's a specific set of
+      <b>hardware limitations</b>, and each one is reproducible in a shader. The
+      tunnel above runs all five. Toggle them off and it collapses into
+      generic modern 3D.
+    </p>
+
+    <div class="grid">
+      <div class="cell">
+        <div class="no">ARTEFACT 01</div>
+        <h4>Vertex snap</h4>
+        <p>The GTE used fixed-point maths with no sub-pixel precision, so every
+        vertex jumped to the nearest whole pixel. Geometry visibly shivers as the
+        camera moves. Reproduced by rounding <code>ndc.xy</code> to a coarse grid
+        in the vertex shader.</p>
+      </div>
+      <div class="cell">
+        <div class="no">ARTEFACT 02</div>
+        <h4>Affine texture mapping</h4>
+        <p>No perspective correction — textures were interpolated linearly in
+        screen space, so they swim and warp across large polygons. Recreated by
+        premultiplying UVs by <code>w</code> and dividing in the fragment shader,
+        cancelling the GPU's own correction.</p>
+      </div>
+      <div class="cell">
+        <div class="no">ARTEFACT 03</div>
+        <h4>15-bit colour + dither</h4>
+        <p>Only 32 levels per channel. An ordered <code>4×4 Bayer</code> matrix
+        hid the banding, producing that fine crosshatch in gradients. This one
+        was already in our effects catalogue — the PS1 just gives it a reason.</p>
+      </div>
+      <div class="cell">
+        <div class="no">ARTEFACT 04</div>
+        <h4>No z-buffer</h4>
+        <p>Depth sorting was the programmer's problem, done per-polygon on the
+        CPU, so surfaces flicker and punch through each other at glancing angles.
+        We get this free by drawing tunnel rings back-to-front with depth testing
+        disabled.</p>
+      </div>
+      <div class="cell">
+        <div class="no">ARTEFACT 05</div>
+        <h4>Distance fog</h4>
+        <p>Draw distance was short, so everything faded into coloured haze to
+        hide the clip plane. Here the fog is tinted from the album's extracted
+        accent, which is what ties the tunnel to the artwork.</p>
+      </div>
+      <div class="cell">
+        <div class="no">ARTEFACT 06</div>
+        <h4>240p output</h4>
+        <p>Composite video into a CRT. The whole scene renders to a
+        <code>~320×180</code> buffer and scales up with nearest-neighbour — the
+        chunky pixels are the source, not a filter.</p>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>This is decision D-011 paying off.</b> We already chose half-resolution
+      rendering because it cuts fragment cost 4× and looks like the lo-fi
+      aesthetic we wanted. It turns out that's also, almost exactly, the PS1's
+      native output. The performance dial, the art direction and the period
+      reference are all the same slider.
+    </p>
+
+    <p class="note">
+      <b>Why the two eras fit.</b> Winamp 2 shipped in 1998. N2O shipped in 1998.
+      Milkdrop arrived in 2001. This isn't a mashup of two aesthetics — it's one
+      cultural moment, and building the visualiser and the interface from the
+      same year is what will make the finished object feel authored rather than
+      themed.
+    </p>
+
+    <div class="foot">
+      <b>Runs in the browser</b> — WebGL2, one draw call, no libraries.<br>
+      Album covers are generated procedurally; the accent colour driving the fog
+      and beat flash is sampled from the artwork at load, exactly as
+      <b>P3-03</b> will do on the Pi.<br>
+      Beat is simulated from BPM — the same signal <b>Tier 1</b> derives from an
+      ISRC lookup, and <b>Tier 2</b> gets for real from the librespot PCM tap.
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var TAU = Math.PI*2;
+
+  /* ---------------- procedural album art ---------------- */
+  var ALBUMS = [
+    { name:"Velocity Division", artist:"Nitrous Cartel",
+      pal:["#0a0620","#3d0f6b","#ff2e88","#00e5ff","#b4ff39"], style:0 },
+    { name:"Coolant Bath",      artist:"Hydra Sixteen",
+      pal:["#001418","#00363d","#00e5ff","#7cf9ff","#ffffff"], style:1 },
+    { name:"Sunstrip Cassette", artist:"Motorway Ghost",
+      pal:["#1a0700","#5c1a00","#ff7a18","#ffd166","#fff3cf"], style:2 },
+    { name:"Null Sector",       artist:"Concrete Function",
+      pal:["#0b0b0d","#1e1e26","#b4ff39","#5f7d1f","#e9ffd0"], style:3 }
+  ];
+
+  function drawCover(a){
+    var c = document.createElement("canvas"); c.width = c.height = 256;
+    var x = c.getContext("2d"), p = a.pal, i, j, n;
+
+    var g = x.createLinearGradient(0,0,256,256);
+    g.addColorStop(0,p[0]); g.addColorStop(1,p[1]);
+    x.fillStyle = g; x.fillRect(0,0,256,256);
+
+    if(a.style===0){                      // concentric rave rings
+      for(i=11;i>0;i--){
+        x.beginPath(); x.arc(128,128,i*13,0,TAU);
+        x.fillStyle = (i%2 ? p[2] : p[1]); x.globalAlpha = .16+i*.05; x.fill();
+      }
+      x.globalAlpha=1; x.strokeStyle=p[3]; x.lineWidth=3;
+      for(i=0;i<8;i++){
+        x.beginPath(); x.moveTo(128,128);
+        x.lineTo(128+Math.cos(i/8*TAU)*180,128+Math.sin(i/8*TAU)*180); x.stroke();
+      }
+    } else if(a.style===1){               // wireframe horizon
+      x.strokeStyle=p[2]; x.lineWidth=2; x.globalAlpha=.85;
+      for(i=0;i<14;i++){ n=140+i*i*.85; x.beginPath(); x.moveTo(0,n); x.lineTo(256,n); x.stroke(); }
+      for(i=-7;i<=7;i++){ x.beginPath(); x.moveTo(128,140); x.lineTo(128+i*70,256); x.stroke(); }
+      x.globalAlpha=1; x.fillStyle=p[3];
+      x.beginPath(); x.arc(128,118,46,0,TAU); x.fill();
+      x.fillStyle=p[1];
+      for(i=0;i<5;i++) x.fillRect(78,104+i*11,100,4);
+    } else if(a.style===2){               // sunstrip bars
+      x.fillStyle=p[2];
+      for(i=0;i<7;i++) x.fillRect(0,40+i*26,256,26-i*3);
+      x.fillStyle=p[3]; x.beginPath(); x.arc(128,110,54,0,TAU); x.fill();
+      x.fillStyle=p[0]; x.globalAlpha=.5;
+      for(i=0;i<6;i++) x.fillRect(60,96+i*13,136,5);
+      x.globalAlpha=1;
+    } else {                              // brutalist grid
+      x.fillStyle=p[2];
+      for(i=0;i<8;i++) for(j=0;j<8;j++)
+        if(((i*3+j*5)%7)<3) x.fillRect(i*32+3,j*32+3,26,26);
+      x.strokeStyle=p[4]; x.lineWidth=6; x.strokeRect(22,22,212,212);
+    }
+
+    /* film grain */
+    var d = x.getImageData(0,0,256,256), q = d.data;
+    for(i=0;i<q.length;i+=4){
+      n = (Math.random()-0.5)*26;
+      q[i]+=n; q[i+1]+=n; q[i+2]+=n;
+    }
+    x.putImageData(d,0,0);
+    return c;
+  }
+
+  /* accent extraction — same job P3-03 does server-side */
+  function extractAccent(cv){
+    var d = cv.getContext("2d").getImageData(0,0,256,256).data;
+    var best=[0,229,255], bestScore=-1, i, r,g,b, mx,mn,sat,lum,score;
+    for(i=0;i<d.length;i+=4*11){
+      r=d[i]/255; g=d[i+1]/255; b=d[i+2]/255;
+      mx=Math.max(r,g,b); mn=Math.min(r,g,b);
+      sat = mx===0 ? 0 : (mx-mn)/mx;
+      lum = 0.299*r+0.587*g+0.114*b;
+      score = sat*1.9 + (1-Math.abs(lum-0.62)*1.6);
+      if(score>bestScore){ bestScore=score; best=[d[i],d[i+1],d[i+2]]; }
+    }
+    return [best[0]/255,best[1]/255,best[2]/255];
+  }
+
+  /* ---------------- GL setup ---------------- */
+  var cv = document.getElementById("gl");
+  var gl = cv.getContext("webgl2",{antialias:false,alpha:false});
+  if(!gl){
+    document.getElementById("paused").classList.add("on");
+    document.getElementById("play").textContent = "WebGL2 unavailable in this browser";
+    return;
+  }
+
+  function sh(type,src){
+    var s = gl.createShader(type);
+    gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s),src);
+    return s;
+  }
+  function prog(v,f){
+    var p = gl.createProgram();
+    gl.attachShader(p,sh(gl.VERTEX_SHADER,v));
+    gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+    return p;
+  }
+
+  var VS = `#version 300 es
+  precision highp float;
+  in vec3 aPos; in vec2 aUv;
+  uniform mat4 uProj;
+  uniform float uTime,uSpeed,uSeg,uRadius,uJitter,uAffine,uBeat,uCurve,uFogOn;
+  out vec2 vUv; out float vW; out float vFog; out float vRim;
+  void main(){
+    float ring = aPos.z;
+    float scroll = mod(uTime*uSpeed, uSeg);
+    float z = -(ring*uSeg) + scroll;
+    float ease = smoothstep(0.0, 70.0, -z);
+    float cx = sin(z*0.028 + uTime*0.45)*uCurve*ease;
+    float cy = cos(z*0.019 + uTime*0.33)*uCurve*0.62*ease;
+    float r = uRadius*(1.0 + uBeat*0.13);
+    vec3 p = vec3(aPos.x*r + cx, aPos.y*r + cy, z);
+    vec4 clip = uProj*vec4(p,1.0);
+    if(uJitter > 0.5){
+      vec3 ndc = clip.xyz/clip.w;
+      vec2 grid = vec2(150.0,90.0);
+      ndc.xy = floor(ndc.xy*grid + 0.5)/grid;
+      clip.xyz = ndc*clip.w;
+    }
+    gl_Position = clip;
+    vW  = mix(1.0, clip.w, uAffine);
+    vUv = aUv*vW;
+    vFog = uFogOn * clamp((-z)/230.0, 0.0, 1.0);
+    vRim = abs(aPos.y)*0.5 + 0.5;
+  }`;
+
+  var FS = `#version 300 es
+  precision highp float;
+  in vec2 vUv; in float vW; in float vFog; in float vRim;
+  uniform sampler2D uTex;
+  uniform vec3 uAccent;
+  uniform float uDither,uQuant,uBeat;
+  out vec4 o;
+  const mat4 B = mat4( 0.0, 8.0, 2.0,10.0,
+                      12.0, 4.0,14.0, 6.0,
+                       3.0,11.0, 1.0, 9.0,
+                      15.0, 7.0,13.0, 5.0);
+  void main(){
+    vec2 uv = vUv/vW;
+    vec3 c = texture(uTex, uv).rgb;
+    c *= 0.55 + 0.55*vRim;
+    c = mix(c, uAccent, uBeat*0.30);
+    vec3 fogCol = uAccent*0.34 + vec3(0.02,0.01,0.06);
+    c = mix(c, fogCol, vFog*vFog);
+    int bx = int(mod(gl_FragCoord.x,4.0));
+    int by = int(mod(gl_FragCoord.y,4.0));
+    c += ((B[bx][by]/16.0)-0.5)*(uDither/26.0);
+    c = mix(c, floor(c*31.0+0.5)/31.0, uQuant);
+    o = vec4(clamp(c,0.0,1.0),1.0);
+  }`;
+
+  var PVS = `#version 300 es
+  precision highp float;
+  in vec2 aP; out vec2 vT;
+  void main(){ vT = aP*0.5+0.5; gl_Position = vec4(aP,0.0,1.0); }`;
+
+  var PFS = `#version 300 es
+  precision highp float;
+  in vec2 vT; uniform sampler2D uT; uniform float uCrt,uH; out vec4 o;
+  void main(){
+    vec2 uv = vT;
+    vec2 d = uv-0.5;
+    uv = mix(uv, uv + d*dot(d,d)*0.11, uCrt);
+    if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){ o=vec4(0.0,0.0,0.0,1.0); return; }
+    float ab = uCrt*0.0022;
+    vec3 c = vec3(
+      texture(uT, uv+vec2(ab,0.0)).r,
+      texture(uT, uv).g,
+      texture(uT, uv-vec2(ab,0.0)).b);
+    float scan = 1.0 - uCrt*0.20*pow(sin(uv.y*uH*3.14159),2.0);
+    c *= scan;
+    c *= 1.0 - uCrt*0.55*dot(d,d);
+    o = vec4(c,1.0);
+  }`;
+
+  var P = prog(VS,FS), PP = prog(PVS,PFS);
+
+  /* ---- tunnel mesh ---- */
+  var RINGS=70, SEGS=22, pos=[], uvs=[], idx=[], i,j,a;
+  for(i=0;i<=RINGS;i++){
+    for(j=0;j<=SEGS;j++){
+      a = j/SEGS*TAU;
+      pos.push(Math.cos(a), Math.sin(a), i);
+      uvs.push(j/SEGS*4.0, i*1.0);
+    }
+  }
+  for(i=0;i<RINGS;i++){
+    for(j=0;j<SEGS;j++){
+      var A=i*(SEGS+1)+j, Bv=A+1, C=A+(SEGS+1), D=C+1;
+      idx.push(A,C,Bv, Bv,C,D);
+    }
+  }
+  var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  function buf(data,loc,size){
+    var b=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,b);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);
+  }
+  buf(pos, gl.getAttribLocation(P,"aPos"), 3);
+  buf(uvs, gl.getAttribLocation(P,"aUv"),  2);
+  var ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+
+  var qvao=gl.createVertexArray(); gl.bindVertexArray(qvao);
+  var qb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,qb);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  var qa=gl.getAttribLocation(PP,"aP");
+  gl.enableVertexAttribArray(qa); gl.vertexAttribPointer(qa,2,gl.FLOAT,false,0,0);
+  gl.bindVertexArray(null);
+
+  /* ---- album texture ---- */
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+
+  var accent=[0,0.9,1];
+  function loadAlbum(n){
+    var alb = ALBUMS[n], cover = drawCover(alb);
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,cover);
+    accent = extractAccent(cover);
+    var ac = document.getElementById("art");
+    ac.getContext("2d").drawImage(cover,0,0);
+    document.getElementById("t-title").textContent = alb.name;
+    document.getElementById("t-artist").textContent = alb.artist+" — "+S.bpm+" BPM";
+    document.querySelectorAll("#albums button").forEach(function(b,k){
+      b.setAttribute("aria-pressed", k===n ? "true":"false");
+    });
+  }
+
+  /* ---- FBO ---- */
+  var fbo=gl.createFramebuffer(), ftex=gl.createTexture(), fw=0,fh=0;
+  gl.bindTexture(gl.TEXTURE_2D,ftex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+  function sizeFbo(w,h){
+    if(w===fw&&h===fh) return;
+    fw=w; fh=h;
+    gl.bindTexture(gl.TEXTURE_2D,ftex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,w,h,0,gl.RGB,gl.UNSIGNED_BYTE,null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,ftex,0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    document.getElementById("res").textContent = w+"×"+h;
+  }
+
+  function persp(fovy,asp,n,f){
+    var t=1/Math.tan(fovy/2);
+    return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]);
+  }
+
+  /* ---- state ---- */
+  var S = { bpm:172, speed:26, res:4, jitter:1, affine:1, dither:1, quant:1, crt:1, fog:1, beat:1, run:true };
+  var U = {}, k;
+  ["uProj","uTime","uSpeed","uSeg","uRadius","uJitter","uAffine","uBeat","uCurve","uFogOn","uTex","uAccent","uDither","uQuant"]
+    .forEach(function(n){ U[n]=gl.getUniformLocation(P,n); });
+  var PU = { uT:gl.getUniformLocation(PP,"uT"), uCrt:gl.getUniformLocation(PP,"uCrt"), uH:gl.getUniformLocation(PP,"uH") };
+
+  /* ---- UI ---- */
+  var albWrap = document.getElementById("albums");
+  ALBUMS.forEach(function(a,n){
+    var b=document.createElement("button");
+    b.textContent = String(n+1).padStart(2,"0");
+    b.title = a.name;
+    b.setAttribute("aria-pressed", n===0?"true":"false");
+    b.addEventListener("click",function(){ loadAlbum(n); });
+    albWrap.appendChild(b);
+  });
+
+  function toggle(id,key){
+    var b=document.getElementById(id);
+    b.addEventListener("click",function(){
+      S[key] = S[key] ? 0 : 1;
+      b.setAttribute("aria-pressed", S[key]?"true":"false");
+    });
+  }
+  toggle("f-jitter","jitter"); toggle("f-affine","affine");
+  toggle("f-dither","dither"); toggle("f-quant","quant");
+  toggle("f-crt","crt");       toggle("f-fog","fog");
+  toggle("f-beat","beat");
+
+  function slider(id,out,key,fmt){
+    var s=document.getElementById(id), o=document.getElementById(out);
+    function up(){ S[key]=+s.value; o.textContent=fmt(S[key]); }
+    s.addEventListener("input",up); up();
+  }
+  slider("s-bpm","o-bpm","bpm",function(v){
+    var a=ALBUMS[0]; void a;
+    var el=document.getElementById("t-artist");
+    el.textContent = el.textContent.replace(/—.*$/, "— "+v+" BPM");
+    return v;
+  });
+  slider("s-speed","o-speed","speed",function(v){return v;});
+  slider("s-res","o-res","res",function(v){return Math.round(1080/v/2)*2+"p";});
+
+  /* spectrum bars */
+  var bars=[], specEl=document.getElementById("spec");
+  for(i=0;i<22;i++){ var e=document.createElement("i"); specEl.appendChild(e); bars.push(e); }
+
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var pausedEl=document.getElementById("paused");
+  if(reduced){ S.run=false; pausedEl.classList.add("on"); }
+  document.getElementById("play").addEventListener("click",function(){
+    S.run=true; pausedEl.classList.remove("on"); last=performance.now(); loop(last);
+  });
+
+  /* ---- render ---- */
+  loadAlbum(0);
+  var t=0, last=performance.now(), fAcc=0, fCnt=0, prog01=0.18;
+
+  function frame(now){
+    var dt = Math.min((now-last)/1000, 0.05); last=now;
+    if(S.run) t += dt;
+
+    var dpr = Math.min(window.devicePixelRatio||1, 2);
+    var W = Math.round(cv.clientWidth*dpr), H = Math.round(cv.clientHeight*dpr);
+    if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
+    sizeFbo(Math.max(64,Math.round(W/S.res/dpr*1.0)), Math.max(36,Math.round(H/S.res/dpr*1.0)));
+
+    /* beat: Tier-1 style phase-locked pulse */
+    var phase = (t*(S.bpm/60)) % 1;
+    var beat = S.beat ? Math.pow(1-phase,4) : 0;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.viewport(0,0,fw,fh);
+    gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);           /* artefact 04 — no z-buffer */
+    gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT);
+
+    gl.useProgram(P); gl.bindVertexArray(vao);
+    gl.uniformMatrix4fv(U.uProj,false,persp(1.15, fw/fh, 0.5, 500));
+    gl.uniform1f(U.uTime,t);
+    gl.uniform1f(U.uSpeed,S.speed);
+    gl.uniform1f(U.uSeg,6.0);
+    gl.uniform1f(U.uRadius,7.0);
+    gl.uniform1f(U.uJitter,S.jitter);
+    gl.uniform1f(U.uAffine,S.affine);
+    gl.uniform1f(U.uBeat,beat);
+    gl.uniform1f(U.uCurve,3.0);
+    gl.uniform1f(U.uFogOn,S.fog);
+    gl.uniform1f(U.uDither,S.dither);
+    gl.uniform1f(U.uQuant,S.quant);
+    gl.uniform3f(U.uAccent,accent[0],accent[1],accent[2]);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.uniform1i(U.uTex,0);
+    gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.viewport(0,0,cv.width,cv.height);
+    gl.disable(gl.CULL_FACE);
+    gl.useProgram(PP); gl.bindVertexArray(qvao);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,ftex);
+    gl.uniform1i(PU.uT,0);
+    gl.uniform1f(PU.uCrt,S.crt);
+    gl.uniform1f(PU.uH,fh);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+
+    /* HUD */
+    for(i=0;i<bars.length;i++){
+      var band = Math.abs(Math.sin(t*(1.1+i*0.31)+i))*0.55 + beat*(1-i/bars.length)*0.9;
+      bars[i].style.height = (4 + band*34) + "px";
+    }
+    if(S.run){
+      prog01 += dt/210; if(prog01>1) prog01=0;
+      document.getElementById("t-prog").style.width = (prog01*100).toFixed(1)+"%";
+    }
+    fAcc += dt; fCnt++;
+    if(fAcc>0.5){ document.getElementById("fps").textContent = Math.round(fCnt/fAcc); fAcc=0; fCnt=0; }
+  }
+
+  function loop(now){ frame(now); if(S.run) requestAnimationFrame(loop); }
+  frame(performance.now());
+  if(S.run) requestAnimationFrame(loop);
+})();
+</script>
