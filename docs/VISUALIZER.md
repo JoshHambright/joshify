@@ -175,6 +175,7 @@ is the source texture for everything above.** Not a backdrop — the actual inpu
 | **Palette cycling** | Remap art luminance through the extracted palette, animated |
 | **Slit-scan** | Each row sampled from a different point in a frame-history buffer |
 | **Displacement** | Art's own luminance drives UV distortion of itself |
+| **Autostereogram** | A SIRDS pass over the scene's **depth buffer** — defocus your eyes and the tunnel resolves into real 3D. Period-perfect and, as far as we know, unique. Feasibility spike: P5-39 |
 
 ### F · Scenes (3D)
 
@@ -185,6 +186,9 @@ above compose over 3D geometry as readily as over a flat album quad.
 |---|---|
 | **`flat`** | The album cover as a full-screen quad — the default, and what families A-E assumed |
 | **`tunnel`** | The **N2O mode**: a PS1-era tube flown at speed, walls tiled with the album art, rendered through six reproduced PSX hardware artefacts |
+| **`reef`** | Ambient underwater: caustics, god rays, drifting silhouettes. The **calm mode** (D-018) — slow, dark, no strobe, the one you leave running |
+| **`ambient`** | Slow geometric solids, in the lineage of the Plus!-era screensavers |
+| **`isometric`** | A city that builds as the track plays |
 
 The tunnel is fully specified in [PS1_MODE.md](./PS1_MODE.md), with a working
 prototype in [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/). Because it is a scene

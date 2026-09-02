@@ -239,3 +239,18 @@ borrowed reference.
 chrome must be tokenised from the start rather than hard-coded. Cheaper to do at
 Phase 3 than to retrofit.
 **Status:** ✅ Accepted. Roster in [THEMES.md](./THEMES.md).
+
+---
+
+### D-018 · The visualiser needs a calm mode, and it is a first-class one
+**Chose:** `REEF` — an ambient underwater scene (caustics, god rays, drifting
+silhouettes) built as a peer of `N2O`, not an afterthought.
+**Why:** `N2O` is a strobing tunnel at speed. That's right for loud music in the
+evening and *wrong* for an always-on object playing something quiet at 11pm —
+which is a large share of what this device actually does. Shipping only an
+aggressive mode would make the visualiser something you switch off, and a
+visualiser you switch off has failed.
+The 90s dolphin reference arrives at the same answer from the other direction, so
+the period vocabulary and the product requirement agree.
+**Costs:** A second scene to build and tune. Sequenced second, after `VGA`.
+**Status:** ✅ Accepted. See [THEMES.md](./THEMES.md).

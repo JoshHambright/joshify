@@ -62,9 +62,67 @@ Each theme is a full spec, not a mood. `N2O` is built; the rest are specified.
 | **`METROPOLIS`** | Muted daylight, SimCity 2000 earth tones | Dense icon toolbar | `isometric` — a city that builds with the track | Pixel-grid snap |
 | **`FIELD TRIP`** | Saturated primaries, paper white | Hand-drawn rules, annotation callouts | `flat` | Marker-pen outline, halftone |
 | **`TRAIL`** | 4-colour limited, amber-on-black option | Pixel type, boxed status readout | `flat` | Heavy dither, deliberate stillness |
+| **`REEF`** | Deep blue, teal, sunlit cyan, sand | Soft, rounded, minimal | `reef` — underwater ambient | Caustics, god rays, drifting silhouettes |
+| **`LAGOON`** | Sunset magenta→orange→purple, chrome | Airbrushed gradients, chrome bevels | `reef` | Autostereogram overlay |
 
-`ambient` and `isometric` are new **scenes** under the D-014 scene stage, joining
-`flat` and `tunnel`. Every post-chain effect composes over all of them.
+`ambient`, `isometric` and `reef` are new **scenes** under the D-014 scene stage,
+joining `flat` and `tunnel`. Every post-chain effect composes over all of them.
+
+---
+
+## Dolphins (yes, seriously)
+
+Dolphins are not a novelty request. They are one of the most load-bearing visual
+signifiers of the decade, across at least four separate registers:
+
+| Register | What it actually was |
+|---|---|
+| **Autostereograms** | The single most reproduced optical illusion of 1993–95, and the canonical subject was a dolphin. Mall poster shops, book covers, everywhere |
+| **Airbrush / Trapper Keeper** | Dolphins leaping over a sunset gradient — a whole genre of school-folder and beach-shop art |
+| **Ambient underwater games** | *Ecco the Dolphin* (Sega, 1992): surreal, slow, beautiful, and unusually musical for its era |
+| **Screensavers & desktop themes** | Aquatic wallpaper and 3D swimming screensavers were a default of the period — the Plus! roster even shipped *Dangerous Creatures* |
+
+### They also fill a real hole in the product
+
+More important than the reference: **Joshify currently has no calm mode.**
+
+`N2O` is aggressive — a strobing tunnel at speed. That's correct for loud music at
+8pm. It is *wrong* for an always-on object on a desk playing something quiet at
+11pm, which is a large share of what this device will actually do.
+
+`REEF` is the tonal opposite: slow, drifting, dark, no strobe. Ambient underwater
+with caustics and god rays, dolphin silhouettes passing at the edge of the light.
+It's the mode you leave running.
+
+**So dolphins arrive as a product requirement wearing a costume.** Logged as
+**D-018**.
+
+### The genuinely novel bit: autostereograms
+
+Of everything in this document, this is the one nobody else has.
+
+An autostereogram is generated **from a depth map** — and the `tunnel` and `reef`
+scenes already produce depth. So we can generate one live, per frame, from the
+scene we're already rendering:
+
+```
+scene depth buffer ──► SIRDS pass ──► a stereogram that resolves into
+                                       the actual tunnel you're flying down
+```
+
+Defocus your eyes at the screen and the visualiser pops into genuine 3D. It's
+period-perfect, it's technically real, and it is not a thing any music visualiser
+does.
+
+**Feasibility is not yet proven.** The classic SIRDS algorithm walks each scanline
+sequentially propagating constraints, which doesn't map cleanly to a fragment
+shader. The known workaround is iterative backward sampling — step left by the
+depth-derived separation until you fall off the edge, then sample the pattern.
+That needs a spike before it becomes a task (**P5-39**).
+
+**Naming:** *Magic Eye* is a brand of Magic Eye Inc. The generic terms are
+**autostereogram** and **SIRDS**, and those are what we use — in code, in the UI,
+and in these docs.
 
 ---
 
@@ -110,7 +168,9 @@ unchanged, and now covers more ground.
 - The Windows logo, flag, wordmark, or the actual Win95/3.1 UI bitmaps and icons
 - The Surge wordmark or logo
 - Pizza Hut's roof mark, or BOOK IT! branding
-- Ms. Frizzle, the bus, Carmen Sandiego, or any character or likeness
+- Ms. Frizzle, the bus, Carmen Sandiego, Ecco, or any character or likeness
+- The **Magic Eye** name (a brand — use *autostereogram*), Lisa Frank artwork,
+  or any Sega asset
 - MECC/Broderbund/Maxis art assets, or any game's sprites
 - Any theme *named* after a trademark
 
@@ -132,7 +192,9 @@ theme architecture is real, by being maximally *unlike* each other:
 1. **`VGA`** — because 16-colour quantisation is ~15 lines of shader on top of the
    dither we already have, and it looks radically different from `N2O` for almost
    no work.
-2. **`PLUS!`** — because it's the one that forces **UI chrome** into the theme
+2. **`REEF`** — because it closes the calm-mode gap (D-018), which is a product
+   hole rather than a nice-to-have.
+3. **`PLUS!`** — because it's the one that forces **UI chrome** into the theme
    system rather than just effects. If the architecture survives that, it works.
 
 The rest are content, addable one file at a time once the system holds.
