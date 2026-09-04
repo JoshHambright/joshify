@@ -21,8 +21,8 @@ const coverBytes = async (colour: number, size: number): Promise<Buffer> =>
   new Jimp({ width: size, height: size, color: colour }).getBuffer(JimpMime.png);
 
 /** Serves a different body per URL, the way the real CDN does. */
-const serving = (bodies: Readonly<Record<string, Buffer | number>>): typeof fetch =>
-  vi.fn((input: unknown) => {
+const serving = (bodies: Readonly<Record<string, Buffer | number>>) =>
+  vi.fn((input: unknown): Promise<Response> => {
     const url = String(input);
     const body = bodies[url];
     if (body === undefined) return Promise.resolve(new Response('', { status: 404 }));
@@ -31,7 +31,7 @@ const serving = (bodies: Readonly<Record<string, Buffer | number>>): typeof fetc
     return Promise.resolve(
       new Response(body, { headers: { 'content-type': 'image/png' } }),
     );
-  }) as unknown as typeof fetch;
+  });
 
 let cacheDir: string;
 

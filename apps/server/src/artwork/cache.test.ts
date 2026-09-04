@@ -1,5 +1,6 @@
 import {
   mkdir,
+  symlink,
   mkdtemp,
   readdir,
   readFile,
@@ -16,14 +17,13 @@ import { createArtworkCache, SOURCE_KIND } from './cache.js';
 
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x43, 0x00, 0x01]);
 
-const respondWith = (
-  body: BodyInit,
-  init: ResponseInit = { headers: { 'content-type': 'image/jpeg' } },
-): typeof fetch =>
-  vi.fn(() => Promise.resolve(new Response(body, init))) as unknown as typeof fetch;
+/** Node's lib has no DOM `BodyInit`; these are the shapes the tests use. */
+type Body = Buffer | string | ReadableStream<Uint8Array>;
 
-const calls = (impl: typeof fetch): number =>
-  (impl as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+const respondWith = (
+  body: Body,
+  init: ResponseInit = { headers: { 'content-type': 'image/jpeg' } },
+) => vi.fn((): Promise<Response> => Promise.resolve(new Response(body, init)));
 
 let cacheDir: string;
 const URL_A = 'https://i.scdn.co/image/ab67616d00001e02aaaa';
@@ -53,7 +53,7 @@ describe('createArtworkCache.load', () => {
     expect(first.value.fromCache).toBe(false);
     expect(second.value.fromCache).toBe(true);
     expect(second.value.bytes).toEqual(JPEG);
-    expect(calls(fetchImpl)).toBe(1);
+    expect(fetchImpl.mock.calls.length).toBe(1);
   });
 
   it('writes the bytes where a static handler can serve them', async () => {
@@ -93,7 +93,7 @@ describe('createArtworkCache.load', () => {
     ]);
 
     expect(results.every(isOk)).toBe(true);
-    expect(calls(fetchImpl)).toBe(1);
+    expect(fetchImpl.mock.calls.length).toBe(1);
   });
 
   it('leaves nothing on disk when the download fails midway', async () => {
@@ -165,7 +165,7 @@ describe('createArtworkCache.load', () => {
     expect(isOk(loaded)).toBe(true);
     if (!isOk(loaded)) return;
     expect(loaded.value.fromCache).toBe(false);
-    expect(calls(fetchImpl)).toBe(1);
+    expect(fetchImpl.mock.calls.length).toBe(1);
   });
 
   it('refuses an oversized image by its declared length, before downloading it', async () => {
@@ -201,6 +201,20 @@ describe('createArtworkCache.load', () => {
     expect(await entryNames()).toEqual([]);
   });
 
+  it('rate limits without a Retry-After header still classify cleanly', async () => {
+    const cache = createArtworkCache({
+      cacheDir,
+      fetchImpl: respondWith('', { status: 429 }),
+    });
+
+    const loaded = await cache.load(URL_A);
+
+    expect(isErr(loaded)).toBe(true);
+    if (!isErr(loaded)) return;
+    expect(loaded.error.kind).toBe('rate-limited');
+    expect(loaded.error.retryAfterMs).toBeUndefined();
+  });
+
   it('maps CDN failures onto the taxonomy the UI already understands', async () => {
     const cases: readonly { status: number; kind: string; retryable: boolean }[] = [
       // Not 'no-active-device': a 404 here means the artwork URL in a cached
@@ -226,9 +240,9 @@ describe('createArtworkCache.load', () => {
   });
 
   it('reports a transport failure as network, so the poller can retry it', async () => {
-    const fetchImpl = vi.fn(() =>
+    const fetchImpl = vi.fn((): Promise<Response> =>
       Promise.reject(new Error('getaddrinfo ENOTFOUND')),
-    ) as unknown as typeof fetch;
+    );
     const cache = createArtworkCache({ cacheDir, fetchImpl });
 
     const loaded = await cache.load(URL_A);
@@ -247,7 +261,7 @@ describe('createArtworkCache.load', () => {
 
     expect(isErr(await cache.load('file:///etc/passwd'))).toBe(true);
     expect(isErr(await cache.load('not a url'))).toBe(true);
-    expect(calls(fetchImpl)).toBe(0);
+    expect(fetchImpl.mock.calls.length).toBe(0);
   });
 
   it('reports a filesystem failure instead of silently refetching forever', async () => {
@@ -262,7 +276,7 @@ describe('createArtworkCache.load', () => {
     expect(isErr(loaded)).toBe(true);
     if (!isErr(loaded)) return;
     expect(loaded.error.kind).toBe('unexpected');
-    expect(calls(fetchImpl)).toBe(0);
+    expect(fetchImpl.mock.calls.length).toBe(0);
   });
 
   it('reports a write failure rather than pretending the image was cached', async () => {
@@ -307,6 +321,26 @@ describe('createArtworkCache derived files', () => {
       true,
     );
     expect(isErr(await cache.readDerived(cache.keyFor(URL_A), '../escape'))).toBe(true);
+  });
+
+  it('leaves no temp file behind when the final rename fails', async () => {
+    // The temp file is the price of atomicity; a write that dies must not turn
+    // that price into permanent litter on a device nobody logs into.
+    const cache = createArtworkCache({ cacheDir });
+    const key = cache.keyFor(URL_A);
+    await mkdir(join(cacheDir, `${key}.backdrop`));
+    await writeFile(join(cacheDir, `${key}.backdrop`, 'occupied'), 'x');
+
+    expect(isErr(await cache.writeDerived(key, 'backdrop', JPEG))).toBe(true);
+    expect((await readdir(cacheDir)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('reports an unreadable derived file instead of treating it as a miss', async () => {
+    const cache = createArtworkCache({ cacheDir });
+    const key = cache.keyFor(URL_B);
+    await mkdir(join(cacheDir, `${key}.backdrop`));
+
+    expect(isErr(await cache.readDerived(key, 'backdrop'))).toBe(true);
   });
 
   it('reports a write failure, and reads an unreachable path as absent', async () => {
@@ -424,14 +458,18 @@ describe('createArtworkCache.prune', () => {
     expect(isErr(report)).toBe(true);
   });
 
-  it('survives an entry that vanishes between listing and stat', async () => {
-    await write('aaa.src', 10, 1000);
-    const path = join(cacheDir, 'aaa.src');
-    const cache = createArtworkCache({ cacheDir });
-    const original = await stat(path);
-    expect(original.isFile()).toBe(true);
-    await rm(path);
+  it('skips an entry it cannot stat rather than abandoning the sweep', async () => {
+    // A dangling symlink stands in for the real race: an entry that is listed
+    // and then gone by the time prune reaches it. One unreadable name must not
+    // stop the cache from being bounded.
+    await write('aaa.src', 4096, 30_000);
+    await symlink(join(cacheDir, 'nothing-here'), join(cacheDir, 'dangling.src'));
 
-    expect(isOk(await cache.prune())).toBe(true);
+    const report = await createArtworkCache({ cacheDir, maxEntries: 0 }).prune();
+
+    expect(isOk(report)).toBe(true);
+    if (!isOk(report)) return;
+    expect(report.value.removed).toBe(1);
+    expect(await entryNames()).toEqual(['dangling.src']);
   });
 });

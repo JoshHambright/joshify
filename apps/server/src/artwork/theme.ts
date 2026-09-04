@@ -185,8 +185,10 @@ const scan = (pixels: PixelData): Scan => {
   };
 };
 
+/** Seeded with the mean, which is what a cover with no buckets to rank — an
+ * empty bitmap — would deserve anyway. */
 const pickAccent = (scanned: Scan): Rgb => {
-  let best: Bucket | null = null;
+  let best = scanned.mean;
   let bestScore = -1;
   for (const bucket of scanned.buckets) {
     const colour = averageOf(bucket);
@@ -195,10 +197,10 @@ const pickAccent = (scanned: Scan): Rgb => {
     // in insertion order, so the same image always yields the same accent.
     if (score > bestScore) {
       bestScore = score;
-      best = bucket;
+      best = colour;
     }
   }
-  return best === null ? { r: 0, g: 0, b: 0 } : averageOf(best);
+  return best;
 };
 
 /** The mean colour, forced into the dark band the chrome is designed against. */

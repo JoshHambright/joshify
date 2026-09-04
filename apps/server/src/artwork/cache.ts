@@ -46,6 +46,7 @@ import {
   utimes,
 } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { Stats } from 'node:fs';
 import {
   createError,
   classifyThrown,
@@ -218,7 +219,7 @@ export const createArtworkCache = (options: ArtworkCacheOptions): ArtworkCache =
     const entries: Entry[] = [];
     const now = Date.now();
     for (const name of names) {
-      let info;
+      let info: Stats;
       try {
         info = await stat(join(options.cacheDir, name));
       } catch {

@@ -73,8 +73,7 @@ export const parseHex = (hex: string): Rgb | null => {
 
   // The 3-digit form doubles each digit (#f0a === #ff00aa), which is not the
   // same as padding with zeroes — a naive parse turns #fff into near-black.
-  const full =
-    text.length === 3 ? [...text].map((digit) => `${digit}${digit}`).join('') : text;
+  const full = text.length === 3 ? text.replace(/[0-9a-f]/g, '$&$&') : text;
   if (full.length !== 6) return null;
 
   return {
