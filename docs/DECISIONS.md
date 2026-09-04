@@ -420,3 +420,26 @@ request flood.
   name**, which is why volume and seek bounds are validated locally: we can say
   which value was wrong and Spotify cannot.
 **Status:** ✅ Recorded.
+
+---
+
+### D-027 · Pure-JS image decoding (`jimp`), not `sharp`
+**Chose:** `jimp` for decoding artwork, extracting colours, and pre-rendering the
+blurred backdrop. Resolves open question Q6.
+**Why:** The instinct is `sharp`, which is much faster. But the speed is
+irrelevant here — **we only ever decode the 64px album art variant** (PRODUCT.md
+§8.1), which is 4,096 pixels. Both libraries are instant at that size.
+What differs is the install. `sharp` is a native libvips binding, so the Pi needs
+a working ARM64 prebuild or a toolchain to compile one, and that is exactly the
+kind of failure that turns a one-line install into an afternoon (Phase 8's whole
+point is that a stranger can install this in under 30 minutes). A pure-JS
+decoder has no build step and cannot fail that way.
+This is a case where the slower library is the right one because the
+performance difference is below the threshold where anyone could notice, and the
+install difference is not.
+**Costs:** If we ever process full-size artwork, this decision needs revisiting.
+Nothing currently does, and doing so would contradict §8.1's reason for fetching
+the small variant in the first place.
+**Verified:** decode → pixel read → resize → blur → re-encode all confirmed
+working on Node 22 ESM before adopting.
+**Status:** ✅ Accepted.

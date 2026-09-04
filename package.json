@@ -30,5 +30,10 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.4",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@fastify/websocket": "11.3.0",
+    "fastify": "5.12.3",
+    "jimp": "1.6.1"
   }
 }
