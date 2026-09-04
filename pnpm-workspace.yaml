@@ -1,0 +1,8 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# Vitest bundles esbuild, which needs its postinstall to place the platform
+# binary. pnpm 10 blocks build scripts unless they are named here.
+onlyBuiltDependencies:
+  - esbuild

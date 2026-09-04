@@ -1,0 +1,42 @@
+name: Deploy showcase to GitHub Pages
+
+# Deploys from `main` only.
+#
+# Enabling Pages creates a `github-pages` environment whose deployment branch
+# policy defaults to the default branch. A deploy from any other branch is
+# refused at job setup -- in about three seconds, before checkout, producing no
+# log at all, which reads like a build failure but is a protection rule.
+#
+# Triggering on the feature branch therefore guaranteed a red run on every
+# `site/` push, and a workflow that always fails just teaches you to ignore it.
+# To deploy from a branch other than `main`, add that branch under
+# Settings > Environments > github-pages > Deployment branches.
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

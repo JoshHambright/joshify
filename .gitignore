@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# test output
+coverage/
+
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# runtime state
+*.log
+.DS_Store
