@@ -36,7 +36,7 @@
  * Pure, and with no clock of its own: every instant is a monotonic reading
  * passed in by the caller (D-023).
  */
-import type { PlaybackState, PlayingItem, RepeatMode } from './state.js';
+import type { PlaybackState, RepeatMode } from './state.js';
 import { playingItemKey } from './item-key.js';
 
 /** The fields of `PlaybackState` a command can move ahead of the truth. */

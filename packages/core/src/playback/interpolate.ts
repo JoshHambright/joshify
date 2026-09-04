@@ -15,7 +15,7 @@
  * takes is therefore named `monotonicMs`, and passing a wall-clock timestamp
  * for one is a bug even though the types cannot tell the difference.
  */
-import type { PlaybackState, PlayingItem } from './state.js';
+import type { PlaybackState } from './state.js';
 import { playingItemKey } from './item-key.js';
 
 export interface ProgressTrackerOptions {
