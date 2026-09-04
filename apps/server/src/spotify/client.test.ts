@@ -199,3 +199,51 @@ describe('header merging', () => {
     expect(isOk(result)).toBe(true);
   });
 });
+
+describe('podcast support', () => {
+  // /v1/me/player defaults to additional_types=track. Without asking for
+  // episodes, a playing podcast comes back as item: null and the device shows
+  // "nothing playing" while audio is audibly coming out of the speakers.
+  it('asks for episodes as well as tracks', async () => {
+    await client().getPlaybackState();
+    const call = spotify.requests.find((r) => r.path === '/v1/me/player');
+    expect(call?.query['additional_types']).toBe('episode');
+  });
+});
+
+describe('malformed responses', () => {
+  // An empty or non-JSON body must not turn into a parse exception. The status
+  // is the information we actually need, and losing it to a throw would report
+  // a network fault for what is really a 404.
+  it('keeps the status when the body is not JSON', async () => {
+    const result = await client().request('/v1/nope');
+    if (isOk(result)) throw new Error('expected failure');
+    expect(result.error.status).toBe(404);
+    expect(result.error.kind).toBe('no-active-device');
+  });
+});
+
+describe('production defaults', () => {
+  const captureUrl = (seen: string[]): typeof fetch =>
+    ((url: string | URL) => {
+      seen.push(String(url));
+      return Promise.resolve(
+        new Response('{"id":"josh"}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    }) as unknown as typeof fetch;
+
+  // Nothing else in the suite exercises the real base URL, because every test
+  // points at the fake. A wrong default would fail silently in dev and only
+  // surface on the device.
+  it('targets the real Spotify API when no base URL is given', async () => {
+    const seen: string[] = [];
+    await createSpotifyClient({
+      tokenSource: tokenSource(),
+      fetchImpl: captureUrl(seen),
+    }).getDevices();
+    expect(seen).toEqual(['https://api.spotify.com/v1/me/player/devices']);
+  });
+});

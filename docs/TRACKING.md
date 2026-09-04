@@ -37,14 +37,14 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | 9 | 🟨 In progress (1 cut) |
-| 2 | Playback state engine | 10 | 0 | ⬜ Not started |
+| 2 | Playback state engine | 10 | 2 | 🟨 In progress |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **17** | |
+| | **Total** | **120** | **19** | |
 
 ---
 
@@ -92,8 +92,8 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P2-01 | `PlaybackState` model + normaliser for Spotify's player payloads | ⬜ | Handles null device, null item, podcasts |
-| P2-02 | Injected clock abstraction | ⬜ | Makes everything below testable without real time |
+| P2-01 | `PlaybackState` model + normaliser for Spotify's player payloads | ✅ | Tracks, episodes, local files, null device/item/volume/progress. `show` beats `type` as the episode signal. Absence modelled, not defaulted (D-022) |
+| P2-02 | Injected clock abstraction | ✅ | Wall-clock and monotonic kept separate — the Pi 5 has no RTC and steps its clock on first network contact (D-023) |
 | P2-03 | Adaptive polling scheduler | ⬜ | ~5s idle, ~1s near boundary, immediate after command |
 | P2-04 | Local progress interpolation between polls | ⬜ | Monotonic clock; must not drift or jump backwards |
 | P2-05 | Optimistic command application + reconciliation | ⬜ | Tap feels instant, truth wins later |

@@ -17,6 +17,7 @@ import type { AddressInfo } from 'node:net';
 export interface RecordedRequest {
   readonly method: string;
   readonly path: string;
+  readonly query: Readonly<Record<string, string>>;
   readonly form: Readonly<Record<string, string>>;
 }
 
@@ -68,7 +69,9 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
       const rawBody = Buffer.concat(chunks).toString('utf8');
       const form: Record<string, string> = {};
       for (const [key, value] of new URLSearchParams(rawBody)) form[key] = value;
-      requests.push({ method: req.method ?? 'GET', path: url.pathname, form });
+      const query: Record<string, string> = {};
+      for (const [key, value] of url.searchParams) query[key] = value;
+      requests.push({ method: req.method ?? 'GET', path: url.pathname, query, form });
 
       const json = (
         status: number,

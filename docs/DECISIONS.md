@@ -326,3 +326,36 @@ account, revocable from the account page.
    winner's key. A malformed-but-present key is reported, never replaced, for
    the same reason.
 **Status:** ✅ Accepted.
+
+---
+
+### D-022 · Playback normalisation models absence rather than defaulting it
+**Chose:** In `PlaybackState`, `volumePercent` and `PlayingItem.id` are nullable
+rather than falling back to `0` / `''`. An `Err` is reserved for a payload that
+is not recognisably a player response at all; null item, null device, null
+volume and null progress are ordinary states with something sensible to draw.
+**Why:** Defaulting volume to `0` would draw a muted slider for a device playing
+at full volume — a confident lie is worse than an absent control. And an `Err`
+puts a fault on screen, so it must mean "something is wrong", not "nothing is
+playing". A boolean `is_playing` is the discriminator for a genuine player
+payload, so `{}`, an array or an error body is rejected rather than becoming a
+plausible-looking idle state.
+**The one exception, recorded because it is an exception:** `progressMs`
+collapses `null` to `0`. A device that is starting up, or between items, reports
+null progress, and `0` is both the only honest render and the natural starting
+point for the P2-04 interpolator.
+**Status:** ✅ Accepted.
+
+---
+
+### D-023 · Elapsed time is measured only with a monotonic clock
+**Chose:** `Clock` exposes wall-clock and monotonic readings separately. Anything
+measuring *elapsed* time — progress interpolation, poll scheduling, refresh
+timing — uses `monotonic()`; wall-clock is for display only, and the two origins
+are never mixed.
+**Why:** The **Pi 5 has no real-time clock**. It boots believing an arbitrary
+time and steps by potentially years on first network contact. A progress bar
+driven by wall-clock would jump wildly at that moment, and an NTP correction
+would do the same more subtly forever after. A monotonic source cannot go
+backwards, which is exactly the property elapsed-time measurement needs.
+**Status:** ✅ Accepted.

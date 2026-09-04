@@ -1,5 +1,5 @@
 import { createCipheriv, randomBytes } from 'node:crypto';
-import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -308,5 +308,39 @@ describe('createTokenStore', () => {
     expect(isOk(loaded)).toBe(true);
     if (!isOk(loaded)) return;
     expect(loaded.value).toEqual(TOKENS);
+  });
+});
+
+describe('filesystem faults degrade instead of throwing', () => {
+  // These paths matter more than they look: an unhandled throw here happens
+  // during kiosk boot, where there is nobody to read a stack trace. Returning
+  // an Err lets the UI show something; throwing takes the whole device down.
+
+  it('reports an unreadable key file rather than throwing', async () => {
+    const store = createTokenStore({ dataDir });
+    await store.save(TOKENS);
+    // A directory where the key belongs makes readFile fail with EISDIR —
+    // a stand-in for any I/O fault, and one that works even running as root.
+    await rm(join(dataDir, 'tokens.key'));
+    await mkdir(join(dataDir, 'tokens.key'));
+
+    const result = await store.load();
+
+    expect(isOk(result)).toBe(false);
+    if (isOk(result)) return;
+    // An I/O fault is not "log in again" — re-authorising cannot fix a disk.
+    expect(result.error.kind).toBe('unexpected');
+  });
+
+  it('reports a failed clear rather than throwing', async () => {
+    const store = createTokenStore({ dataDir });
+    await mkdir(join(dataDir, 'tokens.enc'), { recursive: true });
+    await writeFile(join(dataDir, 'tokens.enc', 'blocker'), 'x');
+
+    const result = await store.clear();
+
+    expect(isOk(result)).toBe(false);
+    if (isOk(result)) return;
+    expect(result.error.kind).toBe('unexpected');
   });
 });

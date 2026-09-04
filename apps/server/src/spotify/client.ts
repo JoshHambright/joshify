@@ -164,7 +164,10 @@ export const createSpotifyClient = (config: SpotifyClientConfig): SpotifyClient 
   return {
     request,
     getProfile,
-    getPlaybackState: () => request('/v1/me/player'),
+    // `additional_types` defaults to `track` alone. Without asking for
+    // episodes, Spotify reports a playing podcast as `item: null` — the device
+    // would show "nothing playing" while a podcast is audibly playing.
+    getPlaybackState: () => request('/v1/me/player?additional_types=episode'),
     getDevices: () => request('/v1/me/player/devices'),
   };
 };

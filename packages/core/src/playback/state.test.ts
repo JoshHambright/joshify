@@ -301,6 +301,37 @@ describe('normalisePlaybackState', () => {
     ]);
   });
 
+  // Generated art (mosaics, some podcast covers) comes back with null sizes.
+  // It still has to be usable, and must not push a sized image out of place.
+  it('orders sizeless artwork behind everything it can measure', () => {
+    const state = parseOrThrow({
+      ...trackPayload,
+      item: {
+        ...trackPayload.item,
+        album: {
+          ...trackPayload.item.album,
+          images: [
+            { url: 'https://i.scdn.co/image/mosaic', height: null, width: null },
+            { url: 'https://i.scdn.co/image/ab-300', height: 300, width: 300 },
+          ],
+        },
+      },
+    });
+    expect(state.item?.images.map((image) => image.url)).toEqual([
+      'https://i.scdn.co/image/ab-300',
+      'https://i.scdn.co/image/mosaic',
+    ]);
+  });
+
+  it('leaves the subtitle empty for an episode whose show has no name', () => {
+    const state = parseOrThrow({
+      ...episodePayload,
+      item: { ...episodePayload.item, show: { publisher: 'Someone' } },
+    });
+    expect(state.item?.kind).toBe('episode');
+    expect(state.item?.subtitle).toBe('');
+  });
+
   it('falls back to off for a repeat mode it does not know', () => {
     expect(parseOrThrow({ ...trackPayload, repeat_state: 'sometimes' }).repeat).toBe(
       'off',
@@ -379,6 +410,20 @@ describe('selectArtwork', () => {
 
   it('accepts a sizeless image only as a last resort', () => {
     const mosaic = { url: 'https://i.scdn.co/image/mosaic', width: null, height: null };
+    const small = { url: 'https://i.scdn.co/image/ab-64', width: 64, height: 64 };
     expect(selectArtwork([mosaic], 64)).toBe(mosaic);
+    expect(selectArtwork([mosaic, small], 640)).toBe(small);
+  });
+
+  // Order is not a precondition: a caller holding a list from anywhere else
+  // should still get the smallest image that clears the bar.
+  it('does not depend on the list being sorted', () => {
+    const images = [
+      { url: 'a', width: 300, height: 300 },
+      { url: 'b', width: 64, height: 64 },
+      { url: 'c', width: 640, height: 640 },
+    ];
+    expect(selectArtwork(images, 64)?.url).toBe('b');
+    expect(selectArtwork(images, 301)?.url).toBe('c');
   });
 });

@@ -31,3 +31,21 @@ export {
   type ParseTokenOptions,
   type TokenSet,
 } from './auth/tokens.js';
+export {
+  createTestClock,
+  systemClock,
+  type Clock,
+  type TestClock,
+  type TestClockOptions,
+} from './clock.js';
+export {
+  IDLE_PLAYBACK,
+  normalisePlaybackState,
+  selectArtwork,
+  type Artwork,
+  type PlaybackDevice,
+  type PlaybackState,
+  type PlayingItem,
+  type PlayingItemKind,
+  type RepeatMode,
+} from './playback/state.js';

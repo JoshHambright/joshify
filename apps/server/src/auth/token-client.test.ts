@@ -170,3 +170,26 @@ describe('failure handling', () => {
     expect(result.error.status).toBe(404);
   });
 });
+
+describe('production defaults', () => {
+  // Same reasoning as the client: every other test points at the fake, so the
+  // real token endpoint is otherwise never asserted.
+  it('targets the real Spotify token endpoint when none is given', async () => {
+    const seen: string[] = [];
+    const fetchImpl = ((url: string | URL) => {
+      seen.push(String(url));
+      return Promise.resolve(
+        new Response('{"error":"invalid_grant"}', {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    }) as unknown as typeof fetch;
+
+    await refreshTokens(
+      { clientId: 'client-123', fetchImpl, now: () => NOW },
+      { refreshToken: 'refresh-seed' },
+    );
+    expect(seen).toEqual(['https://accounts.spotify.com/api/token']);
+  });
+});
