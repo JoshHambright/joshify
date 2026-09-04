@@ -324,7 +324,7 @@ export interface KioskSocket {
 export const createHttpServer = async (
   config: HttpServerConfig,
 ): Promise<FastifyInstance> => {
-  const app = Fastify({ logger: config.logger ?? false });
+  const app = Fastify({ logger: config.logger === true });
   await app.register(websocketPlugin);
 
   const { broadcaster, commands } = config;
@@ -401,12 +401,14 @@ export const createHttpServer = async (
       // recovery path already covers everything a bad frame could mean.
       if (parseClientMessage(String(raw))?.type === 'resync') subscription.resync();
     });
-    socket.on('close', () => {
+    // Both paths off this socket run the same line. `ws` throws on an
+    // unhandled `error` event, so the listener has to exist regardless, and
+    // an error is only ever a noisier way of losing the connection.
+    const release = (): void => {
       subscription.unsubscribe();
-    });
-    socket.on('error', () => {
-      subscription.unsubscribe();
-    });
+    };
+    socket.on('close', release);
+    socket.on('error', release);
   });
 
   return app;

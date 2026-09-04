@@ -94,9 +94,11 @@ export const prepareArtwork = async (
 };
 
 /**
- * Reuses the cached render when there is one: the backdrop for a given cover is
- * always the same image, so replaying an album should cost a file read rather
- * than a decode, a blur and a JPEG encode.
+ * The written file exists so a static handler can serve the backdrop straight
+ * off disk; it is not a way to skip the render. Re-rendering from a 64px source
+ * is a resize, a blur over ~4k pixels and a tiny JPEG encode — cheaper than
+ * reading the cached file back and decoding it to recover its dimensions, which
+ * is the only way to answer with a complete descriptor.
  */
 const prepareBackdrop = async (
   key: string,

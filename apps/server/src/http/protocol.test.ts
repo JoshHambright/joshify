@@ -92,6 +92,19 @@ describe('diffPlaybackState', () => {
     expect(diffPlaybackState(playing(), next).item).toBeDefined();
   });
 
+  it('sees through a fresh copy of an identical image list', () => {
+    // Every poll rebuilds the artwork array from scratch. Comparing by
+    // reference would call each of those a change and push the whole track
+    // payload down the socket several times a second.
+    const next = playing({ item: { ...TRACK, images: [...TRACK.images] } });
+    expect(isEmptyDiff(diffPlaybackState(playing(), next))).toBe(true);
+  });
+
+  it('notices an image list of the same length whose entries moved', () => {
+    const next = playing({ item: { ...TRACK, images: [...TRACK.images].reverse() } });
+    expect(diffPlaybackState(playing(), next).item).toBeDefined();
+  });
+
   it('reports a volume change as a new device rather than a nested patch', () => {
     // A volume drag changes one number inside the device; the client gets the
     // whole device back, because a nested merge is the one place it could get
@@ -133,7 +146,9 @@ describe('diffPlaybackState', () => {
 
   it('round-trips: applying a diff reproduces the state it was taken from', () => {
     const next = playing({ progressMs: 90_000, repeat: 'context', item: null });
-    expect(applyPlaybackDiff(playing(), diffPlaybackState(playing(), next))).toEqual(next);
+    expect(applyPlaybackDiff(playing(), diffPlaybackState(playing(), next))).toEqual(
+      next,
+    );
   });
 });
 
@@ -214,7 +229,9 @@ describe('parseServerMessage', () => {
       ),
     ).toEqual({ type: 'snapshot', version: 1, state: IDLE_PLAYBACK });
     expect(
-      parseServerMessage('{"type":"diff","version":2,"from":1,"changes":{"shuffle":true}}'),
+      parseServerMessage(
+        '{"type":"diff","version":2,"from":1,"changes":{"shuffle":true}}',
+      ),
     ).toEqual({ type: 'diff', version: 2, from: 1, changes: { shuffle: true } });
   });
 
@@ -240,12 +257,9 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage('{"type":"resync"}')).toEqual({ type: 'resync' });
   });
 
-  it.each(['', '{}', 'null', '"resync"', '{"type":"shutdown"}'])(
-    'ignores %s',
-    (raw) => {
-      expect(parseClientMessage(raw)).toBeNull();
-    },
-  );
+  it.each(['', '{}', 'null', '"resync"', '{"type":"shutdown"}'])('ignores %s', (raw) => {
+    expect(parseClientMessage(raw)).toBeNull();
+  });
 });
 
 describe('nextReconnectDelayMs', () => {

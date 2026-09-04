@@ -267,7 +267,12 @@ export const createArtworkCache = (options: ArtworkCacheOptions): ArtworkCache =
       // fails identically every time, so treat it as absent and refetch.
       return bytes.byteLength === 0 ? null : bytes;
     } catch (cause) {
-      if (codeOf(cause) === 'ENOENT') return null;
+      // ENOTDIR joins ENOENT as "there is no such file": it is what a
+      // misconfigured cache directory pointing at a regular file looks like,
+      // and the honest answer is still a miss followed by a write that fails
+      // loudly, rather than a read error on every single track.
+      const code = codeOf(cause);
+      if (code === 'ENOENT' || code === 'ENOTDIR') return null;
       throw cause;
     }
   };

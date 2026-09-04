@@ -103,7 +103,12 @@ describe('publishing', () => {
     broadcaster.subscribe(second);
 
     expect(broadcaster.publish({ ...PLAYING, progressMs: 4_000 })).toBe(true);
-    const expected = { type: 'diff', version: 2, from: 1, changes: { progressMs: 4_000 } };
+    const expected = {
+      type: 'diff',
+      version: 2,
+      from: 1,
+      changes: { progressMs: 4_000 },
+    };
     expect(first.frames[1]).toEqual(expected);
     expect(second.frames[1]).toEqual(expected);
   });

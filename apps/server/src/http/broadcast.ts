@@ -128,7 +128,12 @@ export const createBroadcaster = (options: BroadcasterOptions = {}): Broadcaster
     const changes = diffPlaybackState(state, next);
     if (isEmptyDiff(changes)) return false;
 
-    const message: DiffMessage = { type: 'diff', version: version + 1, from: version, changes };
+    const message: DiffMessage = {
+      type: 'diff',
+      version: version + 1,
+      from: version,
+      changes,
+    };
     state = next;
     version += 1;
     broadcast(message);
