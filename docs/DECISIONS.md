@@ -359,3 +359,42 @@ driven by wall-clock would jump wildly at that moment, and an NTP correction
 would do the same more subtly forever after. A monotonic source cannot go
 backwards, which is exactly the property elapsed-time measurement needs.
 **Status:** ✅ Accepted.
+
+---
+
+### D-024 · A stale poll does not rewind the progress bar
+**Chose:** When a poll reports a position *behind* the interpolated one for the
+same item, keep the interpolated position and re-anchor from it. Only a gap
+wider than `rewindToleranceMs` (1500 ms) is taken at face value.
+**Why:** Every poll is stale by a network round trip, so a small backwards
+discrepancy is the normal case, not an anomaly. Snapping to it makes the bar
+twitch backwards on *every* poll — which reads as a bug even though the data is
+technically correct. Holding the interpolated value keeps a bounded,
+self-correcting error: real time catches up to it within a second, whereas a
+visible rewind is something the eye cannot un-see.
+The tolerance is chosen to sit above a slow round trip plus Spotify's coarse
+position reporting, and below any seek a human would actually perform — beyond
+it, the change is a real seek or a repeat-one restart, and refusing it would
+leave the bar lying instead.
+**Also:** item identity is `id ?? uri ?? local:<title>:<durationMs>`. Local files
+have neither id nor uri, so without the fallback every poll of one would look
+like a new track and reset the bar.
+**Status:** ✅ Accepted.
+
+---
+
+### D-025 · Poll cadence is sized against the rate limit, not against feel
+**Chose:** ~3s playing mid-track, ~1s inside the last 10s of a track, ~5s idle,
+a 400ms burst for ~1.5s after a user command, and a hard 250ms floor.
+**Why:** Picking intervals by what feels responsive in isolation produces a
+device that is quietly hostile to the rate limit over a day of use. Sized as a
+budget instead: mid-track is 20 req/min, the boundary window adds ~10 per track,
+and idle — the cadence that runs unattended for hours — is the slowest.
+The track boundary gets the fast cadence because it is the one moment state
+changes *on its own*, so lag there is the most visible failure. The
+after-command burst exists because a Connect device does not apply a command the
+instant the write returns 204; a single poll is not reliably enough to confirm
+an optimistic update (P2-05).
+The floor is a safety rail: a bug upstream must not be able to turn this into a
+request flood.
+**Status:** ✅ Accepted.

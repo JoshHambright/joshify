@@ -96,9 +96,9 @@ describe('nextPollDelayMs', () => {
   });
 
   it('reconciles fast right after a command, even while paused', () => {
-    expect(
-      nextPollDelayMs({ ...IDLE_PLAYBACK }, { msSinceCommand: 0 }),
-    ).toBe(DEFAULT_POLL_SCHEDULE.afterCommandMs);
+    expect(nextPollDelayMs({ ...IDLE_PLAYBACK }, { msSinceCommand: 0 })).toBe(
+      DEFAULT_POLL_SCHEDULE.afterCommandMs,
+    );
   });
 
   it('keeps the fast cadence for the whole command window', () => {
@@ -129,7 +129,9 @@ describe('nextPollDelayMs', () => {
     expect(nextPollDelayMs(IDLE_PLAYBACK, {}, options)).toBe(30_000);
     expect(nextPollDelayMs(playing(30_000), {}, options)).toBe(8_000);
     expect(nextPollDelayMs(playing(DURATION_MS - 15_000), {}, options)).toBe(2_000);
-    expect(nextPollDelayMs(playing(30_000), { msSinceCommand: 4_000 }, options)).toBe(150);
+    expect(nextPollDelayMs(playing(30_000), { msSinceCommand: 4_000 }, options)).toBe(
+      150,
+    );
   });
 
   // The floor is the backstop against a bug elsewhere becoming a request

@@ -49,3 +49,15 @@ export {
   type PlayingItemKind,
   type RepeatMode,
 } from './playback/state.js';
+export {
+  DEFAULT_POLL_SCHEDULE,
+  nextPollDelayMs,
+  type PollContext,
+  type PollScheduleOptions,
+} from './playback/poll-schedule.js';
+export {
+  createProgressTracker,
+  DEFAULT_REWIND_TOLERANCE_MS,
+  type ProgressTracker,
+  type ProgressTrackerOptions,
+} from './playback/interpolate.js';

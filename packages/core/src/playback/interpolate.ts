@@ -44,8 +44,7 @@ export interface ProgressTracker {
   observe(state: PlaybackState, monotonicMs: number): void;
 }
 
-const clamp = (value: number, max: number): number =>
-  Math.min(Math.max(value, 0), max);
+const clamp = (value: number, max: number): number => Math.min(Math.max(value, 0), max);
 
 /**
  * Identity of the item, for deciding whether a poll describes the same thing

@@ -70,10 +70,7 @@ describe('createProgressTracker', () => {
 
   describe('paused playback', () => {
     it('does not advance', () => {
-      const tracker = createProgressTracker(
-        { ...playing(30_000), isPlaying: false },
-        T0,
-      );
+      const tracker = createProgressTracker({ ...playing(30_000), isPlaying: false }, T0);
       expect(tracker.progressAt(T0 + 60_000)).toBe(30_000);
       expect(tracker.isPlaying).toBe(false);
     });
