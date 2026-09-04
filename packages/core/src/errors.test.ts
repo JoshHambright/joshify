@@ -109,6 +109,24 @@ describe('classifyHttpFailure', () => {
     });
     expect(error.message).toBe('invalid_grant');
   });
+
+  // "invalid_grant" alone says nothing actionable; the description is the
+  // half that tells you whether the token was revoked or the verifier wrong.
+  it('combines the OAuth error code with its description', () => {
+    const error = classifyHttpFailure({
+      status: 400,
+      body: { error: 'invalid_grant', error_description: 'revoked' },
+    });
+    expect(error.message).toBe('invalid_grant: revoked');
+  });
+
+  it('ignores an empty description', () => {
+    const error = classifyHttpFailure({
+      status: 400,
+      body: { error: 'invalid_grant', error_description: '' },
+    });
+    expect(error.message).toBe('invalid_grant');
+  });
 });
 
 describe('classifyThrown', () => {

@@ -57,11 +57,23 @@ export const parseRetryAfter = (header: string | null): number | undefined => {
   return Math.ceil(seconds * 1000);
 };
 
-/** The shape Spotify uses for API errors: `{ error: { status, message } }`. */
+/**
+ * Spotify uses two different error shapes, and we need both.
+ *
+ * The Web API sends `{ error: { status, message } }`. The token endpoint is
+ * OAuth-shaped: `{ error: "invalid_grant", error_description: "..." }`, where
+ * the code alone ("invalid_grant") is nearly useless and the description
+ * carries what actually went wrong — so the two are combined.
+ */
 const readSpotifyMessage = (body: unknown): string | undefined => {
   if (typeof body !== 'object' || body === null) return undefined;
-  const outer = body as { error?: unknown };
-  if (typeof outer.error === 'string') return outer.error;
+  const outer = body as { error?: unknown; error_description?: unknown };
+
+  if (typeof outer.error === 'string') {
+    return typeof outer.error_description === 'string' && outer.error_description !== ''
+      ? `${outer.error}: ${outer.error_description}`
+      : outer.error;
+  }
   if (typeof outer.error !== 'object' || outer.error === null) return undefined;
   const inner = outer.error as { message?: unknown };
   return typeof inner.message === 'string' ? inner.message : undefined;
