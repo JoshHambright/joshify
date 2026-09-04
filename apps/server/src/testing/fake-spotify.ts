@@ -28,6 +28,10 @@ export interface CannedFailure {
 
 export interface FakeSpotify {
   readonly origin: string;
+  /** Bearer token the fake will accept. Change it to simulate expiry. */
+  validAccessToken: string;
+  /** Body served by `GET /v1/me/player`. `null` produces a 204, as Spotify does. */
+  playbackState: unknown;
   readonly authorizeEndpoint: string;
   readonly tokenEndpoint: string;
   /** Queue a canned failure for the next request. Queued failures pop in order. */
@@ -52,6 +56,8 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
 
   const state = {
     omitRefreshTokenOnRefresh: false,
+    validAccessToken: 'access-seed',
+    playbackState: null as unknown,
   };
 
   const server: Server = createServer((req, res) => {
@@ -78,6 +84,37 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
         json(failure.status, failure.body ?? { error: { message: 'canned failure' } }, {
           ...failure.headers,
         });
+        return;
+      }
+
+      // --- Web API endpoints, all bearer-authenticated ---
+      if (url.pathname.startsWith('/v1/')) {
+        const authorization = req.headers.authorization ?? '';
+        if (authorization !== `Bearer ${state.validAccessToken}`) {
+          json(401, { error: { status: 401, message: 'The access token expired' } });
+          return;
+        }
+
+        if (url.pathname === '/v1/me') {
+          json(200, { id: 'josh', display_name: 'Josh', product: 'premium' });
+          return;
+        }
+        if (url.pathname === '/v1/me/player') {
+          // Spotify answers 204 with no body when nothing is playing.
+          if (state.playbackState === null) {
+            res.writeHead(204);
+            res.end();
+            return;
+          }
+          json(200, state.playbackState);
+          return;
+        }
+        if (url.pathname === '/v1/me/player/devices') {
+          json(200, { devices: [{ id: 'dev-1', name: 'Kitchen', is_active: true }] });
+          return;
+        }
+        res.writeHead(404);
+        res.end();
         return;
       }
 
@@ -164,6 +201,18 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
     failNext: (failure) => failures.push(failure),
     requests,
     validRefreshTokens,
+    get validAccessToken() {
+      return state.validAccessToken;
+    },
+    set validAccessToken(value: string) {
+      state.validAccessToken = value;
+    },
+    get playbackState() {
+      return state.playbackState;
+    },
+    set playbackState(value: unknown) {
+      state.playbackState = value;
+    },
     get omitRefreshTokenOnRefresh() {
       return state.omitRefreshTokenOnRefresh;
     },
