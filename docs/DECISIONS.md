@@ -289,3 +289,40 @@ P1-09's error taxonomy provides them. The type guards have no such problem:
 they take the union and narrow it, inferring nothing from a callback.
 **Costs:** Slightly more verbose call sites until P1-09.
 **Status:** ✅ Accepted.
+
+---
+
+### D-021 · Token store: local key, atomic writes, and what corruption means
+**Chose:** Persist the token set as AES-256-GCM ciphertext with the key in a
+`0600` file beside it, written write-temp → `fsync` → `rename` → `fsync` the
+directory.
+**Why:** The Pi boots unattended, so the key must be fetchable with no human
+present — which rules out a passphrase and means the key lives on the device.
+The guarantee is therefore narrow and worth stating rather than overselling: it
+protects a token that travels *without* the device (a pulled SD card, an rsync
+backup, a support bundle, a `cp -r`), because either file alone is worthless.
+It does **not** protect against root on the running device. Nothing storable on
+an unattended machine can — a device that decrypts with nobody present hands
+that ability to whoever becomes the device. A TPM would move the key, not solve
+it. The blast radius is bounded by Spotify anyway: playback control on one
+account, revocable from the account page.
+**Three consequences worth naming:**
+1. **Corruption maps to `auth`, filesystem faults map to `unexpected`.** Anything
+   that makes the stored token unrecoverable — tampering, GCM tag mismatch, a
+   missing key, a well-sealed payload of the wrong shape — leaves the device
+   exactly where a revoked token does, with one remedy: re-authorise. Genuine
+   I/O faults (`EACCES`, disk full) deliberately do *not*, because presenting
+   those as "log in again" sends the kiosk round a loop that cannot fix
+   anything. This widens `'auth'` beyond "Spotify said 401", so the kind's
+   documentation now says so.
+2. **`clear()` deletes the key as well as the ciphertext.** Otherwise signing
+   out leaves every historical backup of the token file decryptable by a key
+   still sitting on the device. Dropping it costs nothing — the next save mints
+   another — and retires the whole history at once.
+3. **The key file is created with `O_EXCL`, not via the rename path.** Two
+   processes starting together must not install *different* keys: the loser of
+   a rename race would already have sealed a token file the winner cannot open.
+   Exclusive creation makes creation itself the race, and the loser adopts the
+   winner's key. A malformed-but-present key is reported, never replaced, for
+   the same reason.
+**Status:** ✅ Accepted.

@@ -7,7 +7,13 @@
  * chosen by "what should the device do about it", not by HTTP status.
  */
 export type ErrorKind =
-  /** Token is expired, revoked, or invalid. Refresh, then re-authenticate. */
+  /**
+   * We have no usable credential. Refresh, then re-authenticate.
+   *
+   * Covers Spotify rejecting a token *and* the local store being unable to
+   * produce one — a corrupt or unreadable token file leaves the device in the
+   * same position as a revoked token, and the same single remedy.
+   */
   | 'auth'
   /** Authenticated, but the account lacks Premium. Nothing to retry. */
   | 'not-premium'
