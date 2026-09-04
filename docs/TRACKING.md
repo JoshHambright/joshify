@@ -36,7 +36,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | Phase | Title | Tasks | Done | Status |
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
-| 1 | Spotify identity & API client | 11 | 2 | 🟨 In progress |
+| 1 | Spotify identity & API client | 11 | 4 | 🟨 In progress (1 cut) |
 | 2 | Playback state engine | 10 | 0 | ⬜ Not started |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
@@ -44,7 +44,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **121** | **10** | |
+| | **Total** | **120** | **12** | |
 
 ---
 
@@ -73,14 +73,14 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
 | P1-01 | 🔬 **Spike: headless PKCE** | ✅ | **Solved.** Device Grant is allowlisted to Spotify's own TV apps — unusable. PKCE + loopback works; the Pi authorises on its own touchscreen. [`spikes/pkce-loopback/`](../spikes/pkce-loopback/) |
-| P1-02 | Register the Spotify app; document required scopes | ⬜ | Needs Josh — see [SPOTIFY_SETUP.md](./SPOTIFY_SETUP.md) |
-| P1-03 | Store client credentials in GitHub Secrets | ⬜ | Needs Josh. Never committed |
+| P1-02 | Register the Spotify app; document required scopes | ✅ | App created. Redirect `http://127.0.0.1:8080/callback` (+ IPv6 and 8888 spare) |
+| P1-03 | ~~Store client credentials in GitHub Secrets~~ | ❌ | **Cut.** PKCE uses no client secret, and CI runs against the fake server — so there is nothing to store. Client ID lives in a gitignored `.env` |
 | P1-04 | PKCE challenge/verifier generation + authorize URL builder | ✅ | Pure, injectable randomness, 17 tests. Validated against RFC 7636 Appendix B |
-| P1-05 | Token exchange + refresh logic with expiry-ahead scheduling | ⬜ | Refresh at 80% of TTL, not on failure |
+| P1-05 | Token exchange + refresh logic with expiry-ahead scheduling | 🟨 | Pure model done (80% of TTL, 30s floor, keeps refresh token when Spotify omits it). HTTP next |
 | P1-06 | Token store: encrypted at rest, atomic writes | ⬜ | Survives power loss mid-write |
 | P1-07 | Typed Spotify HTTP client (only the endpoints we need) | ⬜ | |
 | P1-08 | Rate-limit handling: honour `Retry-After`, backoff, request budget | ⬜ | |
-| P1-09 | Error taxonomy: auth / rate-limit / network / no-device / not-premium | ⬜ | Drives all UI error states later |
+| P1-09 | Error taxonomy: auth / rate-limit / network / no-device / not-premium | ✅ | 8 kinds chosen by *what the device should do*, not by status. 403 splits on message: scope vs Premium |
 | P1-10 | **Fake Spotify server** for tests — same shapes, scriptable failures | ⬜ | Load-bearing for P2–P5 CI |
 | P1-11 | `joshify auth` CLI command for first-run setup | ⬜ | |
 
