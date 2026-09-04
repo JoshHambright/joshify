@@ -119,21 +119,6 @@ interface RawItem {
   images?: unknown;
 }
 
-interface RawNamed {
-  name?: unknown;
-}
-
-interface RawWithImages {
-  name?: unknown;
-  images?: unknown;
-}
-
-interface RawImage {
-  url?: unknown;
-  width?: unknown;
-  height?: unknown;
-}
-
 interface RawDevice {
   id?: unknown;
   name?: unknown;
@@ -143,8 +128,11 @@ interface RawDevice {
   supports_volume?: unknown;
 }
 
-const asRaw = <T>(value: unknown): T | null =>
-  typeof value === 'object' && value !== null ? (value as T) : null;
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+
+/** Read one field of a nested object that may not be there at all. */
+const field = (value: unknown, key: string): unknown => asRecord(value)?.[key];
 
 const asArray = (value: unknown): readonly unknown[] | null =>
   Array.isArray(value) ? (value as readonly unknown[]) : null;
@@ -176,11 +164,13 @@ const normaliseImages = (value: unknown): readonly Artwork[] => {
 
   const images: Artwork[] = [];
   for (const entry of list) {
-    const raw = asRaw<RawImage>(entry);
-    if (raw === null) continue;
-    const url = asText(raw.url);
+    const url = asText(field(entry, 'url'));
     if (url === null) continue;
-    images.push({ url, width: asNumber(raw.width), height: asNumber(raw.height) });
+    images.push({
+      url,
+      width: asNumber(field(entry, 'width')),
+      height: asNumber(field(entry, 'height')),
+    });
   }
   return images.sort((a, b) => (b.width ?? 0) - (a.width ?? 0));
 };
@@ -189,16 +179,25 @@ const normaliseImages = (value: unknown): readonly Artwork[] => {
  * The smallest artwork at least `minWidth` across, falling back to the largest
  * available. Sizeless images (width null) only ever win by default, since
  * there is no way to know whether they are big enough.
+ *
+ * Written to be independent of list order even though `normaliseImages` sorts:
+ * picking artwork by position is exactly the assumption that makes a payload
+ * change show up as a 640px image behind a 64px blur.
  */
 export const selectArtwork = (
   images: readonly Artwork[],
   minWidth: number,
 ): Artwork | null => {
   let best: Artwork | null = null;
+  let largest: Artwork | null = null;
+
   for (const image of images) {
-    if (image.width !== null && image.width >= minWidth) best = image;
+    const width = image.width;
+    if (width === null) continue;
+    if (largest === null || width > (largest.width ?? 0)) largest = image;
+    if (width >= minWidth && (best === null || width < (best.width ?? 0))) best = image;
   }
-  return best ?? images[0] ?? null;
+  return best ?? largest ?? images[0] ?? null;
 };
 
 const artistNames = (value: unknown): readonly string[] => {
@@ -207,7 +206,7 @@ const artistNames = (value: unknown): readonly string[] => {
 
   const names: string[] = [];
   for (const entry of list) {
-    const name = asText(asRaw<RawNamed>(entry)?.name);
+    const name = asText(field(entry, 'name'));
     if (name !== null) names.push(name);
   }
   return names;
@@ -224,17 +223,18 @@ const artistNames = (value: unknown): readonly string[] => {
  * a track loses the artwork entirely.
  */
 const normaliseItem = (value: unknown): Result<PlayingItem, JoshifyError> => {
-  const raw = asRaw<RawItem>(value);
-  if (raw === null) {
+  const record = asRecord(value);
+  if (record === null) {
     return err(createError('unexpected', 'player item was not an object'));
   }
+  const raw: RawItem = record;
 
   const title = asText(raw.name);
   if (title === null) {
     return err(createError('unexpected', 'player item had no name'));
   }
 
-  const show = asRaw<RawWithImages>(raw.show);
+  const show = asRecord(raw.show);
   const kind: PlayingItemKind =
     asText(raw.type) === 'episode' || show !== null ? 'episode' : 'track';
 
@@ -242,12 +242,12 @@ const normaliseItem = (value: unknown): Result<PlayingItem, JoshifyError> => {
   // neither, and its artists array is frequently present but empty.
   const images =
     kind === 'episode'
-      ? normaliseImages(raw.images ?? show?.images)
-      : normaliseImages(asRaw<RawWithImages>(raw.album)?.images);
+      ? normaliseImages(raw.images ?? field(show, 'images'))
+      : normaliseImages(field(raw.album, 'images'));
 
   const subtitle =
     kind === 'episode'
-      ? (asText(show?.name) ?? '')
+      ? (asText(field(show, 'name')) ?? '')
       : artistNames(raw.artists).join(', ');
 
   return ok({
@@ -263,10 +263,11 @@ const normaliseItem = (value: unknown): Result<PlayingItem, JoshifyError> => {
 };
 
 const normaliseDevice = (value: unknown): Result<PlaybackDevice, JoshifyError> => {
-  const raw = asRaw<RawDevice>(value);
-  if (raw === null) {
+  const record = asRecord(value);
+  if (record === null) {
     return err(createError('unexpected', 'player device was not an object'));
   }
+  const raw: RawDevice = record;
 
   const volumePercent = asNumber(raw.volume_percent);
 
@@ -297,10 +298,11 @@ export const normalisePlaybackState = (
 ): Result<PlaybackState, JoshifyError> => {
   if (body === null || body === undefined) return ok(IDLE_PLAYBACK);
 
-  const raw = asRaw<RawPlayback>(body);
-  if (raw === null) {
+  const record = asRecord(body);
+  if (record === null) {
     return err(createError('unexpected', 'player response was not an object'));
   }
+  const raw: RawPlayback = record;
   // The one field every real player payload has, whatever else is null. Its
   // absence means this is not a player payload — an array, `{}`, an error body
   // that slipped through — and guessing at that would hide a real bug.
