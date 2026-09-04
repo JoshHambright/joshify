@@ -544,3 +544,53 @@ network failure — aborting would free a socket and pay for two pointless retri
 with real sleeps. And superseded is a success because being typed over is the
 normal outcome of a keystroke, not a fault worth flashing at anyone.
 **Status:** ✅ Accepted.
+
+---
+
+### D-033 · Versioned diffs, snapshot-only recovery, no replay buffer
+**Chose:** The socket sends `snapshot` / `diff` / `heartbeat`. Each diff carries
+both its own `version` and the `from` version it was computed against. A single
+`applyServerMessage` is the only merge path and returns a `Result`, so a
+mismatch surfaces as an error rather than a silently-wrong state. Recovery is
+always a fresh snapshot; no diff history is kept.
+**Why:** Most ticks change only `progressMs`, so re-sending artwork URLs, track
+metadata and the device list several times a second is waste on a device we are
+trying to keep responsive.
+The correctness risk is a client merging a diff into a state it no longer
+matches. Carrying `from` explicitly — rather than assuming `version - 1` — means
+the client checks something it was *given*. Making the merge the only path means
+it cannot forget to check. And a snapshot is sent **synchronously inside
+`subscribe()`**, before it returns, so no publish can race a diff onto a socket
+that has not yet seen a snapshot.
+No replay buffer, deliberately: the state is small, so buffering saves one
+snapshot per reconnect and costs a second correctness path that would need its
+own tests and could itself go stale.
+**Two details worth keeping:** an unchanged tick sends **nothing** and does not
+advance the version — the poll cadence is the server's private business, and
+silence tells the client exactly what an empty frame would. Liveness is answered
+separately by a heartbeat carrying the current version, so a client that missed
+a diff learns within one interval rather than at the next state change, which on
+a paused player may be never.
+**Also:** command routes answer `202`, not `200`. Spotify accepted the command;
+the truth arrives on the socket, and the UI should already be showing its
+optimistic update (D-028) rather than waiting on this response.
+**Status:** ✅ Accepted.
+
+---
+
+### D-034 · Defence in depth for a device sitting on a home LAN
+**Chose:** Bind `127.0.0.1` by default, **and** validate the `Host` header,
+**and** accept only JSON bodies.
+**Why:** This is an appliance holding a Spotify token on a network with whatever
+else is on it. Each layer stops something the others do not:
+- **Loopback binding** stops anything on the LAN connecting directly.
+- **The `Host` check** stops **DNS rebinding**, which loopback binding does not:
+  a hostile page can resolve its own domain to `127.0.0.1` and reach a
+  loopback-bound server from the victim's own browser. Checking that the request
+  asked for a host we actually serve breaks that.
+- **JSON-only bodies** stop a plain cross-origin form POST. A hostile page can
+  submit a form to any origin without a CORS preflight, but it cannot send
+  `application/json` without one — so requiring JSON forces a preflight the
+  browser will refuse.
+Each is cheap; the combination is what makes the surface uninteresting.
+**Status:** ✅ Accepted.

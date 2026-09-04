@@ -124,6 +124,9 @@ const STATUS_BY_KIND: Readonly<Record<ErrorKind, number>> = {
   'not-premium': 403,
   forbidden: 403,
   'no-active-device': 409,
+  // A playlist or album that is genuinely gone, as opposed to a player with
+  // nothing on it — the two 404s Spotify does not distinguish for us.
+  'not-found': 404,
   'rate-limited': 429,
   network: 502,
   server: 502,
@@ -331,11 +334,13 @@ export const createHttpServer = async (
   const isAllowedHost = hostChecker(config.host ?? DEFAULT_HOST, config.allowedHosts);
 
   app.addHook('onRequest', async (request, reply) => {
-    if (!isAllowedHost(request.headers.host)) {
-      await reply
-        .code(403)
-        .send({ error: { kind: 'forbidden', message: 'host not served' } });
-    }
+    if (isAllowedHost(request.headers.host)) return;
+    // Returning the reply is how a hook stops the lifecycle; sending without
+    // returning it lets the route handler run and answer a request we just
+    // refused.
+    return await reply
+      .code(403)
+      .send({ error: { kind: 'forbidden', message: 'host not served' } });
   });
 
   const heartbeat = setInterval(() => {
@@ -381,7 +386,7 @@ export const createHttpServer = async (
       }
       const { error } = result;
       if (error.retryAfterMs !== undefined) {
-        void reply.header('retry-after', String(Math.ceil(error.retryAfterMs / 1000)));
+        reply.header('retry-after', String(Math.ceil(error.retryAfterMs / 1000)));
       }
       return await reply.code(STATUS_BY_KIND[error.kind]).send({
         error: { kind: error.kind, message: error.message, retryable: error.retryable },
