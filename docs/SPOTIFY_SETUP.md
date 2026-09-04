@@ -6,11 +6,37 @@ Needed at: **P1-02 / P1-03** — not before.
 
 ---
 
+## 0. ⚠️ Check first: app creation may be paused
+
+Spotify has periodically **disabled the "Create app" button** while it reworks
+new integrations. If the button is greyed out, that is Spotify's doing, not a
+mistake on your end — wait and retry rather than hunting for a workaround.
+
 ## 1. Account requirement
 
-Joshify requires **Spotify Premium**. Every `/me/player` write endpoint
-(play, pause, next, previous, seek, volume, shuffle, repeat, transfer) returns
-`403 Player command failed: Premium required` on a free account.
+Joshify requires **Spotify Premium**, for two separate reasons now:
+
+1. Every `/me/player` write endpoint (play, pause, next, previous, seek, volume,
+   shuffle, repeat, transfer) returns `403 Player command failed: Premium
+   required` on a free account.
+2. Since early 2026, Spotify requires the **app owner** to hold Premium in order
+   to use Development Mode at all.
+
+### Quota, and why we will never leave Development Mode
+
+A new app starts in **Development Mode**, which now allows **5 authenticated
+users** (reduced from 25 in early 2026). For a personal appliance that is one
+user, so it is not a constraint.
+
+It is also permanent: **Extended Quota Mode has only accepted applications from
+organisations, not individuals, since 15 May 2025.**
+
+That closes a door worth naming. The deprecated `audio-features` /
+`audio-analysis` endpoints remained available to apps with prior extended
+access — so "just get extended access" was a theoretical route back to Spotify's
+own beat data. It is not available to an individual, which confirms the
+three-tier reactivity design (D-010) as the only path, not merely the preferred
+one.
 
 ## 2. Create the application
 
@@ -26,12 +52,20 @@ Record the **Client ID** and **Client Secret**.
 
 ✅ **Settled by spike P1-01.** Register exactly:
 
+Register **all three**. Extra URIs cost nothing and save a dashboard trip later:
+
 ```
-http://127.0.0.1:8080/callback
+http://127.0.0.1:8080/callback     ← the one we actually use
+http://[::1]:8080/callback         ← IPv6 loopback, in case of resolution quirks
+http://127.0.0.1:8888/callback     ← escape hatch if 8080 is taken during dev
 ```
 
 The device authorises in its own kiosk browser, so the redirect target and the
 browser are the same machine and loopback resolves correctly.
+
+**The port is part of the match.** Spotify compares redirect URIs exactly, so
+changing `JOSHIFY_PORT` without registering the new URI breaks authentication.
+That is the reason for the 8888 spare.
 
 Spotify tightened redirect URI rules: they must be **HTTPS**, or a **literal
 loopback address**. Specifically:
@@ -65,10 +99,21 @@ never modifies your saved music.
 
 | Where | What | Why |
 |---|---|---|
-| GitHub Secrets | `SPOTIFY_CLIENT_ID` | For any CI job needing it |
-| GitHub Secrets | `SPOTIFY_CLIENT_SECRET` | Not used at device runtime |
-| Local `.env` | Both, for development | Gitignored. Never committed |
+| Local `.env` | `SPOTIFY_CLIENT_ID` | Gitignored. Never committed |
 | On the Pi | Refresh token only, encrypted at rest | P1-06 |
+
+### Do not store the client secret. Anywhere.
+
+**PKCE does not use it** — spike P1-01 confirmed the whole flow completes with
+no secret at any step. A secret we never read is pure liability: something to
+leak, rotate and worry about, buying nothing.
+
+So leave it in the Spotify dashboard and copy it nowhere. Not into `.env`, not
+into GitHub Secrets. The Client ID is not sensitive; it travels in the authorize
+URL in plain sight by design.
+
+Nothing currently needs `SPOTIFY_CLIENT_ID` in GitHub Secrets either, because CI
+runs against the fake Spotify server. Add it only if a job genuinely needs it.
 
 **CI does not need real credentials for the test suite.** Every test from Phase 2
 onward runs against the fake Spotify server (P1-10). Real credentials are only
