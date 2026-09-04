@@ -269,6 +269,7 @@ Things we don't yet know. Resolve and move to DECISIONS.md.
 | ~~Q2~~ | ~~Does headless PKCE work on-device?~~ | — | ✅ **Resolved: yes**, via the Pi's own touchscreen (P1-01) |
 | Q3 | Chromium or `cog`/WPE for the kiosk runtime on a Pi 5? | P3-01 | Claude (spike) |
 | Q4 | Container or native install as the *recommended* path? | P8-01, P8-04 | Both, after P7 |
+| Q6 | Image decoding library for theme extraction — `sharp` (native, needs ARM64 builds) vs pure-JS? | P3-02, P3-03, P3-05 | Claude, before Phase 3. Affects the Phase 8 install story |
 | Q5 | Which USB DAC for the librespot module? | P5-20 | Josh, before P5 |
 | ~~V1~~ | ~~Promote librespot to Phase 5?~~ | — | ✅ **Resolved: yes** (D-013) |
 | ~~V2~~ | ~~Add a mic for room-listening FFT?~~ | — | ✅ **Resolved: not for now.** Same PCM path, cheap to add later |

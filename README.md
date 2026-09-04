@@ -8,6 +8,9 @@ desktop over Spotify Connect. Optionally, it can also *be* a Connect target.
 
 The visualiser renders your album art as a 1998 PlayStation tunnel.
 
+**[Live build log →](https://joshhambright.github.io/joshify/)** — progress, the
+research that shaped the design, and a running PS1-era tunnel visualiser.
+
 > **Status: Phase 1 code complete, Phase 2 underway.** Authentication, the
 > Spotify client and the playback model are built and tested. Progress lives in
 > [`docs/TRACKING.md`](docs/TRACKING.md).
