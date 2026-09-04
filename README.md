@@ -8,8 +8,9 @@ desktop over Spotify Connect. Optionally, it can also *be* a Connect target.
 
 The visualiser renders your album art as a 1998 PlayStation tunnel.
 
-> **Status: Phase 0 complete, starting Phase 1.** Foundation and CI are green;
-> no product code yet.
+> **Status: Phase 1 code complete, Phase 2 underway.** Authentication, the
+> Spotify client and the playback model are built and tested. Progress lives in
+> [`docs/TRACKING.md`](docs/TRACKING.md).
 > Progress lives in [`docs/TRACKING.md`](docs/TRACKING.md).
 
 ## Requirements
@@ -19,6 +20,31 @@ The visualiser renders your album art as a 1998 PlayStation tunnel.
 - A Raspberry Pi 5 and a touchscreen, eventually — see
   [`docs/HARDWARE.md`](docs/HARDWARE.md) for the buy list, including two Pi 5
   gotchas that cost a second order if missed.
+
+## Connecting a Spotify account
+
+```bash
+cp .env.example .env          # then set SPOTIFY_CLIENT_ID
+pnpm build
+node apps/server/dist/cli/bin.js auth
+```
+
+Authorisation happens in a browser **on the device itself** — the redirect
+target is `127.0.0.1`, so the browser and the listener are the same machine and
+nothing has to be carried back by hand. It is a one-time step; the refresh token
+is stored encrypted and survives reboots.
+
+There is no client secret to configure. Joshify uses Authorization Code with
+PKCE, which completes without one, so there is no secret on the device to leak.
+
+| Command | Does |
+|---|---|
+| `joshify auth` | Connect an account. Run once |
+| `joshify status` | Whether an account is connected, and token freshness |
+| `joshify logout` | Forget the stored account |
+
+`joshify auth` also checks the account has Premium and says so plainly if not —
+better than every playback control failing with a 403 later.
 
 ## Getting started
 

@@ -36,7 +36,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | Phase | Title | Tasks | Done | Status |
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
-| 1 | Spotify identity & API client | 11 | 9 | 🟨 In progress (1 cut) |
+| 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | 2 | 🟨 In progress |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
@@ -44,7 +44,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **19** | |
+| | **Total** | **120** | **20** | |
 
 ---
 
@@ -69,6 +69,9 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 ## Phase 1 — Spotify identity & API client
 
 > **Exit criterion:** CLI authenticates a real account, persists tokens, survives restart, refreshes unattended.
+> 🟨 **Code complete and fully tested against the fake Spotify.** The remaining
+> half needs a human at a browser: Josh runs `joshify auth` against the real
+> account once. That is the first moment any of this touches Spotify for real.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
@@ -82,7 +85,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P1-08 | Rate-limit handling: honour `Retry-After`, backoff | ✅ | Full-jitter exponential backoff; obeys `Retry-After`; never retries what cannot succeed. Proactive budget deferred to P2-03, which owns request volume |
 | P1-09 | Error taxonomy: auth / rate-limit / network / no-device / not-premium | ✅ | 8 kinds chosen by *what the device should do*, not by status. 403 splits on message: scope vs Premium |
 | P1-10 | **Fake Spotify server** for tests — same shapes, scriptable failures | ⬜ | Load-bearing for P2–P5 CI |
-| P1-11 | `joshify auth` CLI command for first-run setup | ⬜ | |
+| P1-11 | `joshify auth` CLI command for first-run setup | ✅ | Also `status` and `logout`. Flags a non-Premium account at setup rather than letting every control 403 later |
 
 ---
 
