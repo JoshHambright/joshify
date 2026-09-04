@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isOk, ok, type JoshifyError } from '@joshify/core';
-import { startFakeSpotify, type FakeSpotify, type RecordedRequest } from '../testing/fake-spotify.js';
+import {
+  startFakeSpotify,
+  type FakeSpotify,
+  type RecordedRequest,
+} from '../testing/fake-spotify.js';
 import { createSpotifyClient } from './client.js';
-import { createSpotifyCommands, type CommandResult, type SpotifyCommands } from './commands.js';
+import {
+  createSpotifyCommands,
+  type CommandResult,
+  type SpotifyCommands,
+} from './commands.js';
 
 let spotify: FakeSpotify;
 
@@ -270,7 +278,9 @@ describe('failures the device has to show', () => {
   it('reports no active device', async () => {
     spotify.failNext({
       status: 404,
-      body: { error: { status: 404, message: 'Player command failed: No active device' } },
+      body: {
+        error: { status: 404, message: 'Player command failed: No active device' },
+      },
     });
     const error = expectRejected(await commands().next());
     expect(error.kind).toBe('no-active-device');
@@ -281,7 +291,9 @@ describe('failures the device has to show', () => {
   it('reports a free account', async () => {
     spotify.failNext({
       status: 403,
-      body: { error: { status: 403, message: 'Player command failed: Premium required' } },
+      body: {
+        error: { status: 403, message: 'Player command failed: Premium required' },
+      },
     });
     const error = expectRejected(await commands().pause());
     expect(error.kind).toBe('not-premium');

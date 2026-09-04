@@ -123,10 +123,7 @@ const checkInRange = (
  */
 const checkPlayOptions = (options: PlayOptions): JoshifyError | null => {
   if (options.contextUri !== undefined && options.uris !== undefined) {
-    return createError(
-      'unexpected',
-      'play takes either contextUri or uris, not both',
-    );
+    return createError('unexpected', 'play takes either contextUri or uris, not both');
   }
   if (options.uris !== undefined && options.uris.length === 0) {
     return createError('unexpected', 'play was given an empty uris list');
@@ -162,7 +159,12 @@ export const createSpotifyCommands = (
     return result.ok ? ok(undefined) : err(result.error);
   };
 
-  const target = (path: string, method: string, to: CommandTarget): Promise<CommandResult> =>
+  /** The commands that carry nothing but an optional target device. */
+  const bare = (
+    path: string,
+    method: string,
+    to: CommandTarget,
+  ): Promise<CommandResult> =>
     send(withQuery(path, { device_id: to.deviceId }), { method });
 
   const play = async (options: PlayOptions = {}): Promise<CommandResult> => {
@@ -223,9 +225,9 @@ export const createSpotifyCommands = (
 
   return {
     play,
-    pause: (to = {}) => target('/v1/me/player/pause', 'PUT', to),
-    next: (to = {}) => target('/v1/me/player/next', 'POST', to),
-    previous: (to = {}) => target('/v1/me/player/previous', 'POST', to),
+    pause: (to = {}) => bare('/v1/me/player/pause', 'PUT', to),
+    next: (to = {}) => bare('/v1/me/player/next', 'POST', to),
+    previous: (to = {}) => bare('/v1/me/player/previous', 'POST', to),
     seek,
     setVolume,
     setShuffle: (enabled, to = {}) =>
@@ -237,10 +239,9 @@ export const createSpotifyCommands = (
         { method: 'PUT' },
       ),
     setRepeat: (mode, to = {}) =>
-      send(
-        withQuery('/v1/me/player/repeat', { state: mode, device_id: to.deviceId }),
-        { method: 'PUT' },
-      ),
+      send(withQuery('/v1/me/player/repeat', { state: mode, device_id: to.deviceId }), {
+        method: 'PUT',
+      }),
     transferPlayback: (deviceId, options = {}) => {
       // The only player write that names its device in the body. `device_ids`
       // is an array for future-proofing that never arrived — Spotify rejects

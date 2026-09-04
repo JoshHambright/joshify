@@ -112,6 +112,13 @@ visualiser is one phase of nine. New visual ideas go to the theme backlog in
 
 ## Conventions
 
+- **Optional inputs on public functions take `?: T | undefined`**, not bare
+  `?: T`. `exactOptionalPropertyTypes` makes a bare optional reject an explicit
+  `undefined`, and callers legitimately hold values that are absent — a device
+  id before any device is chosen, for example. Forcing a conditional spread at
+  every call site buys no safety. Bare `?:` is still right for internal config
+  objects a caller builds literally.
+
 - **Task IDs in commit messages**: `P2-04: <what changed>`. IDs come from
   `docs/TRACKING.md`.
 - **A task is ✅ only when its tests pass in CI**, not when the code works.

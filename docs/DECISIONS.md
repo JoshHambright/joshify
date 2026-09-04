@@ -398,3 +398,25 @@ an optimistic update (P2-05).
 The floor is a safety rail: a bug upstream must not be able to turn this into a
 request flood.
 **Status:** ✅ Accepted.
+
+---
+
+### D-026 · Spotify's player write API, and where it silently misbehaves
+**Recorded because these are the kind of details that cost an afternoon twice.**
+- **`next` and `previous` are `POST`; every other transport command is `PUT`.**
+  There is no pattern to it. The fake now returns `405` on the wrong verb rather
+  than accepting anything, so a mistake fails in a test instead of on a device.
+- **Transfer is the only write that does not take `device_id` in the query.** The
+  target goes in the body as `device_ids`, a plural array that only ever accepts
+  one id. Omitting `play` means "keep the current playing/paused state"; sending
+  `false` would pause a device the user just moved music *onto*, so it is sent
+  only when explicitly given.
+- **Spotify ignores unrecognised query parameters rather than rejecting them.**
+  A typo'd `device_id` therefore runs the command on whatever device happens to
+  be active — silently, and correctly as far as the API is concerned. Tests
+  assert exact query strings for this reason; it is the one bug class here that
+  no amount of type-checking catches.
+- **Out-of-range values return a generic "Player command failed" with no field
+  name**, which is why volume and seek bounds are validated locally: we can say
+  which value was wrong and Spotify cannot.
+**Status:** ✅ Recorded.
