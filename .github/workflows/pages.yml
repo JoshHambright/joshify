@@ -1,15 +1,19 @@
 name: Deploy showcase to GitHub Pages
 
-# Pages creates a `github-pages` environment whose deployment branch policy
-# defaults to the default branch only, so a deploy from the feature branch is
-# refused at job setup with no log. Triggering on main too means a merge
-# deploys with no settings change; deploying from the feature branch needs the
-# branch added under Settings > Environments > github-pages.
+# Deploys from `main` only.
+#
+# Enabling Pages creates a `github-pages` environment whose deployment branch
+# policy defaults to the default branch. A deploy from any other branch is
+# refused at job setup -- in about three seconds, before checkout, producing no
+# log at all, which reads like a build failure but is a protection rule.
+#
+# Triggering on the feature branch therefore guaranteed a red run on every
+# `site/` push, and a workflow that always fails just teaches you to ignore it.
+# To deploy from a branch other than `main`, add that branch under
+# Settings > Environments > github-pages > Deployment branches.
 on:
   push:
-    branches:
-      - main
-      - claude/spotify-touch-screen-interface-7hv8vm
+    branches: [main]
     paths: ['site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
