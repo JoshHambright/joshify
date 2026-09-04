@@ -490,3 +490,57 @@ producing a bar that resets while a seek survives — a miserable bug to chase
 from the symptom.
 Shared because correctness depends on it, not because duplication is untidy.
 **Status:** ✅ Accepted.
+
+---
+
+### D-030 · Spotify overloads 404, so the caller says what it means
+**Chose:** `classifyHttpFailure` defaults a 404 to a new `not-found` kind. The
+Spotify client passes `notFoundMeans: 'no-active-device'` only for paths under
+`/v1/me/player`.
+**Why:** The taxonomy originally mapped *every* 404 to `no-active-device`, which
+was correct while player endpoints were the only ones that existed. Adding
+search and library made it wrong in a way that would have been visible to the
+user rather than to us: **a deleted playlist would have put "choose a speaker"
+on screen.**
+Surfaced by the library work, which had to guard its own call sites against it.
+That guard was the right local move but the wrong place for the fix — every
+future endpoint would have needed the same workaround.
+The default is deliberately the honest one. A new endpoint added later fails as
+"not found" without anyone remembering to opt in, which is the failure mode that
+degrades gracefully.
+**Status:** ✅ Accepted.
+
+---
+
+### D-031 · A malformed row is dropped; a malformed envelope is an error
+**Chose:** In library and search results, an unreadable *row* is skipped and the
+rest of the page renders. An unreadable *page envelope* is an `Err`.
+**Why:** Spotify genuinely ships `null` entries inside `search.playlists.items`,
+and a track removed from a playlist arrives as `{ track: null }`. Failing the
+whole page because one row is junk would mean a single deleted track blanks an
+entire playlist. But an envelope we cannot parse means we do not know what we
+received at all, and rendering an empty list would claim the library is empty.
+This is a deliberate departure from D-022, where a malformed playback payload is
+always an error — there, there is no "rest of the page" to salvage.
+**The consequence that is easy to miss:** paging must advance by the number of
+rows **Spotify sent**, not the number we kept. Paging by the filtered count
+silently skips a real album on every page that contained a dud row.
+**Status:** ✅ Accepted.
+
+---
+
+### D-032 · Stale search results are fenced, not aborted
+**Chose:** Every search bumps a generation counter; a response is discarded if
+its generation is no longer current. Checked **after** the await, not before.
+Being superseded is reported in the *success* channel, not as an error.
+**Why:** An on-screen keyboard fires a request per keystroke, and a slow answer
+for "bea" must never replace a fast answer for "beatles". A pre-flight check
+proves nothing — a response that lost the race is by definition one that has
+already come back — so the fence has to be on the return path.
+Stale *failures* are swallowed the same way: a 429 for "bea" must not replace a
+good "beatles" list with an error screen.
+Not `AbortSignal`, because our client treats an aborted fetch as a retryable
+network failure — aborting would free a socket and pay for two pointless retries
+with real sleeps. And superseded is a success because being typed over is the
+normal outcome of a keystroke, not a fault worth flashing at anyone.
+**Status:** ✅ Accepted.

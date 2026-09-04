@@ -107,10 +107,15 @@ describe('tracks', () => {
     });
   });
 
-  it('rejects an entry with no uri to play', () => {
+  // A row with no uri does nothing when tapped, and a row with no name has
+  // nothing to draw. Either way it is dropped rather than rendered dead.
+  it('rejects an entry with nothing to show or nothing to play', () => {
     expect(normaliseTrack({ name: 'Ghost' })).toBeNull();
     expect(normaliseTrack({ uri: 'spotify:track:3' })).toBeNull();
     expect(normaliseTrack(null)).toBeNull();
+    expect(normaliseAlbum(null)).toBeNull();
+    expect(normaliseArtist({ name: 'nameless' })).toBeNull();
+    expect(normalisePlaylist(undefined)).toBeNull();
   });
 });
 
@@ -169,24 +174,39 @@ describe('albums, artists and playlists', () => {
         tracks: { total: 214 },
         images: IMAGES,
       }),
-    ).toMatchObject({ kind: 'playlist', ownerName: 'Josh', subtitle: 'Josh', totalTracks: 214 });
+    ).toMatchObject({
+      kind: 'playlist',
+      ownerName: 'Josh',
+      subtitle: 'Josh',
+      totalTracks: 214,
+    });
   });
 
   // A collaborative playlist owned by an account with no display name, and the
-  // mosaic artwork Spotify generates, which arrives with null dimensions.
+  // mosaic artwork Spotify generates, which arrives with null dimensions. A
+  // sizeless image must not sort ahead of one we can actually measure — the
+  // theme extractor would then decode a 640px mosaic to find an average colour.
   it('survives a playlist with no owner name and sizeless mosaic art', () => {
     const playlist = normalisePlaylist({
       name: 'Shared',
       uri: 'spotify:playlist:2',
       owner: {},
-      images: [{ url: 'mosaic.jpg', width: null, height: null }],
+      images: [
+        { url: 'mosaic.jpg', width: null, height: null },
+        { url: 'sized.jpg', width: 300, height: 300 },
+        { url: 'other.jpg', width: null, height: null },
+      ],
     });
 
     expect(playlist).toMatchObject({
       ownerName: null,
       subtitle: '',
       totalTracks: 0,
-      images: [{ url: 'mosaic.jpg', width: null, height: null }],
+      images: [
+        { url: 'sized.jpg', width: 300, height: 300 },
+        { url: 'mosaic.jpg', width: null, height: null },
+        { url: 'other.jpg', width: null, height: null },
+      ],
     });
   });
 
@@ -273,12 +293,15 @@ describe('paging', () => {
 
   it('stops at the last page', () => {
     expect(
-      unwrap(page({ items: ['e'], offset: 4, limit: 2, total: 5, next: null })).nextOffset,
+      unwrap(page({ items: ['e'], offset: 4, limit: 2, total: 5, next: null }))
+        .nextOffset,
     ).toBeNull();
   });
 
   it('stops when the window reaches the total even without a paging link', () => {
-    expect(unwrap(page({ items: ['a', 'b'], offset: 3, total: 5 })).nextOffset).toBeNull();
+    expect(
+      unwrap(page({ items: ['a', 'b'], offset: 3, total: 5 })).nextOffset,
+    ).toBeNull();
   });
 
   // The hole this prevents: a page of 50 that contains one unreadable row

@@ -19,8 +19,16 @@ export type ErrorKind =
   | 'not-premium'
   /** Authenticated, but the token lacks a required scope. Re-authorise. */
   | 'forbidden'
-  /** No active Spotify Connect device. Not an error so much as a state. */
+  /**
+   * No active Spotify Connect device. Not an error so much as a state.
+   *
+   * Only ever means this for **player** endpoints, where Spotify uses 404 to
+   * say "nothing is playing anywhere". Everywhere else a 404 means the thing
+   * genuinely is not there — see `not-found`.
+   */
   | 'no-active-device'
+  /** The requested resource does not exist: a deleted playlist, a bad id. */
+  | 'not-found'
   /** Rate limited. `retryAfterMs` says how long to wait. */
   | 'rate-limited'
   /** Could not reach Spotify at all — DNS, offline, timeout. */
@@ -89,6 +97,16 @@ export interface HttpFailure {
   readonly status: number;
   readonly body?: unknown;
   readonly retryAfter?: string | null;
+  /**
+   * What a 404 means for the endpoint that produced it.
+   *
+   * Spotify overloads 404: on `/v1/me/player*` it means "no active device",
+   * and everywhere else it means the resource is absent. Only the caller knows
+   * which endpoint was asked, so the caller says. Defaulting to `not-found`
+   * means a new endpoint added later fails honestly rather than telling the
+   * user to choose a speaker.
+   */
+  readonly notFoundMeans?: 'no-active-device' | 'not-found';
 }
 
 /**
@@ -114,7 +132,7 @@ export const classifyHttpFailure = (failure: HttpFailure): JoshifyError => {
     return createError('forbidden', message, { status });
   }
   if (status === 404) {
-    return createError('no-active-device', message, { status });
+    return createError(failure.notFoundMeans ?? 'not-found', message, { status });
   }
   if (status === 429) {
     const retryAfterMs = parseRetryAfter(failure.retryAfter ?? null);

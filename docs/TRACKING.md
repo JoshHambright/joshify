@@ -41,10 +41,10 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
-| 6 | Search & library | 9 | 0 | ⬜ Not started |
+| 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **24** | |
+| | **Total** | **120** | **27** | |
 
 ---
 
@@ -206,12 +206,12 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P6-01 | Search endpoint proxy with debouncing + cancellation | ⬜ | |
+| P6-01 | Search endpoint proxy with debouncing + cancellation | ✅ | Generation-fenced after the await, so a slow "bea" cannot overwrite a fast "beatles" (D-032) |
 | P6-02 | On-screen keyboard component | ⬜ | Touch-sized, no physical keyboard assumed |
 | P6-03 | Search results UI (tracks / albums / artists / playlists) | ⬜ | |
 | P6-04 | **Virtualised list component** | ⬜ | Still correct practice; no longer make-or-break on a Pi 5 |
-| P6-05 | Saved albums browse | ⬜ | |
-| P6-06 | Playlists browse + playlist detail | ⬜ | |
+| P6-05 | Saved albums browse | ✅ | Paged. Advances by rows **sent**, not rows kept — Spotify ships null rows (D-031) |
+| P6-06 | Playlists browse + playlist detail | ✅ | Server side done; the UI is P6-03 |
 | P6-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
 | P6-08 | Thumbnail loading strategy for long lists | ⬜ | Lazy + evict; must not grow unbounded |
 | P6-09 | Performance test: long-list scroll on hardware | ⬜ | Explicit budget, fails CI-on-hardware if exceeded |

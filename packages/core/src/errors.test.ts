@@ -68,8 +68,17 @@ describe('classifyHttpFailure', () => {
     expect(error.kind).toBe('forbidden');
   });
 
-  it('maps 404 to no-active-device', () => {
-    expect(classifyHttpFailure({ status: 404 }).kind).toBe('no-active-device');
+  // Spotify overloads 404, so the caller says which meaning applies. The
+  // default is the honest one: a new endpoint added later should report a
+  // missing resource, not tell the user to choose a speaker.
+  it('maps 404 to not-found by default', () => {
+    expect(classifyHttpFailure({ status: 404 }).kind).toBe('not-found');
+  });
+
+  it('maps 404 to no-active-device when the caller says it is a player call', () => {
+    expect(
+      classifyHttpFailure({ status: 404, notFoundMeans: 'no-active-device' }).kind,
+    ).toBe('no-active-device');
   });
 
   it('maps 429 and reads Retry-After', () => {

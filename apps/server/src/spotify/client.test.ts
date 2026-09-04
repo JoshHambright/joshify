@@ -219,7 +219,24 @@ describe('malformed responses', () => {
     const result = await client().request('/v1/nope');
     if (isOk(result)) throw new Error('expected failure');
     expect(result.error.status).toBe(404);
+  });
+});
+
+describe('the two meanings of 404', () => {
+  // Spotify overloads 404: on the player it means "nothing is playing
+  // anywhere", everywhere else it means the resource is gone. Conflating them
+  // puts "choose a speaker" on screen for a deleted playlist.
+  it('reads a player 404 as no active device', async () => {
+    spotify.failNext({ status: 404 });
+    const result = await client().getPlaybackState();
+    if (isOk(result)) throw new Error('expected failure');
     expect(result.error.kind).toBe('no-active-device');
+  });
+
+  it('reads any other 404 as not-found', async () => {
+    const result = await client().request('/v1/playlists/does-not-exist');
+    if (isOk(result)) throw new Error('expected failure');
+    expect(result.error.kind).toBe('not-found');
   });
 });
 

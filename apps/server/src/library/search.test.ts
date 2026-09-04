@@ -61,7 +61,8 @@ const expectResults = (outcome: Outcome): SearchResults => {
 };
 
 const expectSuperseded = (outcome: Outcome): void => {
-  if (!isOk(outcome)) throw new Error(`expected superseded, got: ${outcome.error.message}`);
+  if (!isOk(outcome))
+    throw new Error(`expected superseded, got: ${outcome.error.message}`);
   expect(outcome.value.status).toBe('superseded');
 };
 

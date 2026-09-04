@@ -102,6 +102,13 @@ export const createSpotifyClient = (config: SpotifyClientConfig): SpotifyClient 
           status: response.status,
           body,
           retryAfter: response.headers.get('retry-after'),
+          // Spotify overloads 404. On the player it means "nothing is playing
+          // anywhere"; on a playlist or album it means the thing is gone.
+          // Reporting the latter as "no active device" would put "choose a
+          // speaker" on screen for a deleted playlist.
+          notFoundMeans: path.startsWith('/v1/me/player')
+            ? 'no-active-device'
+            : 'not-found',
         }),
       );
     }
