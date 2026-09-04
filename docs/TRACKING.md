@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | 9 | 🟨 In progress |
-| 3 | Now Playing | 12 | 0 | ⬜ Not started |
+| 3 | Now Playing | 12 | 4 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **30** | |
+| | **Total** | **120** | **34** | |
 
 ---
 
@@ -115,9 +115,9 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
 | P3-01 | 🔬 **Spike: render on real Pi 5. Chromium vs `cog`.** Measure FPS + RSS | ⬜ | **Second-highest risk.** Settles the kiosk runtime with numbers. Do before building the real UI |
-| P3-02 | Album art fetch + on-disk cache (640px hero, 64px source) | ⬜ | 64px feeds both theme and blur |
-| P3-03 | Server-side theme extraction → token set | ⬜ | Accent, foreground, control tint |
-| P3-04 | Contrast checking / correction on derived colours | ⬜ | Text must stay readable on any album |
+| P3-02 | Album art fetch + on-disk cache (640px hero, 64px source) | ✅ | Buffered then temp→fsync→rename, so a dropped connection cannot truncate. True LRU eviction for an appliance running for months (D-037) |
+| P3-03 | Server-side theme extraction → token set | ✅ | Accent is salience, not dominance — a small hot-pink logo beats the grey card it sits on (D-036) |
+| P3-04 | Contrast checking / correction on derived colours | ✅ | 4.5:1 for anything text can land on, 3:1 for chrome. AAA rejected as unreachable, so the guarantee is true (D-035). 121 hostile pairings tested |
 | P3-05 | Server-side blur pre-render, served as a static image | ⬜ | Avoids `backdrop-filter` on VC4 entirely |
 | P3-06 | Svelte app shell + WebSocket client store | ⬜ | |
 | P3-07 | Theme application via CSS custom properties | ⬜ | UI computes nothing. **Tokenise chrome here** so D-017 themes can reach it |

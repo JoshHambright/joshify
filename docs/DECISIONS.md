@@ -594,3 +594,67 @@ else is on it. Each layer stops something the others do not:
   browser will refuse.
 Each is cheap; the combination is what makes the surface uninteresting.
 **Status:** ✅ Accepted.
+
+---
+
+### D-035 · Contrast floors: 4.5:1 for anything that can carry text, 3:1 for chrome
+**Chose:** `foreground`, `accent` and `onAccent` are corrected to **4.5:1**
+(WCAG 1.4.3 AA). `controlTint`, which is non-text chrome, is held to **3:1**
+(WCAG 1.4.11). Correction preserves hue and saturation and moves only lightness,
+binary-searching over **quantised 8-bit steps** in both directions.
+**Why 4.5 for the accent specifically:** it lands on the artist line and the
+progress readout, so a token safe as a *fill* but not as *text* is a trap laid
+for whoever writes the next component. Holding it to text level costs nothing
+and removes the trap.
+**Why not AAA (7:1):** it is **not reachable against every background** — a
+mid-grey around 0.18 luminance caps out near 4.58:1 against pure white or black.
+Promising AAA would be a guarantee the code cannot always keep. 4.5 is always
+reachable, which is exactly what makes "text stays readable on every album, no
+exceptions" a true statement rather than an aspiration.
+**Why quantised steps:** searching over floats can settle on a ratio that rounds
+*under* the threshold once written as an 8-bit colour. Measuring the colour that
+actually ships means the guarantee survives the last step.
+**Status:** ✅ Accepted.
+
+---
+
+### D-036 · Accent is the most salient colour, not the most common
+**Chose:** Accent scores `sqrt(population) × saturation × a mid-lightness curve`
+over coarse colour buckets. Population enters as a **square root**, so a colour
+must be about four times as common to beat one twice as vivid.
+**Why:** Dominance picks the background. A small hot-pink logo on a 90% grey
+card is what a person would call the album's colour, and dominance would return
+the grey. The saturation floor makes a genuinely greyscale cover degrade to "the
+most common grey" rather than a hallucinated hue, and the lightness curve
+suppresses near-black and near-white — which survive contrast correction, but
+only by discarding the album entirely.
+**The surface is always dark**, whatever the cover: the artwork's mean colour
+with saturation capped and lightness forced low. Two reasons. Every token would
+otherwise flip polarity between a white sleeve and a black one, and — more
+practically — a white cover would turn a shelf appliance into a lamp at 2am.
+Reasonable people would tune this differently; it is written down so it is
+settled rather than re-argued per album.
+**Status:** ✅ Accepted.
+
+---
+
+### D-037 · The artwork pipeline never fails, and never lies about images
+**Chose:** `prepareArtwork` always returns a usable theme. A dead CDN or an
+undecodable JPEG degrades to the default theme, with causes collected for the
+log and never for the screen.
+**Why:** Artwork is decoration. A device that shows an error where the album art
+should be, because a CDN hiccuped, is worse than one that shows a plain
+background and keeps playing.
+**Three things it refuses, which are not degradation but safety:** a non-`image/*`
+200 response (a captive portal answering everything with HTML), an oversized
+body, and a non-`http(s)` URL — a `file:` URL would otherwise turn the artwork
+cache into an arbitrary-file reader.
+**Image CDN failures get their own error mapping**, not `classifyHttpFailure`:
+a 404 from `i.scdn.co` means the artwork URL expired, and routing it through the
+player taxonomy would have said "no active device" (see D-030 — the same
+overload, caught twice).
+**Cache:** writes are buffered fully then temp-file → `fsync` → `rename`, the
+token-store pattern, so a dropped connection cannot leave a truncated image.
+Eviction is true LRU (400 entries / 32MB, pruned on write), because this runs
+for months on a device with a finite SD card.
+**Status:** ✅ Accepted.
