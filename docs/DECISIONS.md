@@ -443,3 +443,50 @@ the small variant in the first place.
 **Verified:** decode → pixel read → resize → blur → re-encode all confirmed
 working on Node 22 ESM before adopting.
 **Status:** ✅ Accepted.
+
+---
+
+### D-028 · Optimistic updates reconcile on two axes, not one
+**Chose:** A pending optimistic change survives a poll only if it is **inside a
+settle window** *and* **the poll reports exactly the value it replaced**.
+Anything else clears it.
+**Why:** Time alone is not enough. A Connect device does not obey the instant a
+write returns `204`, so a poll arriving milliseconds later legitimately still
+shows the old value — reverting there makes the button visibly bounce back. But
+waiting out a fixed window would also ignore a *genuine* change made from
+another device for that whole window.
+The second axis resolves it. A poll returning the value we were replacing is
+consistent with a write still in flight. A poll returning a **third value** —
+one we never set and were not replacing — cannot be, whatever the clock says,
+so it is adopted immediately. That catches another phone pausing us in one poll
+instead of one whole window.
+**Two refinements that are easy to get wrong:**
+- **The baseline is the on-screen value at apply time, not the last polled
+  truth.** With a pause in flight and play tapped after it, a poll saying
+  "paused" is the pause *landing*, not the play failing. Using polled truth as
+  the baseline would silently drop the play.
+- **Seek compares moving targets.** Both the requested and replaced positions
+  drift while playback runs, so each is compared against where it *would* have
+  reached by now. A pending seek is also invalidated outright by an item change,
+  which is stronger evidence than either value comparison.
+**next / previous:** the *item* is never guessed — the queue is a separate
+request, shuffle makes it non-deterministic, and repeat-one makes it the current
+track, so drawing a guessed title that a poll then replaces is worse than
+drawing the truth a moment late. The *position* is knowable, though: whatever
+arrives starts at zero, so the bar snaps instantly while only the item lags.
+**Status:** ✅ Accepted.
+
+---
+
+### D-029 · Item identity is shared code because it is a contract
+**Chose:** `playingItemKey` lives in one module, imported by both the progress
+tracker and the optimistic layer.
+**Why:** It arrived as a byte-identical copy in each. Normally two small copies
+are cheaper than an abstraction, but these two must **agree**: the tracker resets
+its anchor on a track change and the optimistic layer invalidates a pending seek
+on the same signal. If someone later adds a podcast case to one copy, the two
+modules would disagree about whether the same poll represents a track change,
+producing a bar that resets while a seek survives — a miserable bug to chase
+from the symptom.
+Shared because correctness depends on it, not because duplication is untidy.
+**Status:** ✅ Accepted.

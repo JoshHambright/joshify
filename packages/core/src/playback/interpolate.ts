@@ -16,6 +16,7 @@
  * for one is a bug even though the types cannot tell the difference.
  */
 import type { PlaybackState, PlayingItem } from './state.js';
+import { playingItemKey } from './item-key.js';
 
 export interface ProgressTrackerOptions {
   /**
@@ -46,21 +47,6 @@ export interface ProgressTracker {
 
 const clamp = (value: number, max: number): number => Math.min(Math.max(value, 0), max);
 
-/**
- * Identity of the item, for deciding whether a poll describes the same thing
- * we were already tracking.
- *
- * A local file has neither an id nor a uri (they exist only on the playing
- * device), so it falls back to title and duration. Two different files with
- * the same title and length would be conflated; the cost of that is one
- * held-back progress reset, which is invisible next to treating every poll of
- * a local file as a new track and resetting the bar on each one.
- */
-const itemKey = (item: PlayingItem | null): string | null => {
-  if (item === null) return null;
-  return item.id ?? item.uri ?? `local:${item.title}:${String(item.durationMs)}`;
-};
-
 export const createProgressTracker = (
   state: PlaybackState,
   monotonicMs: number,
@@ -68,7 +54,7 @@ export const createProgressTracker = (
 ): ProgressTracker => {
   const rewindToleranceMs = options.rewindToleranceMs ?? DEFAULT_REWIND_TOLERANCE_MS;
 
-  let key = itemKey(state.item);
+  let key = playingItemKey(state.item);
   let durationMs = state.item?.durationMs ?? 0;
   let isPlaying = state.isPlaying;
   let anchorMs = clamp(state.progressMs, durationMs);
@@ -115,7 +101,7 @@ export const createProgressTracker = (
      * behind, and jumping forward is what a listener expects after a skip.
      */
     observe: (next: PlaybackState, at: number) => {
-      const nextKey = itemKey(next.item);
+      const nextKey = playingItemKey(next.item);
       const nextDurationMs = next.item?.durationMs ?? 0;
       const reportedMs = clamp(next.progressMs, nextDurationMs);
       const interpolatedMs = progressAt(at);

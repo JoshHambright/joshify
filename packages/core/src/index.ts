@@ -61,3 +61,14 @@ export {
   type ProgressTracker,
   type ProgressTrackerOptions,
 } from './playback/interpolate.js';
+export {
+  createOptimisticPlayback,
+  DEFAULT_SEEK_TOLERANCE_MS,
+  DEFAULT_SETTLE_WINDOW_MS,
+  type OptimisticChange,
+  type OptimisticField,
+  type OptimisticPlayback,
+  type OptimisticPlaybackOptions,
+  type PendingChange,
+} from './playback/optimistic.js';
+export { playingItemKey } from './playback/item-key.js';

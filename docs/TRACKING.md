@@ -37,14 +37,14 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
-| 2 | Playback state engine | 10 | 5 | 🟨 In progress |
+| 2 | Playback state engine | 10 | 6 | 🟨 In progress |
 | 3 | Now Playing | 12 | 0 | ⬜ Not started |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 0 | ⬜ Not started |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **23** | |
+| | **Total** | **120** | **24** | |
 
 ---
 
@@ -99,7 +99,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P2-02 | Injected clock abstraction | ✅ | Wall-clock and monotonic kept separate — the Pi 5 has no RTC and steps its clock on first network contact (D-023) |
 | P2-03 | Adaptive polling scheduler | ✅ | Sized as a request budget, not by feel (D-025). Hard floor so an upstream bug cannot flood |
 | P2-04 | Local progress interpolation between polls | ✅ | Monotonic only. A stale poll never rewinds the bar (D-024); local files keyed by title+duration since they have no id |
-| P2-05 | Optimistic command application + reconciliation | ⬜ | Tap feels instant, truth wins later |
+| P2-05 | Optimistic command application + reconciliation | ✅ | Two-axis: settle window **and** which value came back, so another device is adopted in one poll rather than one window (D-028) |
 | P2-06 | Transport command handlers (play/pause/next/prev/seek/shuffle/repeat) | ✅ | Plus volume and device transfer. Exact query strings asserted — Spotify ignores unknown params rather than rejecting them (D-026) |
 | P2-07 | Fastify server + localhost-only binding | ⬜ | Must not be reachable off-device by default |
 | P2-08 | WebSocket state push with diffing | ⬜ | Send diffs, not full state, per tick |
