@@ -18,8 +18,35 @@ export interface RecordedRequest {
   readonly method: string;
   readonly path: string;
   readonly query: Readonly<Record<string, string>>;
+  /** The raw query string including its leading `?`, empty when there is none. */
+  readonly search: string;
   readonly form: Readonly<Record<string, string>>;
+  /**
+   * The body parsed as JSON, `undefined` when the body was absent or not JSON.
+   *
+   * The player writes send JSON rather than form encoding, and the field names
+   * inside that body (`context_uri`, `device_ids`) are exactly where a silent
+   * typo hides, so a test has to be able to read the body Spotify would see.
+   */
+  readonly json: unknown;
 }
+
+/**
+ * Path to the single verb Spotify accepts on it.
+ *
+ * Enforced so a command sent with the wrong method fails here rather than
+ * passing against a fake that answers anything.
+ */
+const PLAYER_WRITE_METHODS: Readonly<Record<string, string>> = {
+  '/v1/me/player/play': 'PUT',
+  '/v1/me/player/pause': 'PUT',
+  '/v1/me/player/seek': 'PUT',
+  '/v1/me/player/volume': 'PUT',
+  '/v1/me/player/shuffle': 'PUT',
+  '/v1/me/player/repeat': 'PUT',
+  '/v1/me/player/next': 'POST',
+  '/v1/me/player/previous': 'POST',
+};
 
 export interface CannedFailure {
   readonly status: number;
@@ -33,6 +60,12 @@ export interface FakeSpotify {
   validAccessToken: string;
   /** Body served by `GET /v1/me/player`. `null` produces a 204, as Spotify does. */
   playbackState: unknown;
+  /**
+   * When false, `PUT /v1/me/player/volume` answers 403, as Spotify does for a
+   * Connect target whose volume it cannot control — a TV, a receiver, a cast
+   * group. Every other command still succeeds.
+   */
+  volumeSupported: boolean;
   readonly authorizeEndpoint: string;
   readonly tokenEndpoint: string;
   /** Queue a canned failure for the next request. Queued failures pop in order. */
@@ -59,6 +92,7 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
     omitRefreshTokenOnRefresh: false,
     validAccessToken: 'access-seed',
     playbackState: null as unknown,
+    volumeSupported: true,
   };
 
   const server: Server = createServer((req, res) => {
@@ -71,7 +105,20 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
       for (const [key, value] of new URLSearchParams(rawBody)) form[key] = value;
       const query: Record<string, string> = {};
       for (const [key, value] of url.searchParams) query[key] = value;
-      requests.push({ method: req.method ?? 'GET', path: url.pathname, query, form });
+      let jsonBody: unknown;
+      try {
+        jsonBody = JSON.parse(rawBody);
+      } catch {
+        jsonBody = undefined;
+      }
+      requests.push({
+        method: req.method ?? 'GET',
+        path: url.pathname,
+        query,
+        search: url.search,
+        form,
+        json: jsonBody,
+      });
 
       const json = (
         status: number,
@@ -102,14 +149,47 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
           json(200, { id: 'josh', display_name: 'Josh', product: 'premium' });
           return;
         }
+        const noContent = () => {
+          res.writeHead(204);
+          res.end();
+        };
+
         if (url.pathname === '/v1/me/player') {
+          // PUT on this path is transfer-playback, which names its target in
+          // the body instead of the query — the one player write that does.
+          if (req.method === 'PUT') {
+            noContent();
+            return;
+          }
           // Spotify answers 204 with no body when nothing is playing.
           if (state.playbackState === null) {
-            res.writeHead(204);
-            res.end();
+            noContent();
             return;
           }
           json(200, state.playbackState);
+          return;
+        }
+
+        const expectedMethod = PLAYER_WRITE_METHODS[url.pathname];
+        if (expectedMethod !== undefined) {
+          if (req.method !== expectedMethod) {
+            json(405, {
+              error: { status: 405, message: `${url.pathname} needs ${expectedMethod}` },
+            });
+            return;
+          }
+          if (url.pathname === '/v1/me/player/volume' && !state.volumeSupported) {
+            json(403, {
+              error: {
+                status: 403,
+                message: 'Player command failed: Cannot control device volume',
+                reason: 'VOLUME_CONTROL_DISALLOWED',
+              },
+            });
+            return;
+          }
+          // Every successful player write is 204 with no body.
+          noContent();
           return;
         }
         if (url.pathname === '/v1/me/player/devices') {
@@ -215,6 +295,12 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
     },
     set playbackState(value: unknown) {
       state.playbackState = value;
+    },
+    get volumeSupported() {
+      return state.volumeSupported;
+    },
+    set volumeSupported(value: boolean) {
+      state.volumeSupported = value;
     },
     get omitRefreshTokenOnRefresh() {
       return state.omitRefreshTokenOnRefresh;
