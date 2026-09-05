@@ -55,6 +55,7 @@
   const { src, decode = decodeImage }: Props = $props();
 
   let sequence = 1;
+  // svelte-ignore state_referenced_locally
   let layers = $state<readonly ArtworkLayer[]>(requestLayer([], src, sequence));
 
   $effect.pre(() => {
@@ -89,7 +90,10 @@
         data-ready={layer.ready}
         decoding="async"
         onload={(event) => {
-          void loaded(layer.id, event.currentTarget);
+          // Svelte types `onload`'s `currentTarget` as a bare `Element` — its
+          // generic defaults, not a claim about this element, which is the
+          // `<img>` the handler is attached to.
+          void loaded(layer.id, event.currentTarget as HTMLImageElement);
         }}
         onerror={() => {
           layers = failLayer(layers, layer.id);
