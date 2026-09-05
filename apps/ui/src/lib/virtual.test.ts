@@ -159,14 +159,16 @@ describe('paging', () => {
   // The last page is the one place a list may end under the finger, because
   // there is genuinely nothing more.
   it('never asks when the server said there is no next page', () => {
-    expect(
-      shouldLoadNextPage({ endIndex: 50, rowCount: 50, nextOffset: null }),
-    ).toBe(false);
+    expect(shouldLoadNextPage({ endIndex: 50, rowCount: 50, nextOffset: null })).toBe(
+      false,
+    );
   });
 
   it('uses its own threshold when none is given', () => {
     expect(shouldLoadNextPage({ endIndex: 42, rowCount: 50, nextOffset: 50 })).toBe(true);
-    expect(shouldLoadNextPage({ endIndex: 41, rowCount: 50, nextOffset: 50 })).toBe(false);
+    expect(shouldLoadNextPage({ endIndex: 41, rowCount: 50, nextOffset: 50 })).toBe(
+      false,
+    );
   });
 
   it('treats a negative threshold as none at all', () => {

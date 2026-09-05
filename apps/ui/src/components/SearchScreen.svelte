@@ -28,7 +28,7 @@
    * typing goes out through `onQueryChange`, already debounced, and a tapped
    * row goes out through `onPlay`.
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import Keyboard from './Keyboard.svelte';
   import ResultRow from './ResultRow.svelte';
   import VirtualList from './VirtualList.svelte';
@@ -95,18 +95,23 @@
   /** The newest results that answered `asked`. Nothing else is ever rendered. */
   let shown = $state<SearchResults | null>(null);
 
-  const debouncer = createQueryDebouncer({
-    debounceMs,
-    schedule,
-    emit: (query) => {
-      asked = query;
-      // Clearing the field puts the library back, and the old results must go
-      // with it — otherwise the stale fence would happily accept them again on
-      // the next search that happens to have the same text.
-      if (query === '') shown = null;
-      onQueryChange(query);
-    },
-  });
+  // The timing is read once, deliberately: the quiet period is configuration,
+  // not something that changes while a finger is mid-word. `untrack` states
+  // that rather than leaving the compiler to guess it was an oversight.
+  const debouncer = untrack(() =>
+    createQueryDebouncer({
+      debounceMs,
+      schedule,
+      emit: (query) => {
+        asked = query;
+        // Clearing the field puts the library back, and the old results must go
+        // with it — otherwise the stale fence would happily accept them again
+        // on the next search that happens to have the same text.
+        if (query === '') shown = null;
+        onQueryChange(query);
+      },
+    }),
+  );
 
   onDestroy(() => {
     debouncer.cancel();

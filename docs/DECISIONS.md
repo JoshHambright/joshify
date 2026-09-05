@@ -828,3 +828,54 @@ clears to the flat surface rather than leaving the previous album on screen.
 Holding the last cover under a track that has none is the prettier failure and
 the dishonest one.
 **Status:** ✅ Accepted.
+
+---
+
+### D-046 · Two components run the same progress model, rather than sharing a value
+**Chose:** `Transport` and `Scrubber` each construct the same pure progress
+model over the same `PlaybackState`. Neither passes an interpolated position to
+the other.
+**Why:** a podcast's ±15s must step from where the bar *is*, not from the
+polled position, which can be three seconds stale (D-025). The obvious fix is
+to lift the interpolated value into a parent and pass it down — and that makes
+two components capable of disagreeing about the same instant. Running one
+deterministic model over one input means they cannot: given identical state and
+identical clock readings they compute identical answers.
+**The cost:** two model instances instead of one. They hold nothing but a
+couple of numbers, and only the scrubber's ever has a finger on it — the
+transport runs no frame loop at all, and reads the model at the instant of the
+tap.
+**Status:** ✅ Accepted.
+
+---
+
+### D-047 · A control that cannot do anything is not drawn
+**Chose:** three cases, one rule. A device reporting `volumePercent: null`
+gets no slider. The *active* device gets no transfer button. A restricted
+device (`id: null`) stays in the list but is dimmed and untappable.
+**Why:** this is D-007's queue-reorder principle applied past the queue. An
+affordance that cannot work is worse than a missing one — it invites a tap,
+does nothing, and teaches the viewer that the panel is broken. Drawing a slider
+at 0 for a TV playing at full volume is the same lie in a different costume
+(D-022).
+**Why a restricted device is still listed:** the alternative is a viewer
+hunting for a speaker Spotify can see and Joshify apparently cannot. Showing it
+as present-but-unavailable is true; omitting it is not.
+**A fourth case, deliberately the other way:** the transport stays enabled when
+there is no active device. That is answered by the plate's *Choose a device*
+(P4-02), not by dead buttons — the action exists, it just needs a target first.
+**Status:** ✅ Accepted.
+
+---
+
+### D-048 · Offline shows no notice while a last known state exists
+**Chose:** `noticeFor` returns `null` when the link is down but the panel holds
+a state. The amber lamp in the status rail is the entire signal. The offline
+notice appears only for a panel that has never held a state at all.
+**Why:** SCREENS.md's rule is "never a spinner where last-known truth exists",
+and a banner over a working screen is the same mistake wearing different
+clothes — it covers a correct album, title and artist to announce something the
+lamp already says in ten pixels. On a wall-mounted screen the failure mode that
+matters is *not knowing the panel is stale*, and one always-present lamp solves
+that without ever obscuring the thing people are looking at.
+**Status:** ✅ Accepted.

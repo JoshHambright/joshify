@@ -119,15 +119,13 @@ const section = (id: string, label: string, items: readonly LibraryItem[]): List
       []
     : [
         header(id, label),
-        ...items.map(
-          (item, index): ListRow => ({
-            kind: 'item',
-            // Unique by construction: a track can appear in two groups, and the
-            // same uri can legitimately appear twice within one.
-            id: `${id}#${String(index)}`,
-            item,
-          }),
-        ),
+        ...items.map((item, index): ListRow => ({
+          kind: 'item',
+          // Unique by construction: a track can appear in two groups, and the
+          // same uri can legitimately appear twice within one.
+          id: `${id}#${String(index)}`,
+          item,
+        })),
       ];
 
 /**

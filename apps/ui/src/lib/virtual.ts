@@ -80,7 +80,11 @@ export const virtualWindow = (request: WindowRequest): VirtualWindow => {
   // Touch scrolling overshoots both ends — rubber-banding reports a negative
   // scrollTop at the top and one past the end at the bottom. Neither is a
   // reason to compute a window outside the list.
-  const scrollTop = clamp(request.scrollTop, 0, Math.max(0, totalHeight - viewportHeight));
+  const scrollTop = clamp(
+    request.scrollTop,
+    0,
+    Math.max(0, totalHeight - viewportHeight),
+  );
   const height = Math.max(0, viewportHeight);
 
   // `floor` for the first row: a row scrolled half out of view is still on

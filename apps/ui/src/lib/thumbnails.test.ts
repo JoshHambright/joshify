@@ -120,9 +120,7 @@ describe('flattening results into rows', () => {
   // Two rows sharing a key would make the list reuse the wrong DOM node as it
   // scrolls — the same album under two different titles.
   it('gives every row a key of its own, even for a repeated uri', () => {
-    const rows = searchRows(
-      results({ tracks: [track(), track()], albums: [album()] }),
-    );
+    const rows = searchRows(results({ tracks: [track(), track()], albums: [album()] }));
     const ids = rows.map((row) => row.id);
 
     expect(new Set(ids).size).toBe(ids.length);
@@ -134,9 +132,9 @@ describe('flattening results into rows', () => {
       playlists: page([playlist()]),
     });
 
-    expect(rows.map((row) => (row.kind === 'header' ? row.label : row.item.title))).toEqual(
-      ['Saved albums', 'Redline', 'Playlists', 'Late Shift'],
-    );
+    expect(
+      rows.map((row) => (row.kind === 'header' ? row.label : row.item.title)),
+    ).toEqual(['Saved albums', 'Redline', 'Playlists', 'Late Shift']);
   });
 });
 
