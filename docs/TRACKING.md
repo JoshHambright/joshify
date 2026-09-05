@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
-| 3 | Now Playing | 12 | 6 | 🟨 In progress |
+| 3 | Now Playing | 13 | 6 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **38** | |
+| | **Total** | **121** | **38** | |
 
 ---
 
@@ -126,6 +126,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-10 | Transport control components (≥48px targets) | ⬜ | |
 | P3-11 | Interpolated progress bar rendering | ⬜ | Smooth at refresh rate, zero extra API calls |
 | P3-12 | Idle / nothing-playing / not-Premium states | ⬜ | Never a raw error |
+| P3-13 | **Deliver the theme and prepared artwork over the wire** | ⬜ | **Gap found in P3-07.** Extraction (P3-03) and application (P3-07) both exist and neither is connected: `PlaybackState` carries no theme, so the panel styles itself from `DEFAULT_THEME` forever. Needs a design decision — the artwork pipeline is async (fetch, decode, blur) so the theme legitimately lands *after* the track change, which argues against folding it into the playback diff |
 
 ---
 
