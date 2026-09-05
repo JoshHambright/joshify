@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
-| 3 | Now Playing | 13 | 6 | 🟨 In progress |
+| 3 | Now Playing | 13 | 8 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **121** | **38** | |
+| | **Total** | **121** | **40** | |
 
 ---
 
@@ -121,8 +121,8 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-05 | Server-side blur pre-render, served as a static image | ⬜ | Avoids `backdrop-filter` on VC4 entirely |
 | P3-06 | Svelte app shell + WebSocket client store | ✅ | Vite + Svelte 5. The panel is three slots — stage, rail, plate — which is the whole navigation model. The store implements the Svelte contract by hand so its reconnect logic is testable in Node against a fake socket (D-043). Desktop fit uses `zoom`, not `transform`: `transform` scales paint but not the layout box, which is what overflowed the first prototype |
 | P3-07 | Theme application via CSS custom properties | ✅ | Token *contract* moved to core so both ends share one definition; extraction stays server-side. Fixed chrome is `--jf-*`, the album's five are `--joshify-*`, so a rule says which half can change under you. Hex is validated before writing — a bad custom property is not an error, it is a silently unstyled panel |
-| P3-08 | Album art hero component + crossfade on track change | ⬜ | |
-| P3-09 | Drifting blurred backdrop | ⬜ | Procedural motion — no audio-reactivity available |
+| P3-08 | Album art hero component + crossfade on track change | ✅ | The outgoing frame is held until the incoming one has *pixels* — `load` **and** `decode()` — because swapping on `load` alone flashes empty surface on every track change. Keyed on the image URL, not the track: two tracks from one album share a cover (D-045) |
+| P3-09 | Drifting blurred backdrop | ✅ | Procedural motion only (no audio-reactivity exists — D-010). Drift on the wrapper's transform, blur on the image: a filter is dear to rasterise and cheap to re-composite, so it is computed once per track. Source is the 64px variant — downscale-then-upscale is a free blur |
 | P3-10 | Transport control components (≥48px targets) | ⬜ | |
 | P3-11 | Interpolated progress bar rendering | ⬜ | Smooth at refresh rate, zero extra API calls |
 | P3-12 | Idle / nothing-playing / not-Premium states | ⬜ | Never a raw error |

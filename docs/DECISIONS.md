@@ -808,3 +808,23 @@ is in core because it names the CSS properties both ends agree on;
 `extractTheme` stays on the server because it needs pixels and an image decoder
 the browser bundle should never carry.
 **Status:** ✅ Accepted.
+
+---
+
+### D-045 · Artwork is keyed on the image, not on the track
+**Chose:** the hero's crossfade restarts when the artwork *URL* changes, not
+when the playing item changes. The incoming image is held at `opacity: 0` until
+both its `load` event and its `decode()` have settled.
+**Why (the key):** two tracks from the same album share a cover. Keying on the
+track would crossfade an image into an identical copy of itself on every track
+change within an album — 420ms in which the panel visibly does nothing, plus a
+decode nobody asked for. The URL is the thing that actually changed.
+**Why (the decode gate):** `load` promises bytes have arrived; `decode` promises
+they have become pixels. On a Pi the gap between the two is a real hitch, and
+swapping on `load` alone produces a flash of empty surface on every track
+change — the exact artefact a crossfade exists to prevent.
+**And a failure rule:** an image that errors, or a `decode()` that rejects,
+clears to the flat surface rather than leaving the previous album on screen.
+Holding the last cover under a track that has none is the prettier failure and
+the dishonest one.
+**Status:** ✅ Accepted.
