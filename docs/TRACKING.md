@@ -39,12 +39,12 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 In progress |
-| 4 | Control surfaces | 10 | 5 | 🟨 In progress |
+| 4 | Control surfaces | 10 | 7 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **50** | |
+| | **Total** | **122** | **52** | |
 
 ---
 
@@ -140,8 +140,8 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P4-01 | Device list endpoint + polling | ✅ | `GET /api/devices` serves the normalised list. An unreadable entry is dropped, not fatal — refusing to draw six working speakers because a seventh reported something odd is the wrong trade. `device-source.ts` polls at 5s **only while the Devices surface is open** — a wall panel showing Now Playing has no use for a fresh list, and polling one for hours spends the budget the transport needs (D-049) |
 | P4-02 | Devices screen UI with active-device indicator | ✅ | Reachable and composed into the panel. Restricted devices (`id: null`) stay listed but dimmed and untappable — dropping them leaves the viewer hunting for a speaker Spotify can see and Joshify apparently cannot |
 | P4-03 | Transfer playback on tap | ✅ | Reachable and composed into the panel. The **active** device is not a transfer target: moving playback to where it already is achieves nothing, and a control that visibly does nothing reads as broken |
-| P4-04 | Queue fetch + Queue screen | 🟨 | Server half done: `getQueue` + `normaliseQueue` + `GET /api/queue`, with `additional_types=episode` so a queued podcast is not a null row. Screen still to build |
-| P4-05 | Document queue-reorder impossibility in the UI | ⬜ | No fake affordance. See PRODUCT.md §6 |
+| P4-04 | Queue fetch + Queue screen | ✅ | `queue-source.ts` mirrors `device-source.ts` exactly — one pattern for "a screen that polls a list" beats two clever ones. Current item pinned outside the scroller; upcoming rows go through the existing `VirtualList` (a 300-item queue draws 11) |
+| P4-05 | Document queue-reorder impossibility in the UI | ✅ | Rows are inert — no button, no `:active`. Building the screen found the *third* missing endpoint: no jump-to-position either. Walking there with repeated `next` was considered and rejected (D-051). **Corrected `SCREENS.md`**, which had specified tap-to-jump |
 | P4-06 | Volume slider + device volume support detection | ✅ | Reachable and composed into the panel. `volumePercent: null` draws **no slider at all** (D-022). Commits once on release, not per drag frame — one command per gesture, not fifty |
 | P4-07 | Touch scrubbing on the progress bar | ✅ | Reachable and composed into the panel. On release the tracker re-anchors at the chosen position so the bar runs on through the round trip instead of snapping back. A track change under a held finger drops the drag — the fraction was chosen against the old duration |
 | P4-08 | Navigation model between surfaces | ⬜ | Gesture + tap, no chrome |

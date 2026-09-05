@@ -134,9 +134,23 @@ confident lie (D-022).
 Rows of 76px: position, title, artist. The currently playing item is pinned at
 the top and marked.
 
-**There is no drag handle, and never will be.** Spotify's API has no reorder and
-no remove endpoint (D-007). Tapping a row skips forward to it, which is the only
-honest affordance. An affordance that cannot work is worse than a missing one.
+**The queue is view-only, and every row is inert.** Spotify has no reorder, no
+remove, *and no jump-to-position* — only `next`, which advances exactly one
+track (D-007, D-051).
+
+An earlier draft of this document said "tapping a row skips forward to it".
+That described an endpoint that does not exist. Walking there with repeated
+`next` calls is not the same thing: it is *n* unrelated writes with no
+transaction around them, any one of which can be refused or rate-limited, while
+the queue refills from the play context underneath — and `previous` cannot walk
+it back. Asking for row seven and landing on row four with no way home is worse
+than a tap that does nothing.
+
+So the rows have no button, no `:active`, and no press feedback of any kind,
+and the screen says why in one line: *"View only. Spotify offers no way to
+reorder, remove or jump to a queued track — skip plays the next one."* Phrased
+about Spotify rather than about Joshify, because the viewer is not being told a
+feature is missing; they are being told it is impossible from any client.
 
 ---
 

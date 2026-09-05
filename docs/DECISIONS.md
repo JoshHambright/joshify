@@ -935,3 +935,35 @@ definite answer moves it off null; a failed profile read leaves the account
 unclassified, because accusing an account of being free before we know is the
 confident lie D-022 exists to prevent.
 **Status:** ✅ Accepted.
+
+---
+
+### D-051 · The queue is view-only, and says so
+**Chose:** every queue row is inert — no button, no `:active`, no press
+feedback — with one line under the list explaining why.
+**Why:** D-007 established that Spotify has no reorder and no remove. Building
+the screen turned up the third missing piece: there is no jump-to-position
+either. Only `next` exists, and it advances exactly one track.
+
+Two ways to fake it were considered and rejected:
+
+1. **Fire `next` *n* times to reach row *n*.** That is *n* unrelated writes
+   with no transaction around them. Any one can be refused or rate-limited
+   (D-025), the queue refills from the play context while the burst is in
+   flight, and `previous` cannot walk it back. Asking for row seven and landing
+   on row four with no way home is worse than a tap that does nothing.
+2. **Make only the first upcoming row tappable**, since one `next` genuinely
+   reaches it. Honest in isolation, and it teaches a lie: a list whose top row
+   responds to touch has promised that the rest do, so every tap after the
+   first reads as a broken panel. It also adds nothing the skip glyph on the
+   plate does not already do.
+
+**The note is phrased about Spotify, not about Joshify** — "Spotify offers no
+way to reorder, remove or jump to a queued track" — because the viewer is not
+being told a feature is missing from this app. They are being told it is
+impossible from any client, which is both true and the only thing that stops
+the screen reading as unfinished.
+
+**This corrected `SCREENS.md`**, which specified tap-to-jump. Writing the
+screen is what found it; the spec had assumed an endpoint into existence.
+**Status:** ✅ Accepted.

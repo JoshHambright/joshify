@@ -17,6 +17,7 @@ import { browserSocket } from './lib/browser-socket.js';
 import { createCommandClient } from './lib/commands.js';
 import { createConnection } from './lib/connection.js';
 import { createDeviceSource } from './lib/device-source.js';
+import { createQueueSource } from './lib/queue-source.js';
 import './styles/tokens.css';
 
 const socketUrl = (): string => {
@@ -44,4 +45,8 @@ const devices = createDeviceSource({
   fetch: (input) => httpFetch(input),
 });
 
-mount(App, { target, props: { connection, client, devices } });
+const queue = createQueueSource({
+  fetch: (input) => httpFetch(input),
+});
+
+mount(App, { target, props: { connection, client, devices, queue } });

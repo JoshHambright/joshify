@@ -16,6 +16,7 @@ import type { PanelState, PlaybackDevice } from '@joshify/core';
 import type { CommandClient } from '../src/lib/commands.js';
 import type { Connection, ConnectionState } from '../src/lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from '../src/lib/device-source.js';
+import type { QueueSource, QueueSourceState } from '../src/lib/queue-source.js';
 import '../src/styles/tokens.css';
 
 /**
@@ -291,10 +292,54 @@ setInterval(() => {
   publish();
 }, 1000);
 
+/**
+ * A queue built from the same three tracks, so the screen has something real
+ * to show. View-only, as it is everywhere: Spotify offers no reorder, no
+ * remove and no jump (D-007, D-051).
+ */
+const queueState = (): QueueSourceState => {
+  const upcoming = [1, 2]
+    .map((offset) => TRACKS[(index + offset) % TRACKS.length])
+    .filter((t): t is (typeof TRACKS)[number] => t !== undefined)
+    .map((t, position) => ({
+      kind: 'track' as const,
+      id: `queued-${String(position)}`,
+      uri: `spotify:track:queued-${String(position)}`,
+      title: t.title,
+      subtitle: t.subtitle,
+      durationMs: t.durationMs,
+      images: [{ url: t.art, width: 640, height: 640 }],
+      isLocal: false,
+    }));
+  return {
+    queue: { current: stateNow().item, upcoming },
+    problem: null,
+    pending: false,
+  };
+};
+
+const queueListeners = new Set<(v: QueueSourceState) => void>();
+const queue: QueueSource = {
+  subscribe: (run) => {
+    queueListeners.add(run);
+    run(queueState());
+    return () => queueListeners.delete(run);
+  },
+  open: () => {
+    for (const run of queueListeners) run(queueState());
+  },
+  close: () => undefined,
+  refresh: () => {
+    for (const run of queueListeners) run(queueState());
+    return Promise.resolve();
+  },
+  current: queueState,
+};
+
 const target = document.querySelector('#panel');
 if (target === null) throw new Error('#panel is missing');
 
-mount(App, { target, props: { connection, client, devices } });
+mount(App, { target, props: { connection, client, devices, queue } });
 
 /**
  * A review harness, not part of the product.

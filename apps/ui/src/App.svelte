@@ -21,6 +21,7 @@
   import Panel from './components/Panel.svelte';
   import PlaybackNotice from './components/PlaybackNotice.svelte';
   import Plate from './components/Plate.svelte';
+  import QueueList from './components/QueueList.svelte';
   import Scrubber from './components/Scrubber.svelte';
   import StatusRail from './components/StatusRail.svelte';
   import Transport from './components/Transport.svelte';
@@ -34,11 +35,13 @@
   import type { CommandClient } from './lib/commands.js';
   import type { Connection } from './lib/connection.js';
   import type { DeviceSource } from './lib/device-source.js';
+  import type { QueueSource } from './lib/queue-source.js';
 
   interface Props {
     connection: Connection;
     client: CommandClient;
     devices: DeviceSource;
+    queue: QueueSource;
     /**
      * Where the album's five tokens are written. The document root by default,
      * because the body background and the plate's `backdrop-filter` both read
@@ -55,12 +58,13 @@
     connection,
     client,
     devices,
+    queue,
     themeTarget,
     now = () => new Date(),
   }: Props = $props();
 
   /** The plate at rest, or the plate grown. That is the whole of navigation. */
-  let surface = $state<'now-playing' | 'devices'>('now-playing');
+  let surface = $state<'now-playing' | 'devices' | 'queue'>('now-playing');
   let clock = $state('--:--');
 
   const playback = $derived($connection.state);
@@ -97,12 +101,20 @@
 
   const showDevices = (): void => {
     surface = 'devices';
+    queue.close();
     devices.open();
+  };
+
+  const showQueue = (): void => {
+    surface = 'queue';
+    devices.close();
+    queue.open();
   };
 
   const showNowPlaying = (): void => {
     surface = 'now-playing';
     devices.close();
+    queue.close();
   };
 
   const transfer = (deviceId: string): void => {
@@ -130,6 +142,7 @@
     return () => {
       clearInterval(ticking);
       devices.close();
+      queue.close();
       connection.close();
     };
   });
@@ -164,6 +177,18 @@
             disabled={controlsOff}
           />
         </div>
+      {:else if surface === 'queue'}
+        <div class="grown">
+          <div class="grown-head">
+            <h2 class="jf-label heading">Queue</h2>
+            <button class="close" type="button" onclick={showNowPlaying}>Done</button>
+          </div>
+          <QueueList
+            queue={$queue.queue}
+            pending={$queue.pending}
+            problem={$queue.problem}
+          />
+        </div>
       {:else if notice !== null}
         <PlaybackNotice {notice} onChooseDevice={showDevices} />
       {:else if item !== null}
@@ -178,6 +203,7 @@
           <button class="chip jf-label" type="button" onclick={showDevices}>
             {playback?.device?.name ?? 'Devices'}
           </button>
+          <button class="chip jf-label" type="button" onclick={showQueue}>Queue</button>
         </div>
       {/if}
     </Plate>

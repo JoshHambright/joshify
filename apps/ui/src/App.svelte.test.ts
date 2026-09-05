@@ -25,6 +25,7 @@ import { DEFAULT_THEME } from '@joshify/core';
 import type { Command, CommandClient, CommandTarget } from './lib/commands.js';
 import type { Connection, ConnectionState, LinkStatus } from './lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from './lib/device-source.js';
+import type { QueueSource, QueueSourceState } from './lib/queue-source.js';
 import type { StyleTarget } from './lib/theme.js';
 
 /** Collects the custom properties App writes, without a real document. */
@@ -137,6 +138,35 @@ const fakeDevices = (rows: readonly PlaybackDevice[] = [kitchen, study]) => {
   return { source, calls };
 };
 
+const fakeQueue = (upcoming: readonly PlayingItem[] = []) => {
+  const value: QueueSourceState = {
+    queue: { current: track, upcoming },
+    problem: null,
+    pending: false,
+  };
+  const subscribers = new Set<(v: QueueSourceState) => void>();
+  const calls = { opened: 0, closed: 0, refreshed: 0 };
+  const source: QueueSource = {
+    subscribe: (run) => {
+      subscribers.add(run);
+      run(value);
+      return () => subscribers.delete(run);
+    },
+    open: () => {
+      calls.opened += 1;
+    },
+    close: () => {
+      calls.closed += 1;
+    },
+    refresh: () => {
+      calls.refreshed += 1;
+      return Promise.resolve();
+    },
+    current: () => value,
+  };
+  return { source, calls };
+};
+
 const fakeClient = () => {
   const sent: { command: Command; target: CommandTarget | undefined }[] = [];
   const client: CommandClient = {
@@ -153,6 +183,7 @@ const at = (hour: number, minute: number) => () => new Date(2026, 0, 1, hour, mi
 interface Harness {
   connection?: ReturnType<typeof fakeConnection>;
   devices?: ReturnType<typeof fakeDevices>;
+  queue?: ReturnType<typeof fakeQueue>;
   client?: ReturnType<typeof fakeClient>;
   theme?: ReturnType<typeof fakeThemeTarget>;
 }
@@ -160,16 +191,18 @@ interface Harness {
 const mountApp = (harness: Harness = {}) => {
   const conn = harness.connection ?? fakeConnection({ state: playing() });
   const devs = harness.devices ?? fakeDevices();
+  const q = harness.queue ?? fakeQueue();
   const cmd = harness.client ?? fakeClient();
   const theme = harness.theme ?? fakeThemeTarget();
   const rendered = render(App, {
     connection: conn.connection,
     client: cmd.client,
     devices: devs.source,
+    queue: q.source,
     themeTarget: theme.target,
     now: at(21, 47),
   });
-  return { ...rendered, conn, devs, cmd, theme };
+  return { ...rendered, conn, devs, cmd, theme, q };
 };
 
 afterEach(cleanup);
@@ -418,5 +451,80 @@ describe('the album colour', () => {
     });
 
     expect(theme.properties.get('--joshify-accent')).toBe('#4fa8ff');
+  });
+});
+
+describe('the queue surface', () => {
+  const queued: PlayingItem[] = [
+    { ...track, id: 'q-1', uri: 'spotify:track:q-1', title: 'Coolant' },
+    { ...track, id: 'q-2', uri: 'spotify:track:q-2', title: 'Redline Sermon' },
+  ];
+
+  it('opens from the chip and polls only while it is open', async () => {
+    const q = fakeQueue(queued);
+    mountApp({ queue: q });
+    expect(q.calls.opened).toBe(0);
+
+    screen.getByRole('button', { name: 'Queue' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Redline Sermon')).toBeDefined();
+    });
+
+    expect(q.calls.opened).toBe(1);
+  });
+
+  // Spotify has no reorder, no remove and no jump-to-position (D-007, D-051).
+  // A queue row that responded to touch would be promising something no client
+  // can deliver.
+  it('offers no way to act on a queued track', async () => {
+    const q = fakeQueue(queued);
+    const { container } = mountApp({ queue: q });
+
+    screen.getByRole('button', { name: 'Queue' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Redline Sermon')).toBeDefined();
+    });
+
+    // Only the surface's own Done control, nothing per row.
+    const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
+    expect(buttons).toEqual(['Done']);
+  });
+
+  it('closes the queue when the devices surface opens, and never both at once', async () => {
+    const q = fakeQueue(queued);
+    const devs = fakeDevices();
+    mountApp({ queue: q, devices: devs });
+
+    screen.getByRole('button', { name: 'Queue' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Redline Sermon')).toBeDefined();
+    });
+
+    screen.getByRole('button', { name: 'Done' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Kitchen' })).toBeDefined();
+    });
+    screen.getByRole('button', { name: 'Kitchen' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Study')).toBeDefined();
+    });
+
+    expect(q.calls.closed).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('Redline Sermon')).toBeNull();
+  });
+
+  it('closes both sources on unmount', async () => {
+    const q = fakeQueue(queued);
+    const devs = fakeDevices();
+    const { unmount } = mountApp({ queue: q, devices: devs });
+
+    screen.getByRole('button', { name: 'Queue' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Redline Sermon')).toBeDefined();
+    });
+
+    unmount();
+    expect(q.calls.closed).toBeGreaterThanOrEqual(1);
+    expect(devs.calls.closed).toBeGreaterThanOrEqual(1);
   });
 });
