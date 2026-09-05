@@ -119,7 +119,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-03 | Server-side theme extraction → token set | ✅ | Accent is salience, not dominance — a small hot-pink logo beats the grey card it sits on (D-036) |
 | P3-04 | Contrast checking / correction on derived colours | ✅ | 4.5:1 for anything text can land on, 3:1 for chrome. AAA rejected as unreachable, so the guarantee is true (D-035). 121 hostile pairings tested |
 | P3-05 | Server-side blur pre-render, served as a static image | ⬜ | Avoids `backdrop-filter` on VC4 entirely |
-| P3-06 | Svelte app shell + WebSocket client store | ⬜ | |
+| P3-06 | Svelte app shell + WebSocket client store | ⬜ | Build against [SCREENS.md](./SCREENS.md) |
 | P3-07 | Theme application via CSS custom properties | ⬜ | UI computes nothing. **Tokenise chrome here** so D-017 themes can reach it |
 | P3-08 | Album art hero component + crossfade on track change | ⬜ | |
 | P3-09 | Drifting blurred backdrop | ⬜ | Procedural motion — no audio-reactivity available |
@@ -268,6 +268,7 @@ Things we don't yet know. Resolve and move to DECISIONS.md.
 | ~~Q1~~ | ~~Board + touchscreen?~~ | — | ✅ **Resolved: Pi 5 + Touch Display 2** (D-008) |
 | ~~Q2~~ | ~~Does headless PKCE work on-device?~~ | — | ✅ **Resolved: yes**, via the Pi's own touchscreen (P1-01) |
 | Q3 | Chromium or `cog`/WPE for the kiosk runtime on a Pi 5? | P3-01 | Claude (spike) |
+| Q7 | Which self-hosted faces ship on the device? Archivo/Barlow Condensed/Share Tech Mono are the prototype's choice | P3-06 | Claude, at Phase 3 |
 | Q4 | Container or native install as the *recommended* path? | P8-01, P8-04 | Both, after P7 |
 | ~~Q6~~ | ~~Image decoding library?~~ | — | ✅ **Resolved: pure-JS `jimp`** (D-027). We only decode 64px, so speed is moot and the native install hazard is not |
 | Q5 | Which USB DAC for the librespot module? | P5-20 | Josh, before P5 |

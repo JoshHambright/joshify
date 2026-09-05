@@ -97,6 +97,7 @@ comes back through chat.
 | `docs/TRACKING.md` | **Live tracker — 121 tasks.** Update with the work |
 | `docs/DECISIONS.md` | ADR log. Read before changing an approach |
 | `docs/VISUALIZER.md` | Visualizer engine design (Phase 5) |
+| `docs/SCREENS.md` | **The interface, specified.** Read before building any UI |
 | `docs/PS1_MODE.md` | PS1 / N2O visual mode + the homage-not-reproduction rule |
 | `docs/THEMES.md` | Theme roster — the 90s references, as separate named themes |
 | `spikes/` | Working prototypes. Each has a README on what it proved |
