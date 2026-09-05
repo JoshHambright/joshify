@@ -75,7 +75,9 @@ describe('noticeFor', () => {
   // It is a permanent fact about the account that explains every other failure
   // the viewer would otherwise be left guessing about.
   it('lets Premium outrank a dropped link, since it explains the rest', () => {
-    const notice = noticeFor(input({ isPremium: false, link: 'reconnecting', state: null }));
+    const notice = noticeFor(
+      input({ isPremium: false, link: 'reconnecting', state: null }),
+    );
     expect(notice?.kind).toBe('not-premium');
   });
 

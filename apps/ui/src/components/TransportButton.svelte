@@ -31,8 +31,17 @@
     children: Snippet;
   }
 
-  const { label, variant, onpress, disabled = false, active, children }: Props =
-    $props();
+  const { label, variant, onpress, disabled = false, active, children }: Props = $props();
+
+  /**
+   * The `disabled` attribute is the browser's rule and it is the real one. This
+   * is ours, and it exists because the day someone swaps `onclick` for a
+   * pointer handler — a reasonable thing to want on a touchscreen, where click
+   * costs a beat — the attribute stops meaning anything at all.
+   */
+  const press = (): void => {
+    if (!disabled) onpress();
+  };
 </script>
 
 <button
@@ -43,7 +52,7 @@
   aria-label={label}
   aria-pressed={variant === 'toggle' ? active === true : undefined}
   {disabled}
-  onclick={onpress}
+  onclick={press}
 >
   {@render children()}
 </button>

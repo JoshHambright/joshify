@@ -46,6 +46,12 @@
 
   const { volumePercent, label, disabled = false, onVolume }: Props = $props();
 
+  // Held as state and reconciled in an effect rather than as a writable
+  // $derived, which is what the lint rule below would prefer: a derived
+  // recomputes whenever its dependencies change, so it would drop the held
+  // value on the very poll this exists to ignore. The reconcile also reads
+  // the gesture it is updating, so it is not a function of the prop alone.
+  // eslint-disable-next-line svelte/prefer-writable-derived
   let gesture = $state<VolumeGesture>(IDLE_VOLUME_GESTURE);
   const shown = $derived(shownVolume(gesture, volumePercent));
 

@@ -154,7 +154,10 @@ describe('sortDevices', () => {
   });
 
   it("does not reorder the caller's array in place", () => {
-    const devices = [device({ id: 'a', name: 'Attic' }), device({ id: 'z', isActive: true })];
+    const devices = [
+      device({ id: 'a', name: 'Attic' }),
+      device({ id: 'z', isActive: true }),
+    ];
     sortDevices(devices);
     expect(devices[0]?.id).toBe('a');
   });

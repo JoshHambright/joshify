@@ -27,13 +27,23 @@
   import type { CommandClient, CommandTarget } from '../lib/commands.js';
 
   interface Props {
-    /** Last known playback. Null before the first snapshot lands. */
-    state: PlaybackState | null;
+    /**
+     * Last known playback. Null before the first snapshot lands.
+     * Not called `state`: a variable of that name makes `$state` parse as a
+     * store subscription rather than as a rune, and it fails at mount rather
+     * than at build. Avoided in every component, not only the ones that
+     * happen to hold local state today.
+     */
+    playback: PlaybackState | null;
     client: CommandClient;
     /** True when the account is not Premium: Spotify refuses every write. */
     disabled?: boolean | undefined;
-    /** Where the seek is aimed. Absent means "whatever is active". */
-    target?: CommandTarget | undefined;
+    /**
+     * Where the seek is aimed. Absent means "whatever is active". Not called
+     * `target`: that is one of Svelte's own mount options, and a component
+     * prop by that name is silently ambiguous at every call site.
+     */
+    commandTarget?: CommandTarget | undefined;
     /** Monotonic reading, injected so tests need no real clock (D-023). */
     monotonic?: (() => number) | undefined;
     /** Injected so a test drives the redraw by hand instead of waiting a frame. */
@@ -41,10 +51,10 @@
   }
 
   const {
-    state,
+    playback,
     client,
     disabled = false,
-    target,
+    commandTarget,
     monotonic = () => performance.now(),
     frames,
   }: Props = $props();
@@ -61,11 +71,14 @@
     };
   };
 
-  const playback = $derived(state ?? IDLE_PLAYBACK);
-  const item = $derived(playback.item);
+  const current = $derived(playback ?? IDLE_PLAYBACK);
+  const item = $derived(current.item);
   const durationMs = $derived(item?.durationMs ?? 0);
 
-  const model = createProgressModel(state ?? IDLE_PLAYBACK, monotonic());
+  // Seeded idle rather than from the prop: the effect below observes the real
+  // thing before the first paint, and reading a prop at init would capture its
+  // initial value forever.
+  const model = createProgressModel(IDLE_PLAYBACK, 0);
 
   let positionMs = $state(0);
   let scrubbing = $state(false);
@@ -83,7 +96,7 @@
   };
 
   $effect(() => {
-    model.observe(playback, monotonic());
+    model.observe(current, monotonic());
     // `observe` drops a drag whose track changed underneath it, so the flag is
     // read back rather than assumed.
     scrubbing = model.isScrubbing;
@@ -91,7 +104,7 @@
   });
 
   $effect(() => {
-    if (!playback.isPlaying || scrubbing) return;
+    if (!current.isPlaying || scrubbing) return;
     return (frames ?? everyFrame)(draw);
   });
 
@@ -111,7 +124,7 @@
     if (seekTo === null) return;
     // Not awaited (D-028): the model is already holding the new position, and
     // the server's optimistic state echoes it back within a poll.
-    void client.send({ kind: 'seek', positionMs: seekTo }, target);
+    void client.send({ kind: 'seek', positionMs: seekTo }, commandTarget);
   };
 
   const abandon = (): void => {

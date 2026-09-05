@@ -31,22 +31,32 @@
   import type { Command, CommandClient, CommandTarget } from '../lib/commands.js';
 
   interface Props {
-    /** Last known playback. Null before the first snapshot lands. */
-    state: PlaybackState | null;
+    /**
+     * Last known playback. Null before the first snapshot lands.
+     * Not called `state`: a variable of that name makes `$state` parse as a
+     * store subscription rather than as a rune, and it fails at mount rather
+     * than at build. Avoided in every component, not only the ones that
+     * happen to hold local state today.
+     */
+    playback: PlaybackState | null;
     client: CommandClient;
     /** True when the account is not Premium: Spotify refuses every write. */
     disabled?: boolean | undefined;
-    /** Where the commands are aimed. Absent means "whatever is active". */
-    target?: CommandTarget | undefined;
+    /**
+     * Where the commands are aimed. Absent means "whatever is active".
+     * Not called `target`: that is one of Svelte's own mount options, and a
+     * component prop by that name is silently ambiguous at every call site.
+     */
+    commandTarget?: CommandTarget | undefined;
     /** Monotonic reading, injected so tests need no real clock (D-023). */
     monotonic?: (() => number) | undefined;
   }
 
   const {
-    state,
+    playback,
     client,
     disabled = false,
-    target,
+    commandTarget,
     monotonic = () => performance.now(),
   }: Props = $props();
 
@@ -63,32 +73,32 @@
     track: 'off',
   };
 
-  const playback = $derived(state ?? IDLE_PLAYBACK);
-  const item = $derived(playback.item);
+  const current = $derived(playback ?? IDLE_PLAYBACK);
+  const item = $derived(current.item);
   const isEpisode = $derived(item?.kind === 'episode');
 
-  const model = createProgressModel(state ?? IDLE_PLAYBACK, monotonic());
+  // Seeded idle rather than from the prop: the effect below observes the real
+  // thing before the first paint, and reading a prop at init would capture its
+  // initial value forever.
+  const model = createProgressModel(IDLE_PLAYBACK, 0);
   $effect(() => {
-    model.observe(playback, monotonic());
+    model.observe(current, monotonic());
   });
 
   const send = (command: Command): void => {
     // Not awaited on purpose: the failure path is the client's `onProblem`,
     // and the optimistic state rolls back on the next poll (D-028).
-    void client.send(command, target);
+    void client.send(command, commandTarget);
   };
 
   const seekBy = (deltaMs: number): void => {
     const now = model.readAt(monotonic());
-    const positionMs = Math.min(
-      Math.max(0, now.positionMs + deltaMs),
-      now.durationMs,
-    );
+    const positionMs = Math.min(Math.max(0, now.positionMs + deltaMs), now.durationMs);
     send({ kind: 'seek', positionMs: Math.round(positionMs) });
   };
 
   const togglePlay = (): void => {
-    send(playback.isPlaying ? { kind: 'pause' } : { kind: 'play' });
+    send(current.isPlaying ? { kind: 'pause' } : { kind: 'play' });
   };
 
   const back = (): void => {
@@ -102,11 +112,11 @@
   };
 
   const toggleShuffle = (): void => {
-    send({ kind: 'shuffle', enabled: !playback.shuffle });
+    send({ kind: 'shuffle', enabled: !current.shuffle });
   };
 
   const cycleRepeat = (): void => {
-    send({ kind: 'repeat', mode: NEXT_REPEAT[playback.repeat] });
+    send({ kind: 'repeat', mode: NEXT_REPEAT[current.repeat] });
   };
 </script>
 
@@ -123,86 +133,102 @@
 {/snippet}
 
 {#snippet repeatGlyph()}
-  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" data-repeat={playback.repeat}>
+  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" data-repeat={current.repeat}>
     <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <path d="M6.5 7.5h10a3 3 0 013 3v1.5" />
       <path d="M17.5 16.5h-10a3 3 0 01-3-3V12" />
     </g>
     <path fill="currentColor" d="M17.4 11.5h4.2l-2.1 3.4z" />
     <path fill="currentColor" d="M2.4 12.5h4.2L4.5 9.1z" />
-    {#if playback.repeat === 'track'}
+    {#if current.repeat === 'track'}
       <text class="badge" x="12" y="14.4" text-anchor="middle">1</text>
     {/if}
   </svg>
 {/snippet}
 
-{#snippet stepGlyph(direction: 'back' | 'forward')}
+{#snippet playGlyph()}
+  <!-- Nudged right: an optically centred triangle sits off geometric centre. -->
+  <svg class="glyph disc" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <path d="M8.5 5.2l10 6.8-10 6.8z" />
+  </svg>
+{/snippet}
+
+{#snippet pauseGlyph()}
+  <svg class="glyph disc" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <rect x="6.5" y="5" width="3.6" height="14" rx="1.2" />
+    <rect x="13.9" y="5" width="3.6" height="14" rx="1.2" />
+  </svg>
+{/snippet}
+
+{#snippet skipBackGlyph()}
+  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <path d="M19 5v14l-10-7z" />
+    <rect x="5" y="5" width="2.6" height="14" rx="1" />
+  </svg>
+{/snippet}
+
+{#snippet skipForwardGlyph()}
+  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <path d="M5 5v14l10-7z" />
+    <rect x="16.4" y="5" width="2.6" height="14" rx="1" />
+  </svg>
+{/snippet}
+
+{#snippet stepBackGlyph()}
   <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
-    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      {#if direction === 'back'}
-        <path d="M12 5.5A6.5 6.5 0 106.5 8.7" />
-      {:else}
-        <path d="M12 5.5a6.5 6.5 0 115.5 3.2" />
-      {/if}
-    </g>
     <path
-      fill="currentColor"
-      d={direction === 'back' ? 'M12 2.2v6.6L8 5.5z' : 'M12 2.2v6.6l4-3.3z'}
+      d="M12 5.5A6.5 6.5 0 106.5 8.7"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
     />
+    <path fill="currentColor" d="M12 2.2v6.6L8 5.5z" />
     <text class="badge" x="12" y="19.5" text-anchor="middle">15</text>
   </svg>
 {/snippet}
 
-{#snippet skipGlyph(direction: 'back' | 'forward')}
-  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-    {#if direction === 'back'}
-      <path d="M19 5v14l-10-7z" />
-      <rect x="5" y="5" width="2.6" height="14" rx="1" />
-    {:else}
-      <path d="M5 5v14l10-7z" />
-      <rect x="16.4" y="5" width="2.6" height="14" rx="1" />
-    {/if}
+{#snippet stepForwardGlyph()}
+  <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M12 5.5a6.5 6.5 0 115.5 3.2"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+    />
+    <path fill="currentColor" d="M12 2.2v6.6l4-3.3z" />
+    <text class="badge" x="12" y="19.5" text-anchor="middle">15</text>
   </svg>
 {/snippet}
 
-<div class="transport" role="group" aria-label="Transport">
+<div class="transport" class:solo={item === null} role="group" aria-label="Transport">
   {#if item !== null}
     <TransportButton
       label="Shuffle"
       variant="toggle"
-      active={playback.shuffle}
+      active={current.shuffle}
       {disabled}
       onpress={toggleShuffle}
-    >
-      {@render shuffleGlyph()}
-    </TransportButton>
+      children={shuffleGlyph}
+    />
 
     <TransportButton
       label={isEpisode ? 'Back 15 seconds' : 'Previous track'}
       variant="skip"
       {disabled}
       onpress={back}
-    >
-      {#if isEpisode}{@render stepGlyph('back')}{:else}{@render skipGlyph('back')}{/if}
-    </TransportButton>
+      children={isEpisode ? stepBackGlyph : skipBackGlyph}
+    />
   {/if}
 
   <TransportButton
-    label={playback.isPlaying ? 'Pause' : 'Play'}
+    label={current.isPlaying ? 'Pause' : 'Play'}
     variant="play"
     {disabled}
     onpress={togglePlay}
-  >
-    <svg class="glyph disc" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-      {#if playback.isPlaying}
-        <rect x="6.5" y="5" width="3.6" height="14" rx="1.2" />
-        <rect x="13.9" y="5" width="3.6" height="14" rx="1.2" />
-      {:else}
-        <!-- Nudged right: an optically centred triangle sits off-centre. -->
-        <path d="M8.5 5.2l10 6.8-10 6.8z" />
-      {/if}
-    </svg>
-  </TransportButton>
+    children={current.isPlaying ? pauseGlyph : playGlyph}
+  />
 
   {#if item !== null}
     <TransportButton
@@ -210,23 +236,17 @@
       variant="skip"
       {disabled}
       onpress={forward}
-    >
-      {#if isEpisode}
-        {@render stepGlyph('forward')}
-      {:else}
-        {@render skipGlyph('forward')}
-      {/if}
-    </TransportButton>
+      children={isEpisode ? stepForwardGlyph : skipForwardGlyph}
+    />
 
     <TransportButton
       label="Repeat"
       variant="toggle"
-      active={playback.repeat !== 'off'}
+      active={current.repeat !== 'off'}
       {disabled}
       onpress={cycleRepeat}
-    >
-      {@render repeatGlyph()}
-    </TransportButton>
+      children={repeatGlyph}
+    />
   {/if}
 </div>
 
@@ -236,12 +256,13 @@
     align-items: center;
     /* Space-between rather than a gap: the row is the full width of the plate
        and the disc belongs in the middle of it, not in the middle of a huddle.
-       With play alone — nothing playing — centring is what is left. */
+       With play alone — nothing playing — there is nothing to space, so it is
+       centred instead. */
     justify-content: space-between;
     width: 100%;
   }
 
-  .transport:has(> :only-child) {
+  .transport.solo {
     justify-content: center;
   }
 
