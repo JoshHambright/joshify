@@ -1,3 +1,28 @@
+<script module lang="ts">
+  /*
+   * The props are declared out here, and exported, because a generic component
+   * cannot describe itself otherwise: the type has to have a public name for
+   * the compiler to state the component's own signature in terms of it.
+   */
+  import type { Snippet } from 'svelte';
+  import type { VirtualWindow } from '../lib/virtual.js';
+
+  export interface VirtualListProps<T> {
+    items: readonly T[];
+    /** Height of the scrolling box in CSS px. Known, never measured. */
+    height: number;
+    rowHeight?: number | undefined;
+    overscan?: number | undefined;
+    /** Stable per row, so scrolling reuses the right DOM node. */
+    keyOf: (item: T, index: number) => string;
+    /** Rendered for each row, with its absolute index in the whole list. */
+    row: Snippet<[T, number]>;
+    /** Fired whenever the window moves — the hook a pager hangs off. */
+    onWindowChange?: ((view: VirtualWindow) => void) | undefined;
+    label?: string | undefined;
+  }
+</script>
+
 <script lang="ts" generics="T">
   /**
    * A long list that only draws what is on screen (P6-04).
@@ -19,28 +44,7 @@
    * of a flick, which is the difference between a scroll that keeps up on a Pi
    * and one that does not.
    */
-  import type { Snippet } from 'svelte';
-  import {
-    DEFAULT_OVERSCAN,
-    DEFAULT_ROW_HEIGHT,
-    virtualWindow,
-    type VirtualWindow,
-  } from '../lib/virtual.js';
-
-  interface Props {
-    items: readonly T[];
-    /** Height of the scrolling box in CSS px. Known, never measured. */
-    height: number;
-    rowHeight?: number | undefined;
-    overscan?: number | undefined;
-    /** Stable per row, so scrolling reuses the right DOM node. */
-    keyOf: (item: T, index: number) => string;
-    /** Rendered for each row, with its absolute index in the whole list. */
-    row: Snippet<[T, number]>;
-    /** Fired whenever the window moves — the hook a pager hangs off. */
-    onWindowChange?: ((view: VirtualWindow) => void) | undefined;
-    label?: string | undefined;
-  }
+  import { DEFAULT_OVERSCAN, DEFAULT_ROW_HEIGHT, virtualWindow } from '../lib/virtual.js';
 
   const {
     items,
@@ -51,7 +55,7 @@
     row,
     onWindowChange,
     label,
-  }: Props = $props();
+  }: VirtualListProps<T> = $props();
 
   let scrollTop = $state(0);
 

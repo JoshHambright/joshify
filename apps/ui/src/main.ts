@@ -1,15 +1,17 @@
 /**
  * The kiosk entry point.
  *
- * Two things are constructed here and nowhere else — the socket connection and
- * the theme applier — because both are singletons tied to the document, and
- * every component that needs them should be handed them rather than reaching
- * for a global.
+ * The three things tied to the document are constructed here and nowhere else
+ * — the socket connection, the command client, and the device source —
+ * because each is a singleton, and a component that reached for a global
+ * version of any of them would be untestable for it.
  */
 import { mount } from 'svelte';
 import App from './App.svelte';
 import { browserSocket } from './lib/browser-socket.js';
+import { createCommandClient } from './lib/commands.js';
 import { createConnection } from './lib/connection.js';
+import { createDeviceSource } from './lib/device-source.js';
 import { createThemeApplier } from './lib/theme.js';
 import './styles/tokens.css';
 
@@ -31,4 +33,16 @@ const connection = createConnection({
   socket: browserSocket,
 });
 
-mount(App, { target, props: { connection } });
+// Bound so `fetch` keeps its `window` receiver, and narrowed to the shape
+// these clients declare rather than the whole DOM signature.
+const httpFetch = window.fetch.bind(window);
+
+const client = createCommandClient({
+  fetch: (input, init) => httpFetch(input, init),
+});
+
+const devices = createDeviceSource({
+  fetch: (input) => httpFetch(input),
+});
+
+mount(App, { target, props: { connection, client, devices } });

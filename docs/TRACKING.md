@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
-| 3 | Now Playing | 14 | 8 | 🟨 In progress |
-| 4 | Control surfaces | 10 | 0 | ⬜ Not started |
+| 3 | Now Playing | 14 | 11 | 🟨 In progress |
+| 4 | Control surfaces | 10 | 5 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **40** | |
+| | **Total** | **122** | **48** | |
 
 ---
 
@@ -123,9 +123,9 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-07 | Theme application via CSS custom properties | ✅ | Token *contract* moved to core so both ends share one definition; extraction stays server-side. Fixed chrome is `--jf-*`, the album's five are `--joshify-*`, so a rule says which half can change under you. Hex is validated before writing — a bad custom property is not an error, it is a silently unstyled panel |
 | P3-08 | Album art hero component + crossfade on track change | ✅ | The outgoing frame is held until the incoming one has *pixels* — `load` **and** `decode()` — because swapping on `load` alone flashes empty surface on every track change. Keyed on the image URL, not the track: two tracks from one album share a cover (D-045) |
 | P3-09 | Drifting blurred backdrop | ✅ | Procedural motion only (no audio-reactivity exists — D-010). Drift on the wrapper's transform, blur on the image: a filter is dear to rasterise and cheap to re-composite, so it is computed once per track. Source is the 64px variant — downscale-then-upscale is a free blur |
-| P3-10 | Transport control components (≥48px targets) | 🟨 | Built and tested; **not yet reachable** — App still renders the shell's placeholder plate. Deliberately unequal per D-040: 96px accent play disc, bare skip glyphs, toggles at `--jf-ink-faint` until active. Glyphs are drawn SVG, not characters — the self-hosted faces carry no media symbols, so text would render tofu |
-| P3-11 | Interpolated progress bar rendering | 🟨 | Built and tested; not yet reachable. Frame loop runs only when something moves — paused, none; dragging, none. Zero extra API calls. Transport and Scrubber run the *same* pure model rather than sharing a value, so they cannot disagree (D-046) |
-| P3-12 | Idle / nothing-playing / not-Premium states | 🟨 | `PlaybackNotice` built and tested; not yet reachable. Offline returns *no* notice when a last known state exists — the amber lamp does the talking, and a banner over a working screen is the spinner mistake in another costume |
+| P3-10 | Transport control components (≥48px targets) | ✅ | Reachable and composed into the panel. Deliberately unequal per D-040: 96px accent play disc, bare skip glyphs, toggles at `--jf-ink-faint` until active. Glyphs are drawn SVG, not characters — the self-hosted faces carry no media symbols, so text would render tofu |
+| P3-11 | Interpolated progress bar rendering | ✅ | Reachable and composed into the panel. Frame loop runs only when something moves — paused, none; dragging, none. Zero extra API calls. Transport and Scrubber run the *same* pure model rather than sharing a value, so they cannot disagree (D-046) |
+| P3-12 | Idle / nothing-playing / not-Premium states | ✅ | `PlaybackNotice` composed into the plate. Offline returns *no* notice when a last known state exists — the amber lamp does the talking, and a banner over a working screen is the spinner mistake in another costume |
 | P3-14 | **Put the account's Premium flag on the wire** | ⬜ | **Gap found in P3-12.** `getProfile` knows `isPremium`; nothing publishes it, so `noticeFor` treats unknown as Premium — right default (never accuse an account before we know) but it means the not-Premium state can never actually fire |
 | P3-13 | **Deliver the theme and prepared artwork over the wire** | ⬜ | **Gap found in P3-07.** Extraction (P3-03) and application (P3-07) both exist and neither is connected: `PlaybackState` carries no theme, so the panel styles itself from `DEFAULT_THEME` forever. Needs a design decision — the artwork pipeline is async (fetch, decode, blur) so the theme legitimately lands *after* the track change, which argues against folding it into the playback diff |
 
@@ -137,15 +137,15 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P4-01 | Device list endpoint + polling | 🟨 | `GET /api/devices` serves the normalised list. An unreadable entry is dropped, not fatal — refusing to draw six working speakers because a seventh reported something odd is the wrong trade. Polling still to wire |
-| P4-02 | Devices screen UI with active-device indicator | 🟨 | Built and tested; not yet reachable. Restricted devices (`id: null`) stay listed but dimmed and untappable — dropping them leaves the viewer hunting for a speaker Spotify can see and Joshify apparently cannot |
-| P4-03 | Transfer playback on tap | 🟨 | Built and tested; not yet reachable. The **active** device is not a transfer target: moving playback to where it already is achieves nothing, and a control that visibly does nothing reads as broken |
+| P4-01 | Device list endpoint + polling | ✅ | `GET /api/devices` serves the normalised list. An unreadable entry is dropped, not fatal — refusing to draw six working speakers because a seventh reported something odd is the wrong trade. `device-source.ts` polls at 5s **only while the Devices surface is open** — a wall panel showing Now Playing has no use for a fresh list, and polling one for hours spends the budget the transport needs (D-049) |
+| P4-02 | Devices screen UI with active-device indicator | ✅ | Reachable and composed into the panel. Restricted devices (`id: null`) stay listed but dimmed and untappable — dropping them leaves the viewer hunting for a speaker Spotify can see and Joshify apparently cannot |
+| P4-03 | Transfer playback on tap | ✅ | Reachable and composed into the panel. The **active** device is not a transfer target: moving playback to where it already is achieves nothing, and a control that visibly does nothing reads as broken |
 | P4-04 | Queue fetch + Queue screen | 🟨 | Server half done: `getQueue` + `normaliseQueue` + `GET /api/queue`, with `additional_types=episode` so a queued podcast is not a null row. Screen still to build |
 | P4-05 | Document queue-reorder impossibility in the UI | ⬜ | No fake affordance. See PRODUCT.md §6 |
-| P4-06 | Volume slider + device volume support detection | 🟨 | Built and tested; not yet reachable. `volumePercent: null` draws **no slider at all** (D-022). Commits once on release, not per drag frame — one command per gesture, not fifty |
-| P4-07 | Touch scrubbing on the progress bar | 🟨 | Built and tested; not yet reachable. On release the tracker re-anchors at the chosen position so the bar runs on through the round trip instead of snapping back. A track change under a held finger drops the drag — the fraction was chosen against the old duration |
+| P4-06 | Volume slider + device volume support detection | ✅ | Reachable and composed into the panel. `volumePercent: null` draws **no slider at all** (D-022). Commits once on release, not per drag frame — one command per gesture, not fifty |
+| P4-07 | Touch scrubbing on the progress bar | ✅ | Reachable and composed into the panel. On release the tracker re-anchors at the chosen position so the bar runs on through the round trip instead of snapping back. A track change under a held finger drops the drag — the fraction was chosen against the old duration |
 | P4-08 | Navigation model between surfaces | ⬜ | Gesture + tap, no chrome |
-| P4-09 | Shuffle / repeat toggles wired to real state | 🟨 | Built and tested; not yet reachable. Repeat cycles off → context → track, matching Spotify's own clients; `aria-pressed` cannot express three states, so the mode rides on `data-repeat` |
+| P4-09 | Shuffle / repeat toggles wired to real state | ✅ | Reachable and composed into the panel. Repeat cycles off → context → track, matching Spotify's own clients; `aria-pressed` cannot express three states, so the mode rides on `data-repeat` |
 | P4-10 | Component + interaction tests for all control surfaces | ⬜ | |
 
 ---
@@ -209,13 +209,13 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
 | P6-01 | Search endpoint proxy with debouncing + cancellation | ✅ | Generation-fenced after the await, so a slow "bea" cannot overwrite a fast "beatles" (D-032) |
-| P6-02 | On-screen keyboard component | ⬜ | Touch-sized, no physical keyboard assumed |
-| P6-03 | Search results UI (tracks / albums / artists / playlists) | ⬜ | |
-| P6-04 | **Virtualised list component** | ⬜ | Still correct practice; no longer make-or-break on a Pi 5 |
+| P6-02 | On-screen keyboard component | 🟨 | Built and tested; the Search surface is not reachable yet. 62px keys from stated arithmetic: `(720 − 28 padding − 72 gaps) / 10`. Shift is one-shot → lock → off |
+| P6-03 | Search results UI (tracks / albums / artists / playlists) | 🟨 | Built and tested; not reachable — needs `/api/library` reshaped and the surface wired into App |
+| P6-04 | **Virtualised list component** | 🟨 | Built and tested; not reachable. Height is a prop, never measured — jsdom reports 0×0 and D-039 makes the panel arithmetic anyway |
 | P6-05 | Saved albums browse | ✅ | Paged. Advances by rows **sent**, not rows kept — Spotify ships null rows (D-031) |
 | P6-06 | Playlists browse + playlist detail | ✅ | Server side done; the UI is P6-03 |
 | P6-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
-| P6-08 | Thumbnail loading strategy for long lists | ⬜ | Lazy + evict; must not grow unbounded |
+| P6-08 | Thumbnail loading strategy for long lists | 🟨 | Built and tested; not reachable. Virtualisation is the real eviction — unmounted rows take their decoded bitmaps with them. The bookkeeping is an LRU bounded at 128, because an unbounded map is a leak that shows up in month three, not in a test |
 | P6-09 | Performance test: long-list scroll on hardware | ⬜ | Explicit budget, fails CI-on-hardware if exceeded |
 
 ---

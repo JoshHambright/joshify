@@ -879,3 +879,24 @@ lamp already says in ten pixels. On a wall-mounted screen the failure mode that
 matters is *not knowing the panel is stale*, and one always-present lamp solves
 that without ever obscuring the thing people are looking at.
 **Status:** ✅ Accepted.
+
+---
+
+### D-049 · The device list polls only while its screen is open
+**Chose:** `device-source.ts` is a separate poll from the playback socket, at a
+deliberately slow 5s, running only between `open()` and `close()` — and a
+transfer calls `refresh()` rather than waiting out the interval.
+**Why not on the socket:** the device list is not playback truth. It changes
+when someone else's phone joins the network, not when a track ends. Pushing it
+down the same channel would make every poll of one a diff of the other, for a
+list nobody is looking at.
+**Why only while open:** a wall panel sits on Now Playing for hours. A fresh
+device list is worth nothing there, and the requests come out of the same
+budget the transport commands need (D-025). The screen is open for seconds at a
+time, which is exactly when the list matters.
+**Why 5s and not faster:** a speaker that appears five seconds after someone
+plugs it in is fine. A request per second for three rows is not.
+**And a failure rule, matching the socket's:** a failed refresh keeps the rows
+it has. Emptying a list somebody is looking at, to report that we could not
+confirm it, is the same mistake as blanking the album on a dropped packet.
+**Status:** ✅ Accepted.

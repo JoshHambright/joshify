@@ -281,6 +281,20 @@ describe('the query debouncer', () => {
     expect(emitted).toEqual(['bea']);
   });
 
+  it('clears a real timer when it is cancelled', async () => {
+    const emitted: string[] = [];
+    const debouncer = createQueryDebouncer({
+      emit: (query) => emitted.push(query),
+      debounceMs: 0,
+    });
+
+    debouncer.set('bea');
+    debouncer.cancel();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(emitted).toEqual([]);
+  });
+
   it('refuses a negative delay rather than passing it to a timer', () => {
     const delays: number[] = [];
     const schedule: ScheduleDelay = (_run, delayMs) => {

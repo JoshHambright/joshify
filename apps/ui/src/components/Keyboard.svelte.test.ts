@@ -42,7 +42,7 @@ describe('the keyboard', () => {
 
     expect(rows).toHaveLength(4);
     const caps = [...(rows[0]?.querySelectorAll('button') ?? [])];
-    expect(caps.map((key) => key.textContent?.trim())).toEqual([...'qwertyuiop']);
+    expect(caps.map((key) => key.textContent.trim())).toEqual(Array.from('qwertyuiop'));
   });
 
   it('reports the cap that was tapped, not the character underneath it', async () => {

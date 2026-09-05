@@ -2,18 +2,28 @@
  * @vitest-environment jsdom
  */
 /**
- * The shell's job is the honesty rules from SCREENS.md, so that is what these
- * assert: never a raw error, never a spinner where a last-known truth exists,
- * never a blank screen because a packet dropped.
+ * The shell's job is arrangement and the honesty rules from SCREENS.md, so
+ * that is what these assert: which surface the plate is showing, and that a
+ * failure never blanks a screen that has something true on it.
  *
- * The connection is a fake driven by hand — the same one the store's own tests
- * use — so a "the link dropped" test costs no timers and no sockets.
+ * The components themselves are tested next door — this file deliberately does
+ * not re-assert that the transport has three weights or that a null volume
+ * hides a slider. It asserts that the right component gets the right slice of
+ * state, which is the only thing this file can get wrong.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
-import { IDLE_PLAYBACK, type PlaybackState, type PlayingItem } from '@joshify/core';
+import {
+  IDLE_PLAYBACK,
+  type JoshifyError,
+  type PlaybackDevice,
+  type PlaybackState,
+  type PlayingItem,
+} from '@joshify/core';
 import App from './App.svelte';
+import type { Command, CommandClient, CommandTarget } from './lib/commands.js';
 import type { Connection, ConnectionState, LinkStatus } from './lib/connection.js';
+import type { DeviceSource, DeviceSourceState } from './lib/device-source.js';
 
 const track: PlayingItem = {
   kind: 'track',
@@ -26,7 +36,31 @@ const track: PlayingItem = {
   isLocal: false,
 };
 
-/** A connection whose value the test sets directly. */
+const kitchen: PlaybackDevice = {
+  id: 'dev-1',
+  name: 'Kitchen',
+  type: 'Speaker',
+  isActive: true,
+  volumePercent: 55,
+  supportsVolume: true,
+};
+
+const study: PlaybackDevice = {
+  ...kitchen,
+  id: 'dev-2',
+  name: 'Study',
+  isActive: false,
+};
+
+const playing = (over: Partial<PlaybackState> = {}): PlaybackState => ({
+  ...IDLE_PLAYBACK,
+  isPlaying: true,
+  progressMs: 64_000,
+  item: track,
+  device: kitchen,
+  ...over,
+});
+
 const fakeConnection = (initial: Partial<ConnectionState> = {}) => {
   let value: ConnectionState = {
     link: 'live',
@@ -38,7 +72,6 @@ const fakeConnection = (initial: Partial<ConnectionState> = {}) => {
   const subscribers = new Set<(v: ConnectionState) => void>();
   let opened = 0;
   let closed = 0;
-
   const connection: Connection = {
     subscribe: (run) => {
       subscribers.add(run);
@@ -53,7 +86,6 @@ const fakeConnection = (initial: Partial<ConnectionState> = {}) => {
     },
     current: () => value,
   };
-
   return {
     connection,
     counts: () => ({ opened, closed }),
@@ -64,90 +96,205 @@ const fakeConnection = (initial: Partial<ConnectionState> = {}) => {
   };
 };
 
-const playing = (over: Partial<PlaybackState> = {}): PlaybackState => ({
-  ...IDLE_PLAYBACK,
-  isPlaying: true,
-  progressMs: 64_000,
-  item: track,
-  device: {
-    id: 'dev-1',
-    name: 'Kitchen',
-    type: 'Speaker',
-    isActive: true,
-    volumePercent: 55,
-    supportsVolume: true,
-  },
-  ...over,
-});
+const fakeDevices = (rows: readonly PlaybackDevice[] = [kitchen, study]) => {
+  const value: DeviceSourceState = { devices: rows, problem: null, pending: false };
+  const subscribers = new Set<(v: DeviceSourceState) => void>();
+  const calls = { opened: 0, closed: 0, refreshed: 0 };
+  const source: DeviceSource = {
+    subscribe: (run) => {
+      subscribers.add(run);
+      run(value);
+      return () => subscribers.delete(run);
+    },
+    open: () => {
+      calls.opened += 1;
+    },
+    close: () => {
+      calls.closed += 1;
+    },
+    refresh: () => {
+      calls.refreshed += 1;
+      return Promise.resolve();
+    },
+    current: () => value,
+  };
+  return { source, calls };
+};
+
+const fakeClient = () => {
+  const sent: { command: Command; target: CommandTarget | undefined }[] = [];
+  const client: CommandClient = {
+    send: (command, target) => {
+      sent.push({ command, target });
+      return Promise.resolve<JoshifyError | null>(null);
+    },
+  };
+  return { client, sent };
+};
 
 const at = (hour: number, minute: number) => () => new Date(2026, 0, 1, hour, minute);
 
+interface Harness {
+  connection?: ReturnType<typeof fakeConnection>;
+  devices?: ReturnType<typeof fakeDevices>;
+  client?: ReturnType<typeof fakeClient>;
+  isPremium?: boolean;
+}
+
+const mountApp = (harness: Harness = {}) => {
+  const conn = harness.connection ?? fakeConnection({ state: playing() });
+  const devs = harness.devices ?? fakeDevices();
+  const cmd = harness.client ?? fakeClient();
+  const rendered = render(App, {
+    connection: conn.connection,
+    client: cmd.client,
+    devices: devs.source,
+    now: at(21, 47),
+    ...(harness.isPremium === undefined ? {} : { isPremium: harness.isPremium }),
+  });
+  return { ...rendered, conn, devs, cmd };
+};
+
 afterEach(cleanup);
 
-describe('the shell', () => {
+describe('the panel at rest', () => {
   it('opens the connection on mount and closes it on unmount', () => {
-    const fake = fakeConnection();
-    const { unmount } = render(App, { connection: fake.connection, now: at(21, 47) });
+    const { conn, unmount } = mountApp();
 
-    expect(fake.counts().opened).toBe(1);
+    expect(conn.counts().opened).toBe(1);
     unmount();
-    expect(fake.counts().closed).toBe(1);
+    expect(conn.counts().closed).toBe(1);
   });
 
-  it('shows the track, the artist and the speaker', () => {
-    const fake = fakeConnection({ state: playing() });
-    render(App, { connection: fake.connection, now: at(21, 47) });
+  it('shows the track, the artist, the speaker and the clock', () => {
+    mountApp();
 
     expect(screen.getByText('Velocity Division')).toBeDefined();
     expect(screen.getByText('Nitrous Cartel')).toBeDefined();
-    expect(screen.getByText('Kitchen')).toBeDefined();
     expect(screen.getByText('21:47')).toBeDefined();
   });
 
-  it('renders the album full bleed with an empty alt, since it is not content', () => {
-    const fake = fakeConnection({ state: playing() });
-    const { container } = render(App, { connection: fake.connection });
+  it('renders the album with an empty alt, since it is not content', () => {
+    const { container } = mountApp();
 
-    const art = container.querySelector('img');
-    expect(art?.getAttribute('src')).toBe('https://i/640');
+    const art = container.querySelector('img[src="https://i/640"]');
     expect(art?.getAttribute('alt')).toBe('');
   });
 
-  // Nothing playing is a state, not a failure, and it gets a sentence.
-  it('says nothing is playing rather than showing an empty plate', () => {
-    const fake = fakeConnection({ state: IDLE_PLAYBACK });
-    render(App, { connection: fake.connection });
-
-    expect(screen.getByText('Nothing playing')).toBeDefined();
-  });
-
-  // An offer, not an error: choosing a speaker is the action. The rail states
-  // the fact once; the plate says what to do about it, and does not repeat it.
-  it('offers a device rather than reporting an error when there is none', () => {
-    const fake = fakeConnection({ state: IDLE_PLAYBACK });
-    render(App, { connection: fake.connection });
-
-    expect(screen.getByText('Choose a device')).toBeDefined();
-    expect(screen.getAllByText('No active device')).toHaveLength(1);
-  });
-
-  it('shows no artwork element at all for a local file', () => {
-    const fake = fakeConnection({
-      state: playing({ item: { ...track, isLocal: true, id: null, images: [] } }),
+  it('calls an episode a podcast rather than an album', () => {
+    mountApp({
+      connection: fakeConnection({
+        state: playing({ item: { ...track, kind: 'episode', subtitle: 'A Show' } }),
+      }),
     });
-    const { container } = render(App, { connection: fake.connection });
+
+    expect(screen.getByText(/Playing from podcast/)).toBeDefined();
+  });
+
+  it('renders no artwork element at all for a track that has none', () => {
+    const { container } = mountApp({
+      connection: fakeConnection({
+        state: playing({ item: { ...track, isLocal: true, id: null, images: [] } }),
+      }),
+    });
 
     expect(container.querySelector('img')).toBeNull();
     expect(screen.getByText('Velocity Division')).toBeDefined();
   });
+});
 
-  it('calls an episode a podcast rather than an album', () => {
-    const fake = fakeConnection({
-      state: playing({ item: { ...track, kind: 'episode', subtitle: 'A Show' } }),
+describe('the notices', () => {
+  // A device but no track. "No device" deliberately outranks this — it is the
+  // one with an action attached — so the idle notice needs a speaker present.
+  it('says nothing is playing rather than showing an empty plate', () => {
+    mountApp({
+      connection: fakeConnection({ state: { ...IDLE_PLAYBACK, device: kitchen } }),
     });
-    render(App, { connection: fake.connection });
 
-    expect(screen.getByText(/Playing from podcast/)).toBeDefined();
+    expect(screen.getByText('Nothing playing')).toBeDefined();
+  });
+
+  it('offers a device rather than reporting an error when there is none', () => {
+    mountApp({ connection: fakeConnection({ state: IDLE_PLAYBACK }) });
+
+    expect(screen.getByRole('button', { name: /choose a device/i })).toBeDefined();
+  });
+
+  // Unknown is treated as Premium: accusing an account before we know is
+  // exactly the confident lie D-022 is about.
+  it('does not accuse an account of being free before it knows', () => {
+    const { container } = mountApp();
+
+    expect(container.textContent).not.toMatch(/premium/i);
+  });
+
+  it('explains a free account plainly and switches the controls off', () => {
+    const { container } = mountApp({ isPremium: false });
+
+    expect(screen.getByText('Premium required')).toBeDefined();
+    expect(container.textContent).not.toMatch(/error|failed/i);
+  });
+});
+
+describe('the plate, grown', () => {
+  it('opens the device list from the notice action and polls only while it is open', async () => {
+    const { devs } = mountApp({ connection: fakeConnection({ state: IDLE_PLAYBACK }) });
+    expect(devs.calls.opened).toBe(0);
+
+    screen.getByRole('button', { name: /choose a device/i }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Study')).toBeDefined();
+    });
+
+    expect(devs.calls.opened).toBe(1);
+  });
+
+  it('closes the list again, and stops polling, on Done', async () => {
+    const { devs } = mountApp();
+
+    screen.getByRole('button', { name: 'Kitchen' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    });
+
+    screen.getByRole('button', { name: 'Done' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Velocity Division')).toBeDefined();
+    });
+    expect(devs.calls.closed).toBeGreaterThanOrEqual(1);
+  });
+
+  // The lamp should move with the tap, not five seconds later.
+  it('transfers, refreshes the list, and falls back to the plate at rest', async () => {
+    const { cmd, devs } = mountApp();
+
+    screen.getByRole('button', { name: 'Kitchen' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Study')).toBeDefined();
+    });
+
+    screen.getByRole('button', { name: /study/i }).click();
+    await vi.waitFor(() => {
+      expect(cmd.sent).toHaveLength(1);
+    });
+
+    expect(cmd.sent[0]?.command).toEqual({ kind: 'transfer', deviceId: 'dev-2' });
+    expect(devs.calls.refreshed).toBe(1);
+    await vi.waitFor(() => {
+      expect(screen.getByText('Velocity Division')).toBeDefined();
+    });
+  });
+
+  it('closes the device source on unmount even while it is open', async () => {
+    const { devs, unmount } = mountApp();
+
+    screen.getByRole('button', { name: 'Kitchen' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    });
+
+    unmount();
+    expect(devs.calls.closed).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -157,8 +304,9 @@ describe('the link lamp', () => {
     ['connecting', 'connecting'],
     ['reconnecting', 'reconnecting'],
   ])('reflects the %s link', (link, expected) => {
-    const fake = fakeConnection({ link, state: playing() });
-    const { container } = render(App, { connection: fake.connection });
+    const { container } = mountApp({
+      connection: fakeConnection({ link, state: playing() }),
+    });
 
     expect(container.querySelector('[data-link]')?.getAttribute('data-link')).toBe(
       expected,
@@ -168,22 +316,24 @@ describe('the link lamp', () => {
   // The single most important rule on the panel: a dropped socket changes the
   // lamp and nothing else. The album, the title and the artist all stay.
   it('keeps the last known state on screen when the link drops', async () => {
-    const fake = fakeConnection({ state: playing() });
-    const { container } = render(App, { connection: fake.connection });
+    const conn = fakeConnection({ state: playing() });
+    const { container } = mountApp({ connection: conn });
 
-    fake.set({ link: 'reconnecting', attempt: 3 });
-    await Promise.resolve();
+    conn.set({ link: 'reconnecting', attempt: 3 });
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-link]')?.getAttribute('data-link')).toBe(
+        'reconnecting',
+      );
+    });
 
     expect(screen.getByText('Velocity Division')).toBeDefined();
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('https://i/640');
-    expect(container.querySelector('[data-link]')?.getAttribute('data-link')).toBe(
-      'reconnecting',
-    );
+    expect(container.querySelector('img[src="https://i/640"]')).not.toBeNull();
   });
 
   it('never renders a spinner or a raw error', () => {
-    const fake = fakeConnection({ link: 'reconnecting', state: playing() });
-    const { container } = render(App, { connection: fake.connection });
+    const { container } = mountApp({
+      connection: fakeConnection({ link: 'reconnecting', state: playing() }),
+    });
 
     expect(container.textContent).not.toMatch(/error|loading|failed/i);
   });
