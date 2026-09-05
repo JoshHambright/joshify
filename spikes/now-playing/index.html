@@ -6,51 +6,46 @@
 <title>Joshify Front Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Barlow+Condensed:wght@500;600&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Barlow+Condensed:wght@500;600&family=Share+Tech+Mono&display=swap">
 <style>
-  /* Single visual world on purpose: this is a dark instrument fascia, not a
-     document. Every colour is painted explicitly so it holds on any ground. */
+  /* One committed visual world: a smoked-glass control plate laid over the
+     album. Every colour is painted explicitly so it holds on any host ground. */
   :root{
-    --chassis:#16151c;
-    --chassis-raised:#211f2a;
-    --chassis-recess:#0c0b10;
-    --rule:#332f40;
-    --ink:#eceaf3;
-    --ink-dim:#8a8699;
-    --ink-faint:#5d5970;
-    /* Replaced at runtime by the extracted + contrast-corrected theme. */
+    --plate:22,21,28;          /* the glass tint, as raw channels for rgba() */
+    --plate-solid:#16151c;
+    --rule:rgba(255,255,255,.14);
+    --ink:#f6f5fa;
+    --ink-dim:#b9b5c6;         /* lifted from the old #8a8699 — it was too weak */
+    --ink-faint:#8c8799;
     --accent:#00e5ff;
     --on-accent:#08070d;
 
-    --panel-w:720px;
-    --panel-h:1280px;
+    --panel-w:1280px;
+    --panel-h:720px;
 
     --display:"Archivo",system-ui,sans-serif;
     --label:"Barlow Condensed","Archivo Narrow",system-ui,sans-serif;
     --mono:"Share Tech Mono",ui-monospace,monospace;
 
-    /* Light from above. Raised catches it on top, recessed on the bottom. */
-    --raise: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.55);
-    --recess: inset 0 3px 6px rgba(0,0,0,.75), inset 0 -1px 0 rgba(255,255,255,.06);
+    /* The plate is a physical object: it catches light on its top edge and
+       drops a shadow onto the picture behind it. */
+    --plate-edge: inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(0,0,0,.5);
+    --plate-lift: 0 -2px 40px rgba(0,0,0,.55), 0 -1px 0 rgba(255,255,255,.07);
   }
   *{box-sizing:border-box}
   body{
     margin:0;background:#08070c;color:var(--ink);
     font-family:var(--display);-webkit-font-smoothing:antialiased;
-    display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px 12px 40px;
+    display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 12px 36px;
   }
 
-  /* ---- page chrome (not part of the device) ---- */
-  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:760px}
-  .bar h1{
-    font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin:0 8px 0 0;
-    color:var(--ink)
-  }
-  .bar p{margin:0;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em;flex-basis:100%;text-align:center}
+  /* ---- page chrome, not part of the device ---- */
+  .bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center;max-width:820px}
+  .bar h1{font-size:14px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;margin:0 6px 0 0}
+  .bar p{margin:0;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;flex-basis:100%;text-align:center}
   button.ui{
     font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
-    color:var(--ink-dim);background:var(--chassis-raised);border:1px solid var(--rule);
-    padding:7px 13px;cursor:pointer;border-radius:2px;box-shadow:var(--raise);
+    color:var(--ink-dim);background:#1c1a24;border:1px solid #34313f;padding:7px 13px;cursor:pointer;border-radius:2px;
   }
   button.ui:hover{color:var(--ink)}
   button.ui[aria-pressed="true"]{color:var(--on-accent);background:var(--accent);border-color:var(--accent)}
@@ -59,107 +54,99 @@
   /* ---- the device ---- */
   .stage{display:flex;justify-content:center;align-items:flex-start;width:100%;overflow:hidden}
   .panel{
-    position:relative;
-    width:var(--panel-w);height:var(--panel-h);flex:none;
-    background:var(--chassis);border:1px solid #000;border-radius:6px;
-    box-shadow:0 0 0 1px #2a2735, 0 24px 60px -20px #000;
+    position:relative;width:var(--panel-w);height:var(--panel-h);flex:none;
+    background:#000;border-radius:8px;overflow:hidden;
+    box-shadow:0 0 0 1px #2b2836, 0 26px 70px -24px #000;
     transform-origin:top center;
-    display:flex;flex-direction:column;gap:14px;padding:18px;
-    overflow:hidden; /* a kiosk has nowhere to scroll to (D-039) */
   }
-  .panel.landscape{--panel-w:1280px;--panel-h:720px}
+  .panel.portrait{--panel-w:720px;--panel-h:1280px}
 
-  /* ---- blurred backdrop: the album's colour on the whole panel ----
-     A 32px render scaled up — the GPU upscale *is* the blur (D-004/D-011), no
-     backdrop-filter. Heavily scrimmed on purpose: the contrast guarantee is
-     computed against the chassis colour, so the effective background behind
-     text has to stay close to it. Atmosphere, not competition. */
-  .backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:6px;pointer-events:none}
-  .backdrop canvas{
-    position:absolute;inset:-12%;width:124%;height:124%;
-    filter:blur(18px) saturate(1.5);opacity:.42;
-  }
-  .backdrop::after{
-    content:"";position:absolute;inset:0;
-    background:radial-gradient(120% 90% at 50% 0%, rgba(22,21,28,.55), rgba(22,21,28,.93) 70%);
-  }
-  .panel > *:not(.backdrop){position:relative;z-index:1}
+  /* ---- the album owns the whole device ---- */
+  #art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 
-  /* ---- status strip: a light rail, not a heavy band ---- */
+  /* ---- status rail: floats on the picture, carries its own legibility ---- */
   .status{
-    flex:none;height:38px;display:flex;align-items:center;gap:12px;padding:0 4px;
+    position:absolute;top:0;left:0;right:0;height:74px;z-index:2;
+    display:flex;align-items:center;gap:12px;padding:0 26px;
+    background:linear-gradient(180deg, rgba(0,0,0,.62), rgba(0,0,0,0));
   }
-  .lamp{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;
-    box-shadow:0 0 9px var(--accent)}
-  .status .dev{font-family:var(--label);font-size:16px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-dim)}
-  .status .via{font-family:var(--label);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
-  .status .clock{margin-left:auto;font-family:var(--mono);font-size:15px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .lamp{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 10px var(--accent)}
+  .status .dev{font-family:var(--label);font-size:17px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:#fff}
+  .status .via{font-family:var(--label);font-size:14px;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+  .status .clock{margin-left:auto;font-family:var(--mono);font-size:16px;color:rgba(255,255,255,.72);font-variant-numeric:tabular-nums}
 
-  /* ---- art well: the art sits INSIDE the instrument (D-038) ---- */
-  .well{
-    flex:none;background:var(--chassis-recess);border-radius:3px;padding:7px;
-    box-shadow:var(--recess);display:grid;place-items:center;
+  /* ---- the plate: one floating object, not a row of boxes ----
+     backdrop-filter is viable here because D-008 put us on a Pi 5; VideoCore
+     VII runs it properly, where the Zero 2 W's VideoCore IV could not. The
+     fallback tint below keeps it readable if it is ever unavailable. */
+  .plate{
+    position:absolute;left:0;right:0;bottom:0;z-index:3;
+    padding:26px 30px 30px;
+    background:rgba(var(--plate),.78);
+    box-shadow:var(--plate-lift), var(--plate-edge);
+    display:flex;flex-direction:column;gap:20px;
   }
-  .well canvas{display:block;width:100%;height:100%;image-rendering:auto;
-    box-shadow:0 10px 30px -8px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.8)}
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)){
+    .plate{background:rgba(var(--plate),.62);-webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5)}
+  }
 
-  /* ---- track info ---- */
-  .meta{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 4px}
-  .eyebrow{font-family:var(--label);font-size:14px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+  /* ---- now playing text ---- */
+  .now{display:flex;align-items:flex-end;gap:24px;min-width:0}
+  .now .txt{min-width:0;flex:1 1 auto}
+  .eyebrow{font-family:var(--label);font-size:14px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
   .title{
-    font-size:44px;font-weight:800;line-height:1.03;letter-spacing:-.015em;margin:0;
-    text-wrap:balance;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    font-size:54px;font-weight:800;line-height:1;letter-spacing:-.02em;margin:0 0 6px;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .artist{font-size:24px;font-weight:500;color:var(--ink-dim);margin:0;line-height:1.2}
+  .artist{font-size:23px;font-weight:600;color:var(--ink-dim);margin:0;line-height:1.15;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* ---- scrubber ---- */
-  .scrub{flex:none;display:flex;flex-direction:column;gap:9px;padding:0 4px}
-  .track{
-    height:12px;background:var(--chassis-recess);border-radius:2px;box-shadow:var(--recess);
-    position:relative;overflow:hidden;cursor:pointer;
+  /* ---- scrubber sits on the plate's top edge ---- */
+  .scrub{display:flex;flex-direction:column;gap:8px}
+  .track{height:6px;background:rgba(255,255,255,.16);border-radius:3px;position:relative;cursor:pointer}
+  .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px;width:0%}
+  .track i::after{content:"";position:absolute;right:-7px;top:50%;transform:translateY(-50%);
+    width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(0,0,0,.35)}
+  .times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:15px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+
+  /* ---- transport: hierarchy, not five identical keys ---- */
+  .transport{display:flex;align-items:center;gap:14px}
+  .ghost{
+    width:64px;height:64px;border:0;background:transparent;color:var(--ink);border-radius:50%;
+    display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;flex:none;
   }
-  .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0%;
-    box-shadow:0 0 12px -2px var(--accent)}
-  .times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:17px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
-
-  /* ---- transport: buttons that look like buttons ---- */
-  .transport{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-  .key{
-    height:80px;border:1px solid var(--rule);border-radius:4px;background:var(--chassis-raised);
-    box-shadow:var(--raise);display:grid;place-items:center;cursor:pointer;color:var(--ink);
+  .ghost svg{width:32px;height:32px;fill:currentColor;pointer-events:none}
+  .ghost:active{background:rgba(255,255,255,.10)}
+  .ghost.small svg{width:26px;height:26px}
+  .ghost.small{width:56px;height:56px;color:var(--ink-faint)}
+  .ghost.small[aria-pressed="true"]{color:var(--accent)}
+  .ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .play{
+    width:88px;height:88px;border-radius:50%;border:0;flex:none;
+    background:var(--accent);color:var(--on-accent);display:grid;place-items:center;cursor:pointer;
+    box-shadow:0 6px 22px -6px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.32);
     -webkit-tap-highlight-color:transparent;
   }
-  .key:active{box-shadow:var(--recess);transform:translateY(1px)}
-  .key:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .key svg{width:34px;height:34px;fill:currentColor;pointer-events:none}
-  .key.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-  .key.primary svg{width:42px;height:42px}
-  .key[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
-  .key .badge{position:absolute;font-family:var(--mono);font-size:11px}
-
-  /* ---- secondary strip ---- */
-  .rack{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-  .slot{
-    height:56px;border:1px solid var(--rule);border-radius:3px;background:var(--chassis-raised);
-    box-shadow:var(--raise);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    cursor:pointer;
+  .play svg{width:40px;height:40px;fill:currentColor;pointer-events:none}
+  .play:active{transform:translateY(1px)}
+  .play:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  .spacer{flex:1 1 auto}
+  .chip{
+    font-family:var(--label);font-size:14px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--ink-dim);background:rgba(255,255,255,.07);border:1px solid var(--rule);
+    padding:9px 14px;border-radius:2px;cursor:pointer;
   }
-  .slot .k{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
-  .slot .v{font-family:var(--mono);font-size:15px;color:var(--ink)}
-  .slot.on .v{color:var(--accent)}
-  .slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .chip b{font-family:var(--mono);font-weight:400;color:var(--ink);margin-left:7px;letter-spacing:0}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-  /* ---- landscape rearrangement ---- */
-  /* Landscape: the picture takes the whole height of the panel; the status
-     rail moves into the right column so nothing steals a band from the art. */
-  .panel.landscape{display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr;gap:18px}
-  .panel.landscape .well{grid-column:1;align-self:center}
-  .panel.landscape .status{order:-1}
-  .panel.landscape .right{grid-column:2;display:flex;flex-direction:column;gap:14px;min-height:0}
-  .panel:not(.landscape) .right{display:contents}
-  .panel.landscape .title{font-size:42px}
+  /* ---- portrait: the plate takes the lower third, art fills the rest ---- */
+  .panel.portrait .title{font-size:46px}
+  .panel.portrait .now{flex-direction:column;align-items:flex-start;gap:14px}
+  .panel.portrait .transport{gap:10px}
+  .panel.portrait .play{width:96px;height:96px}
+  .panel.portrait .chip{display:none}
 
-  @media (prefers-reduced-motion:reduce){ .key:active{transform:none} }
+  @media (prefers-reduced-motion:reduce){ .play:active{transform:none} }
 </style>
 </head>
 <body>
@@ -168,58 +155,57 @@
   <h1>Front panel</h1>
   <button class="ui" id="orient">Landscape 1280×720</button>
   <button class="ui" id="albums">Next album</button>
-  <button class="ui" id="bevel" aria-pressed="true">Bevels</button>
-  <p>Direction B — the instrument. Real accent extraction and WCAG contrast correction, at true panel pixels.</p>
+  <button class="ui" id="glass" aria-pressed="true">Glass</button>
+  <p>The album fills the device; one smoked-glass plate carries the controls.</p>
 </div>
 
 <div class="stage">
-  <div class="panel landscape" id="panel">
-    <div class="backdrop"><canvas id="bg" width="32" height="32"></canvas></div>
+  <div class="panel" id="panel">
+    <canvas id="art" width="900" height="900"></canvas>
 
-    <div class="well" id="well"><canvas id="art" width="640" height="640"></canvas></div>
+    <div class="status">
+      <span class="lamp"></span>
+      <span class="dev" id="device">Kitchen</span>
+      <span class="via">Spotify Connect</span>
+      <span class="clock" id="clock">21:47</span>
+    </div>
 
-    <div class="right">
-      <div class="status">
-        <span class="lamp"></span>
-        <span class="dev" id="device">Kitchen</span>
-        <span class="via">Spotify Connect</span>
-        <span class="clock" id="clock">21:47</span>
-      </div>
-
-      <div class="meta">
-        <div class="eyebrow" id="ctx">Playing from album</div>
-        <h2 class="title" id="title">Velocity Division</h2>
-        <p class="artist" id="artist">Nitrous Cartel</p>
-      </div>
-
+    <div class="plate" id="plate">
       <div class="scrub">
         <div class="track" id="track"><i id="fill"></i></div>
         <div class="times"><span id="elapsed">0:00</span><span id="remain">-3:31</span></div>
       </div>
 
-      <div class="transport">
-        <button class="key" id="shuffle" aria-label="Shuffle" aria-pressed="false">
-          <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.2l-2.5 3.2-1.3-1.6L13.6 6H17V3zM3 6h4.3l7.5 9.5H17V13l4 4-4 4v-3h-3.6L5.9 8H3V6zm0 10h4.3l1.8-2.3 1.3 1.6L8.2 18H3v-2z"/></svg>
-        </button>
-        <button class="key" id="prev" aria-label="Previous">
-          <svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6V5zm12 0v14l-9-7 9-7z"/></svg>
-        </button>
-        <button class="key primary" id="play" aria-label="Play or pause">
-          <svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4h4v16H7V4zm6 0h4v16h-4V4z"/></svg>
-        </button>
-        <button class="key" id="next" aria-label="Next">
-          <svg viewBox="0 0 24 24"><path d="M18 5h-2.5v14H18V5zM6 5v14l9-7-9-7z"/></svg>
-        </button>
-        <button class="key" id="repeat" aria-label="Repeat" aria-pressed="false">
-          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
-        </button>
+      <div class="now">
+        <div class="txt">
+          <div class="eyebrow" id="ctx">Playing from album</div>
+          <h2 class="title" id="title">Velocity Division</h2>
+          <p class="artist" id="artist">Nitrous Cartel</p>
+        </div>
       </div>
 
-      <div class="rack">
-        <div class="slot" id="s-dev" tabindex="0"><span class="k">Device</span><span class="v" id="v-dev">Kitchen</span></div>
-        <div class="slot" id="s-que" tabindex="0"><span class="k">Queue</span><span class="v" id="v-que">14</span></div>
-        <div class="slot" id="s-vol" tabindex="0"><span class="k">Volume</span><span class="v" id="v-vol">62</span></div>
-        <div class="slot" id="s-viz" tabindex="0"><span class="k">Visual</span><span class="v" id="v-viz">Off</span></div>
+      <div class="transport">
+        <button class="ghost small" id="shuffle" aria-label="Shuffle" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.2l-2.5 3.2-1.3-1.6L13.6 6H17V3zM3 6h4.3l7.5 9.5H17V13l4 4-4 4v-3h-3.6L5.9 8H3V6zm0 10h4.3l1.8-2.3 1.3 1.6L8.2 18H3v-2z"/></svg>
+        </button>
+        <button class="ghost" id="prev" aria-label="Previous">
+          <svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6V5zm12 0v14l-9-7 9-7z"/></svg>
+        </button>
+        <button class="play" id="play" aria-label="Play or pause">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4h4v16H7V4zm6 0h4v16h-4V4z"/></svg>
+        </button>
+        <button class="ghost" id="next" aria-label="Next">
+          <svg viewBox="0 0 24 24"><path d="M18 5h-2.5v14H18V5zM6 5v14l9-7-9-7z"/></svg>
+        </button>
+        <button class="ghost small" id="repeat" aria-label="Repeat" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+
+        <span class="spacer"></span>
+
+        <button class="chip" id="c-vol">Vol<b id="v-vol">62</b></button>
+        <button class="chip" id="c-que">Queue<b id="v-que">14</b></button>
+        <button class="chip" id="c-viz">Visual<b id="v-viz">Off</b></button>
       </div>
     </div>
   </div>
@@ -230,217 +216,165 @@
   "use strict";
   var TAU = Math.PI * 2;
 
-  /* ---------- WCAG contrast, the real thing (mirrors D-035) ---------- */
-  function srgbToLin(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
-  function luminance(rgb){
-    return 0.2126*srgbToLin(rgb[0]) + 0.7152*srgbToLin(rgb[1]) + 0.0722*srgbToLin(rgb[2]);
-  }
-  function ratio(a, b){
-    var la = luminance(a), lb = luminance(b);
-    return (Math.max(la,lb) + 0.05) / (Math.min(la,lb) + 0.05);
-  }
-  function rgbToHsl(r,g,b){
+  /* ---------- WCAG contrast (mirrors D-035) ---------- */
+  function lin(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+  function lum(p){ return 0.2126*lin(p[0]) + 0.7152*lin(p[1]) + 0.0722*lin(p[2]); }
+  function ratio(a,b){ var la=lum(a), lb=lum(b); return (Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05); }
+  function toHsl(r,g,b){
     r/=255;g/=255;b/=255;
     var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=0, l=(mx+mn)/2;
-    if(d){
-      s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
-      if(mx===r) h=((g-b)/d + (g<b?6:0));
-      else if(mx===g) h=(b-r)/d + 2;
-      else h=(r-g)/d + 4;
-      h/=6;
-    }
+    if(d){ s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      if(mx===r) h=((g-b)/d + (g<b?6:0)); else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h/=6; }
     return [h,s,l];
   }
-  function hslToRgb(h,s,l){
+  function toRgb(h,s,l){
     function f(p,q,t){ if(t<0)t+=1; if(t>1)t-=1;
-      if(t<1/6) return p+(q-p)*6*t;
-      if(t<1/2) return q;
-      if(t<2/3) return p+(q-p)*(2/3-t)*6;
-      return p; }
+      if(t<1/6) return p+(q-p)*6*t; if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6; return p; }
     if(s===0){ var v=Math.round(l*255); return [v,v,v]; }
     var q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
     return [Math.round(f(p,q,h+1/3)*255), Math.round(f(p,q,h)*255), Math.round(f(p,q,h-1/3)*255)];
   }
-  /* Keep hue and saturation; move only lightness, over quantised 8-bit steps so
-     the ratio we measure belongs to the colour that actually ships (D-035). */
-  function ensureContrast(rgb, against, min){
-    if(ratio(rgb, against) >= min) return rgb;
-    var hsl = rgbToHsl(rgb[0],rgb[1],rgb[2]);
-    var best = rgb, bestR = ratio(rgb, against);
+  function ensure(rgb, against, min){
+    if(ratio(rgb,against) >= min) return rgb;
+    var hsl = toHsl(rgb[0],rgb[1],rgb[2]), best=rgb, bestR=ratio(rgb,against);
     for(var i=1;i<=100;i++){
-      var up = hslToRgb(hsl[0], hsl[1], Math.min(1, hsl[2] + i/100));
-      var dn = hslToRgb(hsl[0], hsl[1], Math.max(0, hsl[2] - i/100));
-      var ru = ratio(up, against), rd = ratio(dn, against);
-      if(ru >= min) return up;
-      if(rd >= min) return dn;
-      if(ru > bestR){ bestR = ru; best = up; }
-      if(rd > bestR){ bestR = rd; best = dn; }
+      var up=toRgb(hsl[0],hsl[1],Math.min(1,hsl[2]+i/100));
+      var dn=toRgb(hsl[0],hsl[1],Math.max(0,hsl[2]-i/100));
+      var ru=ratio(up,against), rd=ratio(dn,against);
+      if(ru>=min) return up;
+      if(rd>=min) return dn;
+      if(ru>bestR){bestR=ru;best=up;} if(rd>bestR){bestR=rd;best=dn;}
     }
     return best;
   }
-  var css = function(rgb){ return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'; };
+  var css = function(p){ return 'rgb('+p[0]+','+p[1]+','+p[2]+')'; };
 
-  /* ---------- procedurally generated covers ---------- */
   var ALBUMS = [
-    { title:'Velocity Division', artist:'Nitrous Cartel',    ctx:'Playing from album',   dur:211, pal:['#0a0620','#3d0f6b','#ff2e88','#00e5ff'], style:0, dev:'Kitchen', q:14 },
+    { title:'Velocity Division', artist:'Nitrous Cartel',    ctx:'Playing from album', dur:211, pal:['#0a0620','#3d0f6b','#ff2e88','#00e5ff'], style:0, dev:'Kitchen', q:14 },
     { title:'Coolant Bath',      artist:'Hydra Sixteen',     ctx:'Playing from playlist · Late', dur:284, pal:['#001418','#00363d','#00e5ff','#7cf9ff'], style:1, dev:'Study', q:7 },
-    { title:'Sunstrip Cassette', artist:'Motorway Ghost',    ctx:'Playing from album',   dur:196, pal:['#1a0700','#5c1a00','#ff7a18','#ffd166'], style:2, dev:'Kitchen', q:22 },
-    { title:'Null Sector',       artist:'Concrete Function', ctx:'Playing from album',   dur:243, pal:['#0b0b0d','#1e1e26','#b4ff39','#5f7d1f'], style:3, dev:'Workshop', q:3 },
-    { title:'Bone White',        artist:'The Paper Mill',    ctx:'Playing from album',   dur:227, pal:['#f4f2ec','#e6e2d6','#f7f5ef','#dcd7c8'], style:4, dev:'Kitchen', q:9 }
+    { title:'Sunstrip Cassette', artist:'Motorway Ghost',    ctx:'Playing from album', dur:196, pal:['#1a0700','#5c1a00','#ff7a18','#ffd166'], style:2, dev:'Kitchen', q:22 },
+    { title:'Null Sector',       artist:'Concrete Function', ctx:'Playing from album', dur:243, pal:['#0b0b0d','#1e1e26','#b4ff39','#5f7d1f'], style:3, dev:'Workshop', q:3 },
+    { title:'Bone White',        artist:'The Paper Mill',    ctx:'Playing from album', dur:227, pal:['#f4f2ec','#e6e2d6','#f7f5ef','#dcd7c8'], style:4, dev:'Kitchen', q:9 }
   ];
 
   var art = document.getElementById('art');
-  var ax = art.getContext('2d', { willReadFrequently: true });
-  var bg = document.getElementById('bg');
-  var bx = bg.getContext('2d');
+  var ax = art.getContext('2d', { willReadFrequently:true });
+  var S = 900;
 
   function drawCover(a){
-    var p = a.pal, i, j, n, g;
-    g = ax.createLinearGradient(0,0,640,640);
-    g.addColorStop(0,p[0]); g.addColorStop(1,p[1]);
-    ax.fillStyle = g; ax.fillRect(0,0,640,640);
-
+    var p=a.pal, i, j, n, g;
+    g = ax.createLinearGradient(0,0,S,S); g.addColorStop(0,p[0]); g.addColorStop(1,p[1]);
+    ax.fillStyle=g; ax.fillRect(0,0,S,S);
+    var c = S/2;
     if(a.style===0){
-      for(i=13;i>0;i--){ ax.beginPath(); ax.arc(320,320,i*26,0,TAU);
-        ax.fillStyle=(i%2?p[2]:p[1]); ax.globalAlpha=.14+i*.045; ax.fill(); }
-      ax.globalAlpha=1; ax.strokeStyle=p[3]; ax.lineWidth=7;
-      for(i=0;i<8;i++){ ax.beginPath(); ax.moveTo(320,320);
-        ax.lineTo(320+Math.cos(i/8*TAU)*460, 320+Math.sin(i/8*TAU)*460); ax.stroke(); }
+      for(i=14;i>0;i--){ ax.beginPath(); ax.arc(c,c,i*34,0,TAU); ax.fillStyle=(i%2?p[2]:p[1]); ax.globalAlpha=.13+i*.043; ax.fill(); }
+      ax.globalAlpha=1; ax.strokeStyle=p[3]; ax.lineWidth=9;
+      for(i=0;i<8;i++){ ax.beginPath(); ax.moveTo(c,c); ax.lineTo(c+Math.cos(i/8*TAU)*650, c+Math.sin(i/8*TAU)*650); ax.stroke(); }
     } else if(a.style===1){
-      ax.strokeStyle=p[2]; ax.lineWidth=5; ax.globalAlpha=.85;
-      for(i=0;i<15;i++){ n=350+i*i*2.1; ax.beginPath(); ax.moveTo(0,n); ax.lineTo(640,n); ax.stroke(); }
-      for(i=-7;i<=7;i++){ ax.beginPath(); ax.moveTo(320,350); ax.lineTo(320+i*175,640); ax.stroke(); }
-      ax.globalAlpha=1; ax.fillStyle=p[3]; ax.beginPath(); ax.arc(320,295,118,0,TAU); ax.fill();
-      ax.fillStyle=p[1]; for(i=0;i<5;i++) ax.fillRect(195,262+i*28,250,10);
+      ax.strokeStyle=p[2]; ax.lineWidth=6; ax.globalAlpha=.85;
+      for(i=0;i<16;i++){ n=490+i*i*2.6; ax.beginPath(); ax.moveTo(0,n); ax.lineTo(S,n); ax.stroke(); }
+      for(i=-8;i<=8;i++){ ax.beginPath(); ax.moveTo(c,490); ax.lineTo(c+i*220,S); ax.stroke(); }
+      ax.globalAlpha=1; ax.fillStyle=p[3]; ax.beginPath(); ax.arc(c,410,166,0,TAU); ax.fill();
+      ax.fillStyle=p[1]; for(i=0;i<5;i++) ax.fillRect(c-175,365+i*39,350,14);
     } else if(a.style===2){
-      ax.fillStyle=p[2]; for(i=0;i<7;i++) ax.fillRect(0,100+i*66,640,66-i*8);
-      ax.fillStyle=p[3]; ax.beginPath(); ax.arc(320,275,136,0,TAU); ax.fill();
-      ax.fillStyle=p[0]; ax.globalAlpha=.5;
-      for(i=0;i<6;i++) ax.fillRect(150,240+i*33,340,13); ax.globalAlpha=1;
+      ax.fillStyle=p[2]; for(i=0;i<7;i++) ax.fillRect(0,140+i*93,S,93-i*11);
+      ax.fillStyle=p[3]; ax.beginPath(); ax.arc(c,385,192,0,TAU); ax.fill();
+      ax.fillStyle=p[0]; ax.globalAlpha=.5; for(i=0;i<6;i++) ax.fillRect(c-240,335+i*46,480,18); ax.globalAlpha=1;
     } else if(a.style===3){
       ax.fillStyle=p[2];
-      for(i=0;i<8;i++) for(j=0;j<8;j++) if(((i*3+j*5)%7)<3) ax.fillRect(i*80+8,j*80+8,64,64);
-      ax.strokeStyle=p[3]; ax.lineWidth=15; ax.strokeRect(55,55,530,530);
+      for(i=0;i<8;i++) for(j=0;j<8;j++) if(((i*3+j*5)%7)<3) ax.fillRect(i*112+11,j*112+11,90,90);
+      ax.strokeStyle=p[3]; ax.lineWidth=21; ax.strokeRect(78,78,S-156,S-156);
     } else {
-      /* A near-white sleeve: the case that breaks naive theming. */
-      ax.fillStyle=p[0]; ax.fillRect(0,0,640,640);
-      ax.strokeStyle=p[3]; ax.lineWidth=3;
-      for(i=0;i<28;i++){ ax.beginPath(); ax.moveTo(0,i*24); ax.lineTo(640,i*24-90); ax.stroke(); }
-      ax.fillStyle=p[1]; ax.fillRect(120,250,400,140);
+      ax.fillStyle=p[0]; ax.fillRect(0,0,S,S);
+      ax.strokeStyle=p[3]; ax.lineWidth=4;
+      for(i=0;i<30;i++){ ax.beginPath(); ax.moveTo(0,i*34); ax.lineTo(S,i*34-126); ax.stroke(); }
+      ax.fillStyle=p[1]; ax.fillRect(170,350,560,200);
     }
-
-    var d = ax.getImageData(0,0,640,640), q = d.data;
-    for(i=0;i<q.length;i+=4){ n=(Math.random()-0.5)*15; q[i]+=n; q[i+1]+=n; q[i+2]+=n; }
+    var d = ax.getImageData(0,0,S,S), q=d.data;
+    for(i=0;i<q.length;i+=4){ n=(Math.random()-0.5)*13; q[i]+=n; q[i+1]+=n; q[i+2]+=n; }
     ax.putImageData(d,0,0);
   }
 
-  /* Accent is salience, not dominance (D-036): a small vivid mark beats the
-     large dull field it sits on. Population enters as a square root. */
-  function extractAccent(){
-    var d = ax.getImageData(0,0,640,640).data;
-    var buckets = {}, i, r, g, b, key;
-    for(i=0;i<d.length;i+=4*29){
-      r=d[i]>>4; g=d[i+1]>>4; b=d[i+2]>>4;
-      key = (r<<8)|(g<<4)|b;
-      buckets[key] = buckets[key] || {n:0, r:0, g:0, b:0};
-      buckets[key].n++; buckets[key].r+=d[i]; buckets[key].g+=d[i+1]; buckets[key].b+=d[i+2];
+  /* Accent is salience, not dominance (D-036). */
+  function accentOf(){
+    var d = ax.getImageData(0,0,S,S).data, buckets={}, i, k;
+    for(i=0;i<d.length;i+=4*53){
+      k = ((d[i]>>4)<<8) | ((d[i+1]>>4)<<4) | (d[i+2]>>4);
+      buckets[k] = buckets[k] || {n:0,r:0,g:0,b:0};
+      buckets[k].n++; buckets[k].r+=d[i]; buckets[k].g+=d[i+1]; buckets[k].b+=d[i+2];
     }
-    var best=null, bestScore=-1, total=0, k;
-    for(k in buckets) total += buckets[k].n;
+    var total=0; for(k in buckets) total += buckets[k].n;
+    var best=[0,229,255], bs=-1;
     for(k in buckets){
-      var bk = buckets[k];
-      var rgb = [Math.round(bk.r/bk.n), Math.round(bk.g/bk.n), Math.round(bk.b/bk.n)];
-      var hsl = rgbToHsl(rgb[0],rgb[1],rgb[2]);
-      var sat = Math.max(hsl[1], 0.12);
-      var lightCurve = Math.max(0.05, 1 - Math.abs(hsl[2]-0.55)*1.9);
-      var score = Math.sqrt(bk.n/total) * sat * lightCurve;
-      if(score > bestScore){ bestScore = score; best = rgb; }
+      var b=buckets[k], rgb=[Math.round(b.r/b.n),Math.round(b.g/b.n),Math.round(b.b/b.n)];
+      var h=toHsl(rgb[0],rgb[1],rgb[2]);
+      var score = Math.sqrt(b.n/total) * Math.max(h[1],0.12) * Math.max(0.05, 1-Math.abs(h[2]-0.55)*1.9);
+      if(score>bs){ bs=score; best=rgb; }
     }
-    return best || [0,229,255];
+    return best;
   }
 
-  /* ---------- state ---------- */
-  var idx = 0, playing = true, pos = 0, last = performance.now();
-  var shuffle = false, repeat = 0, landscape = true;
-  var REPEATS = ['Off','All','One'];
-
+  var idx=0, playing=true, pos=0, last=performance.now();
+  var shuffle=false, repeat=0, portrait=false;
   var $ = function(id){ return document.getElementById(id); };
   var panel = $('panel');
 
-  function fmt(s){
-    s = Math.max(0, Math.floor(s));
-    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
-  }
+  function fmt(s){ s=Math.max(0,Math.floor(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 
   function loadAlbum(n){
     var a = ALBUMS[n];
     drawCover(a);
-    /* The pre-rendered backdrop: 640 down to 32, then scaled back up by the
-       compositor. That upscale is the blur (D-005/P3-05). */
-    bx.clearRect(0,0,32,32);
-    bx.drawImage(art, 0, 0, 32, 32);
-
-    var chassis = [0x16,0x15,0x1c];
-    var raw = extractAccent();
-    /* The accent lands on the artist line and the progress readout, so it is
-       held to text contrast (4.5:1), not fill contrast (D-035). */
-    var accent = ensureContrast(raw, chassis, 4.5);
+    /* The plate is a *known* surface, unlike the artwork behind it — which is
+       what makes the contrast promise keepable. Its effective colour is the
+       tint composited over a mid grey, so correcting against that is honest
+       even in the worst case where a bright cover sits underneath. */
+    var plateEffective = [40,38,48];
+    var accent = ensure(accentOf(), plateEffective, 4.5);
     var onAccent = ratio([255,255,255], accent) >= 4.5 ? [255,255,255] : [8,7,13];
-
-    document.documentElement.style.setProperty('--accent', css(accent));
-    document.documentElement.style.setProperty('--on-accent', css(onAccent));
+    var root = document.documentElement.style;
+    root.setProperty('--accent', css(accent));
+    root.setProperty('--on-accent', css(onAccent));
 
     $('title').textContent = a.title;
     $('artist').textContent = a.artist;
     $('ctx').textContent = a.ctx;
     $('device').textContent = a.dev;
-    $('v-dev').textContent = a.dev;
     $('v-que').textContent = String(a.q);
     pos = a.dur * 0.28;
   }
 
   function layout(){
-    var a = ALBUMS[idx];
-    var dur = a.dur;
+    var dur = ALBUMS[idx].dur;
     $('fill').style.width = (pos/dur*100).toFixed(2) + '%';
     $('elapsed').textContent = fmt(pos);
     $('remain').textContent = '-' + fmt(dur - pos);
   }
 
-  /* Scale the true-pixel panel to fit whatever is looking at it.
-     `transform` does not change layout size, so the 720px (or 1280px) element
-     still occupies its full width in flow. The stage has to reserve the
-     *scaled* box in both axes or the page overflows sideways and the panel
-     sits off-centre in a track wider than the screen. */
   function fit(){
-    var w = landscape ? 1280 : 720, h = landscape ? 720 : 1280;
-    var s = Math.min((window.innerWidth - 24) / w, (window.innerHeight - 170) / h, 1);
+    var w = portrait ? 720 : 1280, h = portrait ? 1280 : 720;
+    var s = Math.min((window.innerWidth - 24)/w, (window.innerHeight - 165)/h, 1);
     panel.style.transform = 'scale(' + s + ')';
     var stage = panel.parentElement;
-    stage.style.width = (w * s) + 'px';
-    stage.style.height = (h * s) + 'px';
+    stage.style.width = (w*s) + 'px';
+    stage.style.height = (h*s) + 'px';
   }
 
-  /* ---------- wiring ---------- */
   $('orient').addEventListener('click', function(){
-    landscape = !landscape;
-    panel.classList.toggle('landscape', landscape);
-    this.textContent = landscape ? 'Landscape 1280×720' : 'Portrait 720×1280';
-    sizeWell();   // the well is square and sized per orientation
+    portrait = !portrait;
+    panel.classList.toggle('portrait', portrait);
+    this.textContent = portrait ? 'Portrait 720×1280' : 'Landscape 1280×720';
     fit();
   });
   $('albums').addEventListener('click', function(){
-    idx = (idx + 1) % ALBUMS.length; loadAlbum(idx); layout();
+    idx = (idx+1) % ALBUMS.length; loadAlbum(idx); layout();
   });
-  $('bevel').addEventListener('click', function(){
+  $('glass').addEventListener('click', function(){
     var on = this.getAttribute('aria-pressed') !== 'true';
     this.setAttribute('aria-pressed', String(on));
-    document.documentElement.style.setProperty('--raise', on
-      ? 'inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.55)'
-      : 'none');
-    document.documentElement.style.setProperty('--recess', on
-      ? 'inset 0 3px 6px rgba(0,0,0,.75), inset 0 -1px 0 rgba(255,255,255,.06)'
-      : 'none');
+    $('plate').style.background = on ? '' : 'var(--plate-solid)';
+    $('plate').style.backdropFilter = on ? '' : 'none';
+    $('plate').style.webkitBackdropFilter = on ? '' : 'none';
   });
 
   $('play').addEventListener('click', function(){
@@ -449,62 +383,35 @@
       ? '<path d="M7 4h4v16H7V4zm6 0h4v16h-4V4z"/>'
       : '<path d="M7 4l13 8-13 8V4z"/>';
   });
-  $('next').addEventListener('click', function(){
-    idx = (idx + 1) % ALBUMS.length; loadAlbum(idx); pos = 0; layout();
-  });
+  $('next').addEventListener('click', function(){ idx=(idx+1)%ALBUMS.length; loadAlbum(idx); pos=0; layout(); });
   $('prev').addEventListener('click', function(){
-    /* Restart if we are past the top of the track, as every player does. */
-    if(pos > 3){ pos = 0; } else { idx = (idx - 1 + ALBUMS.length) % ALBUMS.length; loadAlbum(idx); pos = 0; }
+    if(pos > 3){ pos = 0; } else { idx=(idx-1+ALBUMS.length)%ALBUMS.length; loadAlbum(idx); pos=0; }
     layout();
   });
-  $('shuffle').addEventListener('click', function(){
-    shuffle = !shuffle; this.setAttribute('aria-pressed', String(shuffle));
-  });
-  $('repeat').addEventListener('click', function(){
-    repeat = (repeat + 1) % 3;
-    this.setAttribute('aria-pressed', String(repeat !== 0));
-    $('v-viz').textContent = $('v-viz').textContent; // untouched
-  });
+  $('shuffle').addEventListener('click', function(){ shuffle=!shuffle; this.setAttribute('aria-pressed',String(shuffle)); });
+  $('repeat').addEventListener('click', function(){ repeat=(repeat+1)%3; this.setAttribute('aria-pressed',String(repeat!==0)); });
   $('track').addEventListener('click', function(e){
-    var r = this.getBoundingClientRect();
-    pos = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * ALBUMS[idx].dur;
-    layout();
+    var r=this.getBoundingClientRect();
+    pos = Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)) * ALBUMS[idx].dur; layout();
   });
-  $('s-viz').addEventListener('click', function(){
-    var v = $('v-viz'); v.textContent = v.textContent === 'Off' ? 'N2O' : 'Off';
-    this.classList.toggle('on', v.textContent !== 'Off');
-  });
-  $('s-vol').addEventListener('click', function(){
-    var v = $('v-vol'); v.textContent = String((parseInt(v.textContent,10) + 10) % 110);
-  });
+  $('c-vol').addEventListener('click', function(){ var v=$('v-vol'); v.textContent=String((parseInt(v.textContent,10)+10)%110); });
+  $('c-viz').addEventListener('click', function(){ var v=$('v-viz'); v.textContent = v.textContent==='Off' ? 'N2O' : 'Off'; });
 
-  window.addEventListener('resize', function(){ sizeWell(); fit(); });
+  window.addEventListener('resize', fit);
 
   function tick(now){
-    var dt = Math.min((now - last) / 1000, 0.25); last = now;
+    var dt = Math.min((now-last)/1000, 0.25); last = now;
     if(playing){
       pos += dt;
-      if(pos >= ALBUMS[idx].dur){ idx = (idx+1) % ALBUMS.length; loadAlbum(idx); pos = 0; }
+      if(pos >= ALBUMS[idx].dur){ idx=(idx+1)%ALBUMS.length; loadAlbum(idx); pos=0; }
       layout();
     }
     var d = new Date();
-    $('clock').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    $('clock').textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     requestAnimationFrame(tick);
   }
 
-  /* The art is the biggest square the panel will hold. In landscape that is
-     the full content height; in portrait the full content width. */
-  function sizeWell(){
-    var well = $('well');
-    var side = landscape ? 684 : 684;
-    well.style.width = well.style.height = side + 'px';
-  }
-
-  loadAlbum(0);
-  sizeWell();
-  layout();
-  fit();
-  requestAnimationFrame(tick);
+  loadAlbum(0); layout(); fit(); requestAnimationFrame(tick);
 })();
 </script>
 </body>

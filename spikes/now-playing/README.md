@@ -1,6 +1,19 @@
 # Spike: Now Playing — the front panel
 
-Direction **B, the instrument** (D-038), at true panel pixels (D-039).
+Direction **B, the instrument** (D-038), at true panel pixels (D-039) — as a
+smoked-glass control plate laid over a full-bleed album.
+
+## What the first version got wrong
+
+It was art-left, text-right, five identical buttons in a row: the stock media
+player layout. The bevels were finish applied to a generic skeleton, which is
+why they did not rescue it — **the structure was the problem**. It was also hard
+to read, because text sat over unpredictable artwork.
+
+Both faults have one fix. The album now fills the entire device and the controls
+live on a single translucent plate floating over it. The plate is a **known
+surface**, so contrast against it can actually be guaranteed; text over bare
+artwork never can be.
 
 **Open `index.html` in any browser.** No build, no dependencies.
 
