@@ -335,3 +335,71 @@ export const normalisePlaybackState = (
     repeat: normaliseRepeat(raw.repeat_state),
   });
 };
+
+/**
+ * Normalise `/me/player/devices`.
+ *
+ * A single unrecognisable entry is dropped rather than failing the list: the
+ * Devices screen exists so someone can move music to the kitchen, and refusing
+ * to draw six working speakers because a seventh reported something odd is the
+ * wrong trade. An unrecognisable *envelope* is still an error — that means we
+ * are not looking at a device list at all.
+ */
+export const normaliseDeviceList = (
+  body: unknown,
+): Result<readonly PlaybackDevice[], JoshifyError> => {
+  if (body === null || body === undefined) return ok([]);
+  const record = asRecord(body);
+  if (record === null) {
+    return err(createError('unexpected', 'device response was not an object'));
+  }
+  const raw = record['devices'];
+  if (!Array.isArray(raw)) {
+    return err(createError('unexpected', 'device response had no devices array'));
+  }
+  const devices: PlaybackDevice[] = [];
+  for (const entry of raw) {
+    const device = normaliseDevice(entry);
+    if (device.ok) devices.push(device.value);
+  }
+  return ok(devices);
+};
+
+/** What `/me/player/queue` reports: what is on now, and what follows. */
+export interface PlaybackQueue {
+  readonly current: PlayingItem | null;
+  /**
+   * The items after the current one, in order.
+   *
+   * View, add and skip-to only. Spotify has no reorder and no remove endpoint,
+   * so the UI must never draw a drag handle or a delete button — an affordance
+   * that cannot work is worse than a missing one (D-007).
+   */
+  readonly upcoming: readonly PlayingItem[];
+}
+
+export const EMPTY_QUEUE: PlaybackQueue = { current: null, upcoming: [] };
+
+/**
+ * Normalise `/me/player/queue`.
+ *
+ * Same rule as the device list: an entry we cannot read is dropped, not fatal.
+ * A queue with one strange row is still a useful queue.
+ */
+export const normaliseQueue = (body: unknown): Result<PlaybackQueue, JoshifyError> => {
+  if (body === null || body === undefined) return ok(EMPTY_QUEUE);
+  const record = asRecord(body);
+  if (record === null) {
+    return err(createError('unexpected', 'queue response was not an object'));
+  }
+  const currently = normaliseItem(record['currently_playing']);
+  const rawQueue = record['queue'];
+  const upcoming: PlayingItem[] = [];
+  if (Array.isArray(rawQueue)) {
+    for (const entry of rawQueue) {
+      const item = normaliseItem(entry);
+      if (item.ok) upcoming.push(item.value);
+    }
+  }
+  return ok({ current: currently.ok ? currently.value : null, upcoming });
+};

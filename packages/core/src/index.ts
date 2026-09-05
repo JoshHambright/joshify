@@ -90,3 +90,9 @@ export {
   type SnapshotMessage,
 } from './protocol/playback-protocol.js';
 export { DEFAULT_THEME, themeCssVariables, type ThemeTokens } from './theme/tokens.js';
+export {
+  EMPTY_QUEUE,
+  normaliseDeviceList,
+  normaliseQueue,
+  type PlaybackQueue,
+} from './playback/state.js';

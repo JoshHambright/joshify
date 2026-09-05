@@ -53,6 +53,8 @@ export interface SpotifyClient {
   /** `null` when nothing is playing — a state, not a failure. */
   getPlaybackState: () => Promise<Result<unknown, JoshifyError>>;
   getDevices: () => Promise<Result<unknown, JoshifyError>>;
+  /** `/me/player/queue`: what is on now and what follows. View + add only (D-007). */
+  getQueue: () => Promise<Result<unknown, JoshifyError>>;
 }
 
 export interface SpotifyProfile {
@@ -176,5 +178,8 @@ export const createSpotifyClient = (config: SpotifyClientConfig): SpotifyClient 
     // would show "nothing playing" while a podcast is audibly playing.
     getPlaybackState: () => request('/v1/me/player?additional_types=episode'),
     getDevices: () => request('/v1/me/player/devices'),
+    // Same `additional_types` reason as the player: without it a queued
+    // episode comes back as a null row rather than a podcast.
+    getQueue: () => request('/v1/me/player/queue?additional_types=episode'),
   };
 };

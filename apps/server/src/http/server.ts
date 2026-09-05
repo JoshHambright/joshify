@@ -13,7 +13,7 @@
  * constructed in here, which is what lets the tests run the real Fastify stack
  * over a real socket with a fake Spotify behind it.
  */
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import websocketPlugin from '@fastify/websocket';
 import {
   createError,
@@ -23,12 +23,21 @@ import {
   type JoshifyError,
   type Result,
 } from '@joshify/core';
+import type { PlaybackDevice, PlaybackQueue } from '@joshify/core';
 import type {
   CommandTarget,
   PlayOffset,
   PlayOptions,
   SpotifyCommands,
 } from '../spotify/commands.js';
+import type { PageRequest } from '../library/browse.js';
+import type { SearchOutcome } from '../library/search.js';
+import type {
+  AlbumResult,
+  LibraryPage,
+  PlaylistResult,
+  TrackResult,
+} from '../library/normalise.js';
 import type { Broadcaster } from './broadcast.js';
 import { parseClientMessage } from '@joshify/core';
 
@@ -57,6 +66,46 @@ export interface HttpServerConfig {
   readonly allowedHosts?: readonly string[] | undefined;
   /** Off by default: an unattended kiosk should not fill its SD card. */
   readonly logger?: boolean | undefined;
+  /**
+   * The read half: devices, queue, search and library.
+   *
+   * Optional because the playback half of the panel is useful without it, and
+   * because a server built for a transport-only test should not have to stub
+   * five endpoints it never calls. When it is absent the routes are not
+   * registered at all — a 404 is a truer answer than a 200 with nothing in it.
+   */
+  readonly reads?: PanelReads | undefined;
+}
+
+/**
+ * Everything the panel reads but does not change.
+ *
+ * Handed in whole rather than assembled here for the same reason as
+ * `commands`: this module constructs nothing, which is what lets the tests run
+ * the real Fastify stack over a real socket with fakes behind it.
+ */
+export interface PanelReads {
+  readonly devices: () => Promise<Result<readonly PlaybackDevice[], JoshifyError>>;
+  readonly queue: () => Promise<Result<PlaybackQueue, JoshifyError>>;
+  /**
+   * One long-lived session, not one per request.
+   *
+   * That is what carries D-032's generation fence across HTTP: a request
+   * overtaken by the next keystroke resolves as `superseded` and the panel
+   * ignores it, so a slow answer for "bea" can never replace a fast one for
+   * "beatles" — the same guarantee the session gives an in-process caller.
+   */
+  readonly search: (query: string) => Promise<Result<SearchOutcome, JoshifyError>>;
+  readonly savedAlbums: (
+    page: PageRequest,
+  ) => Promise<Result<LibraryPage<AlbumResult>, JoshifyError>>;
+  readonly playlists: (
+    page: PageRequest,
+  ) => Promise<Result<LibraryPage<PlaylistResult>, JoshifyError>>;
+  readonly playlistTracks: (
+    playlistId: string,
+    page: PageRequest,
+  ) => Promise<Result<LibraryPage<TrackResult>, JoshifyError>>;
 }
 
 export interface RunningServer {
@@ -302,6 +351,45 @@ const COMMAND_ROUTES: Readonly<Record<string, Dispatch>> = {
 };
 
 /**
+ * A required query-string parameter.
+ *
+ * Empty is rejected as well as missing: `?q=` reaches Spotify as a search for
+ * nothing, which answers 400 after a round trip we could have skipped. The
+ * panel's own empty-query case shows the library instead (D-031), so an empty
+ * `q` here means the caller got its own state wrong.
+ */
+const readQueryString = (query: unknown, name: string): Result<string, JoshifyError> => {
+  const value = asRecord(query)[name];
+  if (typeof value !== 'string' || value.trim() === '') {
+    return err(createError('unexpected', `${name} is required`));
+  }
+  return ok(value);
+};
+
+/**
+ * A paging window from the query string.
+ *
+ * Anything unparseable is left absent rather than defaulted, so the browser's
+ * bad arithmetic surfaces as the browser's error from `resolveWindow` instead
+ * of as a list that quietly repeats its first page.
+ */
+const readPage = (query: unknown): PageRequest => {
+  const record = asRecord(query);
+  const read = (name: string): number | undefined => {
+    const raw = record[name];
+    if (typeof raw !== 'string') return undefined;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : undefined;
+  };
+  const offset = read('offset');
+  const limit = read('limit');
+  return {
+    ...(offset === undefined ? {} : { offset }),
+    ...(limit === undefined ? {} : { limit }),
+  };
+};
+
+/**
  * The part of a `ws` socket this route touches.
  *
  * `ws` ships no types of its own and `@types/ws` is not a dependency here, so
@@ -374,6 +462,70 @@ export const createHttpServer = async (
     version: broadcaster.getVersion(),
     state: broadcaster.getState(),
   }));
+
+  const { reads } = config;
+  if (reads !== undefined) {
+    /**
+     * Answer a read, or turn its error into the status the panel should show.
+     *
+     * Shared by every read route so there is one definition of "the library
+     * failed" — the alternative is six handlers that each decide, slightly
+     * differently, whether a rate limit is a 429.
+     */
+    const answer = async <T>(
+      reply: FastifyReply,
+      run: () => Promise<Result<T, JoshifyError>>,
+    ): Promise<unknown> => {
+      const result = await run();
+      if (result.ok) return await reply.send(result.value);
+      const { error } = result;
+      if (error.retryAfterMs !== undefined) {
+        reply.header('retry-after', String(Math.ceil(error.retryAfterMs / 1000)));
+      }
+      return await reply.code(STATUS_BY_KIND[error.kind]).send({
+        error: { kind: error.kind, message: error.message, retryable: error.retryable },
+      });
+    };
+
+    app.get('/api/devices', async (_request, reply) =>
+      answer(reply, async () => {
+        const devices = await reads.devices();
+        return devices.ok ? ok({ devices: devices.value }) : devices;
+      }),
+    );
+
+    app.get('/api/queue', async (_request, reply) => answer(reply, reads.queue));
+
+    app.get('/api/search', async (request, reply) => {
+      const query = readQueryString(request.query, 'q');
+      if (!query.ok) {
+        return await reply.code(400).send({
+          error: {
+            kind: query.error.kind,
+            message: query.error.message,
+            retryable: false,
+          },
+        });
+      }
+      return await answer(reply, () => reads.search(query.value));
+    });
+
+    app.get('/api/library/albums', async (request, reply) =>
+      answer(reply, () => reads.savedAlbums(readPage(request.query))),
+    );
+
+    app.get('/api/library/playlists', async (request, reply) =>
+      answer(reply, () => reads.playlists(readPage(request.query))),
+    );
+
+    app.get<{ Params: { id: string } }>(
+      '/api/library/playlists/:id',
+      async (request, reply) =>
+        answer(reply, () =>
+          reads.playlistTracks(request.params.id, readPage(request.query)),
+        ),
+    );
+  }
 
   for (const [name, dispatch] of Object.entries(COMMAND_ROUTES)) {
     app.post(`/api/playback/${name}`, async (request, reply) => {

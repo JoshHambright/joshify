@@ -135,10 +135,10 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P4-01 | Device list endpoint + polling | ⬜ | |
+| P4-01 | Device list endpoint + polling | 🟨 | `GET /api/devices` serves the normalised list. An unreadable entry is dropped, not fatal — refusing to draw six working speakers because a seventh reported something odd is the wrong trade. Polling still to wire |
 | P4-02 | Devices screen UI with active-device indicator | ⬜ | |
 | P4-03 | Transfer playback on tap | ⬜ | |
-| P4-04 | Queue fetch + Queue screen | ⬜ | View + add + jump-by-skip only |
+| P4-04 | Queue fetch + Queue screen | 🟨 | Server half done: `getQueue` + `normaliseQueue` + `GET /api/queue`, with `additional_types=episode` so a queued podcast is not a null row. Screen still to build |
 | P4-05 | Document queue-reorder impossibility in the UI | ⬜ | No fake affordance. See PRODUCT.md §6 |
 | P4-06 | Volume slider + device volume support detection | ⬜ | Some Connect devices reject volume changes |
 | P4-07 | Touch scrubbing on the progress bar | ⬜ | Suppress interpolation during drag |

@@ -5,6 +5,8 @@ import {
   normalisePlaybackState,
   selectArtwork,
   type PlaybackState,
+  normaliseDeviceList,
+  normaliseQueue,
 } from './state.js';
 
 const parseOrThrow = (body: unknown): PlaybackState => {
@@ -425,5 +427,118 @@ describe('selectArtwork', () => {
     ];
     expect(selectArtwork(images, 64)?.url).toBe('b');
     expect(selectArtwork(images, 301)?.url).toBe('c');
+  });
+});
+
+describe('normaliseDeviceList', () => {
+  const device = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
+    id: 'dev-1',
+    name: 'Kitchen',
+    type: 'Speaker',
+    is_active: true,
+    volume_percent: 40,
+    ...over,
+  });
+
+  it('normalises every device Spotify reported', () => {
+    const result = normaliseDeviceList({
+      devices: [device(), device({ id: 'dev-2', name: 'TV', is_active: false })],
+    });
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value).toHaveLength(2);
+    expect(result.value[0]?.name).toBe('Kitchen');
+    expect(result.value[1]?.isActive).toBe(false);
+  });
+
+  // Refusing to draw six working speakers because a seventh reported something
+  // odd is the wrong trade: the screen exists to move music to the kitchen.
+  it('drops an unreadable entry rather than failing the whole list', () => {
+    const result = normaliseDeviceList({ devices: [device(), 'not a device', null] });
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value).toHaveLength(1);
+  });
+
+  it('reads nothing at all as an empty list', () => {
+    const empty = normaliseDeviceList(null);
+    expect(isOk(empty) && empty.value).toEqual([]);
+    const none = normaliseDeviceList({ devices: [] });
+    expect(isOk(none) && none.value).toEqual([]);
+  });
+
+  // An unrecognisable envelope means we are not looking at a device list at
+  // all, which is a real bug rather than a device with a strange field.
+  it.each([
+    ['not an object', 'devices'],
+    ['no devices array', { devices: 'kitchen' }],
+  ])('fails on %s', (_label, body) => {
+    expect(isOk(normaliseDeviceList(body))).toBe(false);
+  });
+
+  it('preserves a null volume rather than defaulting it to zero', () => {
+    const result = normaliseDeviceList({
+      devices: [device({ volume_percent: null, supports_volume: false })],
+    });
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value[0]?.volumePercent).toBeNull();
+    expect(result.value[0]?.supportsVolume).toBe(false);
+  });
+});
+
+describe('normaliseQueue', () => {
+  const track = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
+    type: 'track',
+    id: 'track-1',
+    uri: 'spotify:track:track-1',
+    name: 'Xtal',
+    duration_ms: 293_000,
+    artists: [{ name: 'Aphex Twin' }],
+    album: { name: 'SAW 85-92', images: [] },
+    ...over,
+  });
+
+  it('reports what is on now and what follows, in order', () => {
+    const result = normaliseQueue({
+      currently_playing: track(),
+      queue: [
+        track({ id: 'track-2', name: 'Tha' }),
+        track({ id: 'track-3', name: 'Ageispolis' }),
+      ],
+    });
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.current?.title).toBe('Xtal');
+    expect(result.value.upcoming.map((item) => item.title)).toEqual([
+      'Tha',
+      'Ageispolis',
+    ]);
+  });
+
+  it('reads an empty or absent queue as empty', () => {
+    expect(isOk(normaliseQueue(null)) && normaliseQueue(null)).toBeTruthy();
+    const result = normaliseQueue({ currently_playing: null, queue: [] });
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.current).toBeNull();
+    expect(result.value.upcoming).toEqual([]);
+  });
+
+  // Same rule as the device list: one strange row is still a useful queue.
+  it('drops a row it cannot read rather than failing', () => {
+    const result = normaliseQueue({ queue: [track(), { type: 'track' }, 42] });
+
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect(result.value.upcoming).toHaveLength(1);
+  });
+
+  it('fails only when the envelope is not a queue response at all', () => {
+    expect(isOk(normaliseQueue('queue'))).toBe(false);
   });
 });

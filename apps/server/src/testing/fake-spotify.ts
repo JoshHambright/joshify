@@ -60,6 +60,21 @@ export interface FakeSpotify {
   validAccessToken: string;
   /** Body served by `GET /v1/me/player`. `null` produces a 204, as Spotify does. */
   playbackState: unknown;
+  /** Body served by `GET /v1/me/player/devices`. */
+  devices: unknown;
+  /** Body served by `GET /v1/me/player/queue`. `null` produces a 204. */
+  queue: unknown;
+  /** Body served by `GET /v1/search`. */
+  searchResults: unknown;
+  /**
+   * Bodies served by the library endpoints, keyed by path.
+   *
+   * A map rather than a field each, because playlist detail is per-id and the
+   * three list endpoints have identical envelopes — a caller that needs a
+   * specific page sets the exact path it expects the code under test to build,
+   * which makes a wrong path a failure here rather than an empty list.
+   */
+  readonly library: Map<string, unknown>;
   /**
    * When false, `PUT /v1/me/player/volume` answers 403, as Spotify does for a
    * Connect target whose volume it cannot control — a TV, a receiver, a cast
@@ -81,17 +96,24 @@ export interface FakeSpotify {
 
 const base64Url = (buffer: Buffer): string => buffer.toString('base64url');
 
+/** Spotify's paging envelope, with nothing in it. */
+const EMPTY_PAGE = { items: [], total: 0, limit: 50, offset: 0, next: null } as const;
+
 export const startFakeSpotify = async (): Promise<FakeSpotify> => {
   const pendingCodes = new Map<string, { challenge: string | null }>();
   const failures: CannedFailure[] = [];
   const requests: RecordedRequest[] = [];
   const validRefreshTokens = new Set<string>(['refresh-seed']);
+  const library = new Map<string, unknown>();
   let issued = 0;
 
   const state = {
     omitRefreshTokenOnRefresh: false,
     validAccessToken: 'access-seed',
     playbackState: null as unknown,
+    devices: { devices: [{ id: 'dev-1', name: 'Kitchen', is_active: true }] } as unknown,
+    queue: null as unknown,
+    searchResults: {} as unknown,
     volumeSupported: true,
   };
 
@@ -192,8 +214,29 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
           noContent();
           return;
         }
+        if (url.pathname === '/v1/search') {
+          json(200, state.searchResults);
+          return;
+        }
+        // The library endpoints share one envelope, so they share one branch.
+        if (
+          url.pathname === '/v1/me/albums' ||
+          url.pathname === '/v1/me/playlists' ||
+          /^\/v1\/playlists\/[^/]+\/tracks$/.test(url.pathname)
+        ) {
+          json(200, library.get(url.pathname) ?? EMPTY_PAGE);
+          return;
+        }
         if (url.pathname === '/v1/me/player/devices') {
-          json(200, { devices: [{ id: 'dev-1', name: 'Kitchen', is_active: true }] });
+          json(200, state.devices);
+          return;
+        }
+        if (url.pathname === '/v1/me/player/queue') {
+          if (state.queue === null) {
+            noContent();
+            return;
+          }
+          json(200, state.queue);
           return;
         }
         res.writeHead(404);
@@ -296,6 +339,25 @@ export const startFakeSpotify = async (): Promise<FakeSpotify> => {
     set playbackState(value: unknown) {
       state.playbackState = value;
     },
+    get devices() {
+      return state.devices;
+    },
+    set devices(value: unknown) {
+      state.devices = value;
+    },
+    get queue() {
+      return state.queue;
+    },
+    set queue(value: unknown) {
+      state.queue = value;
+    },
+    get searchResults() {
+      return state.searchResults;
+    },
+    set searchResults(value: unknown) {
+      state.searchResults = value;
+    },
+    library,
     get volumeSupported() {
       return state.volumeSupported;
     },
