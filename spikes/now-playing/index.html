@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joshify Front Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Barlow+Condensed:wght@500;600&family=Share+Tech+Mono&display=swap">
+<style>
+  /* Single visual world on purpose: this is a dark instrument fascia, not a
+     document. Every colour is painted explicitly so it holds on any ground. */
+  :root{
+    --chassis:#16151c;
+    --chassis-raised:#211f2a;
+    --chassis-recess:#0c0b10;
+    --rule:#332f40;
+    --ink:#eceaf3;
+    --ink-dim:#8a8699;
+    --ink-faint:#5d5970;
+    /* Replaced at runtime by the extracted + contrast-corrected theme. */
+    --accent:#00e5ff;
+    --on-accent:#08070d;
+
+    --panel-w:720px;
+    --panel-h:1280px;
+
+    --display:"Archivo",system-ui,sans-serif;
+    --label:"Barlow Condensed","Archivo Narrow",system-ui,sans-serif;
+    --mono:"Share Tech Mono",ui-monospace,monospace;
+
+    /* Light from above. Raised catches it on top, recessed on the bottom. */
+    --raise: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.55);
+    --recess: inset 0 3px 6px rgba(0,0,0,.75), inset 0 -1px 0 rgba(255,255,255,.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:#08070c;color:var(--ink);
+    font-family:var(--display);-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px 12px 40px;
+  }
+
+  /* ---- page chrome (not part of the device) ---- */
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:760px}
+  .bar h1{
+    font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin:0 8px 0 0;
+    color:var(--ink)
+  }
+  .bar p{margin:0;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em;flex-basis:100%;text-align:center}
+  button.ui{
+    font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--ink-dim);background:var(--chassis-raised);border:1px solid var(--rule);
+    padding:7px 13px;cursor:pointer;border-radius:2px;box-shadow:var(--raise);
+  }
+  button.ui:hover{color:var(--ink)}
+  button.ui[aria-pressed="true"]{color:var(--on-accent);background:var(--accent);border-color:var(--accent)}
+  button.ui:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---- the device ---- */
+  .stage{display:grid;place-items:start center;width:100%}
+  .panel{
+    width:var(--panel-w);height:var(--panel-h);flex:none;
+    background:var(--chassis);border:1px solid #000;border-radius:6px;
+    box-shadow:0 0 0 1px #2a2735, 0 24px 60px -20px #000;
+    transform-origin:top center;
+    display:flex;flex-direction:column;gap:18px;padding:20px;
+    overflow:hidden; /* a kiosk has nowhere to scroll to (D-039) */
+  }
+  .panel.landscape{--panel-w:1280px;--panel-h:720px}
+
+  /* ---- status strip ---- */
+  .status{
+    flex:none;height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;
+    background:var(--chassis-recess);border-radius:3px;box-shadow:var(--recess);
+  }
+  .lamp{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;
+    box-shadow:0 0 9px var(--accent)}
+  .status .dev{font-family:var(--label);font-size:17px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink)}
+  .status .via{font-family:var(--label);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+  .status .clock{margin-left:auto;font-family:var(--mono);font-size:16px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+
+  /* ---- art well: the art sits INSIDE the instrument (D-038) ---- */
+  .well{
+    flex:none;background:var(--chassis-recess);border-radius:3px;padding:14px;
+    box-shadow:var(--recess);display:grid;place-items:center;
+  }
+  .well canvas{display:block;width:100%;height:100%;image-rendering:auto;border-radius:1px;
+    box-shadow:0 6px 18px -6px #000, 0 0 0 1px rgba(0,0,0,.7)}
+
+  /* ---- track info ---- */
+  .meta{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 4px}
+  .eyebrow{font-family:var(--label);font-size:14px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+  .title{
+    font-size:44px;font-weight:800;line-height:1.03;letter-spacing:-.015em;margin:0;
+    text-wrap:balance;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  }
+  .artist{font-size:24px;font-weight:500;color:var(--ink-dim);margin:0;line-height:1.2}
+
+  /* ---- scrubber ---- */
+  .scrub{flex:none;display:flex;flex-direction:column;gap:9px;padding:0 4px}
+  .track{
+    height:12px;background:var(--chassis-recess);border-radius:2px;box-shadow:var(--recess);
+    position:relative;overflow:hidden;cursor:pointer;
+  }
+  .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0%;
+    box-shadow:0 0 12px -2px var(--accent)}
+  .times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:17px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+
+  /* ---- transport: buttons that look like buttons ---- */
+  .transport{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .key{
+    height:92px;border:1px solid var(--rule);border-radius:4px;background:var(--chassis-raised);
+    box-shadow:var(--raise);display:grid;place-items:center;cursor:pointer;color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .key:active{box-shadow:var(--recess);transform:translateY(1px)}
+  .key:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .key svg{width:34px;height:34px;fill:currentColor;pointer-events:none}
+  .key.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .key.primary svg{width:42px;height:42px}
+  .key[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+  .key .badge{position:absolute;font-family:var(--mono);font-size:11px}
+
+  /* ---- secondary strip ---- */
+  .rack{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .slot{
+    height:66px;border:1px solid var(--rule);border-radius:3px;background:var(--chassis-raised);
+    box-shadow:var(--raise);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    cursor:pointer;
+  }
+  .slot .k{font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .slot .v{font-family:var(--mono);font-size:15px;color:var(--ink)}
+  .slot.on .v{color:var(--accent)}
+  .slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---- landscape rearrangement ---- */
+  .panel.landscape{display:grid;grid-template-columns:600px 1fr;grid-template-rows:54px 1fr;gap:18px}
+  .panel.landscape .status{grid-column:1/-1}
+  .panel.landscape .well{grid-row:2;align-self:start}
+  .panel.landscape .right{display:flex;flex-direction:column;gap:16px;min-height:0}
+  .panel:not(.landscape) .right{display:contents}
+  .panel.landscape .title{font-size:40px}
+
+  @media (prefers-reduced-motion:reduce){ .key:active{transform:none} }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Front panel</h1>
+  <button class="ui" id="orient">Portrait 720×1280</button>
+  <button class="ui" id="albums">Next album</button>
+  <button class="ui" id="bevel" aria-pressed="true">Bevels</button>
+  <p>Direction B — the instrument. Real accent extraction and WCAG contrast correction, at true panel pixels.</p>
+</div>
+
+<div class="stage">
+  <div class="panel" id="panel">
+    <div class="status">
+      <span class="lamp"></span>
+      <span class="dev" id="device">Kitchen</span>
+      <span class="via">Spotify Connect</span>
+      <span class="clock" id="clock">21:47</span>
+    </div>
+
+    <div class="well" id="well"><canvas id="art" width="640" height="640"></canvas></div>
+
+    <div class="right">
+      <div class="meta">
+        <div class="eyebrow" id="ctx">Playing from album</div>
+        <h2 class="title" id="title">Velocity Division</h2>
+        <p class="artist" id="artist">Nitrous Cartel</p>
+      </div>
+
+      <div class="scrub">
+        <div class="track" id="track"><i id="fill"></i></div>
+        <div class="times"><span id="elapsed">0:00</span><span id="remain">-3:31</span></div>
+      </div>
+
+      <div class="transport">
+        <button class="key" id="shuffle" aria-label="Shuffle" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.2l-2.5 3.2-1.3-1.6L13.6 6H17V3zM3 6h4.3l7.5 9.5H17V13l4 4-4 4v-3h-3.6L5.9 8H3V6zm0 10h4.3l1.8-2.3 1.3 1.6L8.2 18H3v-2z"/></svg>
+        </button>
+        <button class="key" id="prev" aria-label="Previous">
+          <svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6V5zm12 0v14l-9-7 9-7z"/></svg>
+        </button>
+        <button class="key primary" id="play" aria-label="Play or pause">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4h4v16H7V4zm6 0h4v16h-4V4z"/></svg>
+        </button>
+        <button class="key" id="next" aria-label="Next">
+          <svg viewBox="0 0 24 24"><path d="M18 5h-2.5v14H18V5zM6 5v14l9-7-9-7z"/></svg>
+        </button>
+        <button class="key" id="repeat" aria-label="Repeat" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+      </div>
+
+      <div class="rack">
+        <div class="slot" id="s-dev" tabindex="0"><span class="k">Device</span><span class="v" id="v-dev">Kitchen</span></div>
+        <div class="slot" id="s-que" tabindex="0"><span class="k">Queue</span><span class="v" id="v-que">14</span></div>
+        <div class="slot" id="s-vol" tabindex="0"><span class="k">Volume</span><span class="v" id="v-vol">62</span></div>
+        <div class="slot" id="s-viz" tabindex="0"><span class="k">Visual</span><span class="v" id="v-viz">Off</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var TAU = Math.PI * 2;
+
+  /* ---------- WCAG contrast, the real thing (mirrors D-035) ---------- */
+  function srgbToLin(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+  function luminance(rgb){
+    return 0.2126*srgbToLin(rgb[0]) + 0.7152*srgbToLin(rgb[1]) + 0.0722*srgbToLin(rgb[2]);
+  }
+  function ratio(a, b){
+    var la = luminance(a), lb = luminance(b);
+    return (Math.max(la,lb) + 0.05) / (Math.min(la,lb) + 0.05);
+  }
+  function rgbToHsl(r,g,b){
+    r/=255;g/=255;b/=255;
+    var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=0, l=(mx+mn)/2;
+    if(d){
+      s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      if(mx===r) h=((g-b)/d + (g<b?6:0));
+      else if(mx===g) h=(b-r)/d + 2;
+      else h=(r-g)/d + 4;
+      h/=6;
+    }
+    return [h,s,l];
+  }
+  function hslToRgb(h,s,l){
+    function f(p,q,t){ if(t<0)t+=1; if(t>1)t-=1;
+      if(t<1/6) return p+(q-p)*6*t;
+      if(t<1/2) return q;
+      if(t<2/3) return p+(q-p)*(2/3-t)*6;
+      return p; }
+    if(s===0){ var v=Math.round(l*255); return [v,v,v]; }
+    var q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+    return [Math.round(f(p,q,h+1/3)*255), Math.round(f(p,q,h)*255), Math.round(f(p,q,h-1/3)*255)];
+  }
+  /* Keep hue and saturation; move only lightness, over quantised 8-bit steps so
+     the ratio we measure belongs to the colour that actually ships (D-035). */
+  function ensureContrast(rgb, against, min){
+    if(ratio(rgb, against) >= min) return rgb;
+    var hsl = rgbToHsl(rgb[0],rgb[1],rgb[2]);
+    var best = rgb, bestR = ratio(rgb, against);
+    for(var i=1;i<=100;i++){
+      var up = hslToRgb(hsl[0], hsl[1], Math.min(1, hsl[2] + i/100));
+      var dn = hslToRgb(hsl[0], hsl[1], Math.max(0, hsl[2] - i/100));
+      var ru = ratio(up, against), rd = ratio(dn, against);
+      if(ru >= min) return up;
+      if(rd >= min) return dn;
+      if(ru > bestR){ bestR = ru; best = up; }
+      if(rd > bestR){ bestR = rd; best = dn; }
+    }
+    return best;
+  }
+  var css = function(rgb){ return 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'; };
+
+  /* ---------- procedurally generated covers ---------- */
+  var ALBUMS = [
+    { title:'Velocity Division', artist:'Nitrous Cartel',    ctx:'Playing from album',   dur:211, pal:['#0a0620','#3d0f6b','#ff2e88','#00e5ff'], style:0, dev:'Kitchen', q:14 },
+    { title:'Coolant Bath',      artist:'Hydra Sixteen',     ctx:'Playing from playlist · Late', dur:284, pal:['#001418','#00363d','#00e5ff','#7cf9ff'], style:1, dev:'Study', q:7 },
+    { title:'Sunstrip Cassette', artist:'Motorway Ghost',    ctx:'Playing from album',   dur:196, pal:['#1a0700','#5c1a00','#ff7a18','#ffd166'], style:2, dev:'Kitchen', q:22 },
+    { title:'Null Sector',       artist:'Concrete Function', ctx:'Playing from album',   dur:243, pal:['#0b0b0d','#1e1e26','#b4ff39','#5f7d1f'], style:3, dev:'Workshop', q:3 },
+    { title:'Bone White',        artist:'The Paper Mill',    ctx:'Playing from album',   dur:227, pal:['#f4f2ec','#e6e2d6','#f7f5ef','#dcd7c8'], style:4, dev:'Kitchen', q:9 }
+  ];
+
+  var art = document.getElementById('art');
+  var ax = art.getContext('2d', { willReadFrequently: true });
+
+  function drawCover(a){
+    var p = a.pal, i, j, n, g;
+    g = ax.createLinearGradient(0,0,640,640);
+    g.addColorStop(0,p[0]); g.addColorStop(1,p[1]);
+    ax.fillStyle = g; ax.fillRect(0,0,640,640);
+
+    if(a.style===0){
+      for(i=13;i>0;i--){ ax.beginPath(); ax.arc(320,320,i*26,0,TAU);
+        ax.fillStyle=(i%2?p[2]:p[1]); ax.globalAlpha=.14+i*.045; ax.fill(); }
+      ax.globalAlpha=1; ax.strokeStyle=p[3]; ax.lineWidth=7;
+      for(i=0;i<8;i++){ ax.beginPath(); ax.moveTo(320,320);
+        ax.lineTo(320+Math.cos(i/8*TAU)*460, 320+Math.sin(i/8*TAU)*460); ax.stroke(); }
+    } else if(a.style===1){
+      ax.strokeStyle=p[2]; ax.lineWidth=5; ax.globalAlpha=.85;
+      for(i=0;i<15;i++){ n=350+i*i*2.1; ax.beginPath(); ax.moveTo(0,n); ax.lineTo(640,n); ax.stroke(); }
+      for(i=-7;i<=7;i++){ ax.beginPath(); ax.moveTo(320,350); ax.lineTo(320+i*175,640); ax.stroke(); }
+      ax.globalAlpha=1; ax.fillStyle=p[3]; ax.beginPath(); ax.arc(320,295,118,0,TAU); ax.fill();
+      ax.fillStyle=p[1]; for(i=0;i<5;i++) ax.fillRect(195,262+i*28,250,10);
+    } else if(a.style===2){
+      ax.fillStyle=p[2]; for(i=0;i<7;i++) ax.fillRect(0,100+i*66,640,66-i*8);
+      ax.fillStyle=p[3]; ax.beginPath(); ax.arc(320,275,136,0,TAU); ax.fill();
+      ax.fillStyle=p[0]; ax.globalAlpha=.5;
+      for(i=0;i<6;i++) ax.fillRect(150,240+i*33,340,13); ax.globalAlpha=1;
+    } else if(a.style===3){
+      ax.fillStyle=p[2];
+      for(i=0;i<8;i++) for(j=0;j<8;j++) if(((i*3+j*5)%7)<3) ax.fillRect(i*80+8,j*80+8,64,64);
+      ax.strokeStyle=p[3]; ax.lineWidth=15; ax.strokeRect(55,55,530,530);
+    } else {
+      /* A near-white sleeve: the case that breaks naive theming. */
+      ax.fillStyle=p[0]; ax.fillRect(0,0,640,640);
+      ax.strokeStyle=p[3]; ax.lineWidth=3;
+      for(i=0;i<28;i++){ ax.beginPath(); ax.moveTo(0,i*24); ax.lineTo(640,i*24-90); ax.stroke(); }
+      ax.fillStyle=p[1]; ax.fillRect(120,250,400,140);
+    }
+
+    var d = ax.getImageData(0,0,640,640), q = d.data;
+    for(i=0;i<q.length;i+=4){ n=(Math.random()-0.5)*15; q[i]+=n; q[i+1]+=n; q[i+2]+=n; }
+    ax.putImageData(d,0,0);
+  }
+
+  /* Accent is salience, not dominance (D-036): a small vivid mark beats the
+     large dull field it sits on. Population enters as a square root. */
+  function extractAccent(){
+    var d = ax.getImageData(0,0,640,640).data;
+    var buckets = {}, i, r, g, b, key;
+    for(i=0;i<d.length;i+=4*29){
+      r=d[i]>>4; g=d[i+1]>>4; b=d[i+2]>>4;
+      key = (r<<8)|(g<<4)|b;
+      buckets[key] = buckets[key] || {n:0, r:0, g:0, b:0};
+      buckets[key].n++; buckets[key].r+=d[i]; buckets[key].g+=d[i+1]; buckets[key].b+=d[i+2];
+    }
+    var best=null, bestScore=-1, total=0, k;
+    for(k in buckets) total += buckets[k].n;
+    for(k in buckets){
+      var bk = buckets[k];
+      var rgb = [Math.round(bk.r/bk.n), Math.round(bk.g/bk.n), Math.round(bk.b/bk.n)];
+      var hsl = rgbToHsl(rgb[0],rgb[1],rgb[2]);
+      var sat = Math.max(hsl[1], 0.12);
+      var lightCurve = Math.max(0.05, 1 - Math.abs(hsl[2]-0.55)*1.9);
+      var score = Math.sqrt(bk.n/total) * sat * lightCurve;
+      if(score > bestScore){ bestScore = score; best = rgb; }
+    }
+    return best || [0,229,255];
+  }
+
+  /* ---------- state ---------- */
+  var idx = 0, playing = true, pos = 0, last = performance.now();
+  var shuffle = false, repeat = 0, landscape = false;
+  var REPEATS = ['Off','All','One'];
+
+  var $ = function(id){ return document.getElementById(id); };
+  var panel = $('panel');
+
+  function fmt(s){
+    s = Math.max(0, Math.floor(s));
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function loadAlbum(n){
+    var a = ALBUMS[n];
+    drawCover(a);
+
+    var chassis = [0x16,0x15,0x1c];
+    var raw = extractAccent();
+    /* The accent lands on the artist line and the progress readout, so it is
+       held to text contrast (4.5:1), not fill contrast (D-035). */
+    var accent = ensureContrast(raw, chassis, 4.5);
+    var onAccent = ratio([255,255,255], accent) >= 4.5 ? [255,255,255] : [8,7,13];
+
+    document.documentElement.style.setProperty('--accent', css(accent));
+    document.documentElement.style.setProperty('--on-accent', css(onAccent));
+
+    $('title').textContent = a.title;
+    $('artist').textContent = a.artist;
+    $('ctx').textContent = a.ctx;
+    $('device').textContent = a.dev;
+    $('v-dev').textContent = a.dev;
+    $('v-que').textContent = String(a.q);
+    pos = a.dur * 0.28;
+  }
+
+  function layout(){
+    var a = ALBUMS[idx];
+    var dur = a.dur;
+    $('fill').style.width = (pos/dur*100).toFixed(2) + '%';
+    $('elapsed').textContent = fmt(pos);
+    $('remain').textContent = '-' + fmt(dur - pos);
+  }
+
+  /* Scale the true-pixel panel to fit whatever is looking at it. */
+  function fit(){
+    var w = landscape ? 1280 : 720, h = landscape ? 720 : 1280;
+    var avail = Math.min(window.innerWidth - 24, 760);
+    var availH = window.innerHeight - 150;
+    var s = Math.min(avail / w, availH / h, 1);
+    panel.style.transform = 'scale(' + s + ')';
+    panel.parentElement.style.height = (h * s) + 'px';
+  }
+
+  /* ---------- wiring ---------- */
+  $('orient').addEventListener('click', function(){
+    landscape = !landscape;
+    panel.classList.toggle('landscape', landscape);
+    this.textContent = landscape ? 'Landscape 1280×720' : 'Portrait 720×1280';
+    fit();
+  });
+  $('albums').addEventListener('click', function(){
+    idx = (idx + 1) % ALBUMS.length; loadAlbum(idx); layout();
+  });
+  $('bevel').addEventListener('click', function(){
+    var on = this.getAttribute('aria-pressed') !== 'true';
+    this.setAttribute('aria-pressed', String(on));
+    document.documentElement.style.setProperty('--raise', on
+      ? 'inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.55)'
+      : 'none');
+    document.documentElement.style.setProperty('--recess', on
+      ? 'inset 0 3px 6px rgba(0,0,0,.75), inset 0 -1px 0 rgba(255,255,255,.06)'
+      : 'none');
+  });
+
+  $('play').addEventListener('click', function(){
+    playing = !playing;
+    $('playIcon').innerHTML = playing
+      ? '<path d="M7 4h4v16H7V4zm6 0h4v16h-4V4z"/>'
+      : '<path d="M7 4l13 8-13 8V4z"/>';
+  });
+  $('next').addEventListener('click', function(){
+    idx = (idx + 1) % ALBUMS.length; loadAlbum(idx); pos = 0; layout();
+  });
+  $('prev').addEventListener('click', function(){
+    /* Restart if we are past the top of the track, as every player does. */
+    if(pos > 3){ pos = 0; } else { idx = (idx - 1 + ALBUMS.length) % ALBUMS.length; loadAlbum(idx); pos = 0; }
+    layout();
+  });
+  $('shuffle').addEventListener('click', function(){
+    shuffle = !shuffle; this.setAttribute('aria-pressed', String(shuffle));
+  });
+  $('repeat').addEventListener('click', function(){
+    repeat = (repeat + 1) % 3;
+    this.setAttribute('aria-pressed', String(repeat !== 0));
+    $('v-viz').textContent = $('v-viz').textContent; // untouched
+  });
+  $('track').addEventListener('click', function(e){
+    var r = this.getBoundingClientRect();
+    pos = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * ALBUMS[idx].dur;
+    layout();
+  });
+  $('s-viz').addEventListener('click', function(){
+    var v = $('v-viz'); v.textContent = v.textContent === 'Off' ? 'N2O' : 'Off';
+    this.classList.toggle('on', v.textContent !== 'Off');
+  });
+  $('s-vol').addEventListener('click', function(){
+    var v = $('v-vol'); v.textContent = String((parseInt(v.textContent,10) + 10) % 110);
+  });
+
+  window.addEventListener('resize', fit);
+
+  function tick(now){
+    var dt = Math.min((now - last) / 1000, 0.25); last = now;
+    if(playing){
+      pos += dt;
+      if(pos >= ALBUMS[idx].dur){ idx = (idx+1) % ALBUMS.length; loadAlbum(idx); pos = 0; }
+      layout();
+    }
+    var d = new Date();
+    $('clock').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    requestAnimationFrame(tick);
+  }
+
+  /* The art well is square and sized from the panel width. */
+  function sizeWell(){
+    var well = $('well');
+    var side = landscape ? 572 : 652;
+    well.style.width = well.style.height = side + 'px';
+  }
+
+  loadAlbum(0);
+  sizeWell();
+  layout();
+  fit();
+  requestAnimationFrame(tick);
+  window.addEventListener('resize', function(){ sizeWell(); });
+})();
+</script>
+</body>
+</html>
