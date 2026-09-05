@@ -57,7 +57,7 @@
   button.ui:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   /* ---- the device ---- */
-  .stage{display:grid;place-items:start center;width:100%}
+  .stage{display:flex;justify-content:center;align-items:flex-start;width:100%;overflow:hidden}
   .panel{
     width:var(--panel-w);height:var(--panel-h);flex:none;
     background:var(--chassis);border:1px solid #000;border-radius:6px;
@@ -148,14 +148,14 @@
 
 <div class="bar">
   <h1>Front panel</h1>
-  <button class="ui" id="orient">Portrait 720×1280</button>
+  <button class="ui" id="orient">Landscape 1280×720</button>
   <button class="ui" id="albums">Next album</button>
   <button class="ui" id="bevel" aria-pressed="true">Bevels</button>
   <p>Direction B — the instrument. Real accent extraction and WCAG contrast correction, at true panel pixels.</p>
 </div>
 
 <div class="stage">
-  <div class="panel" id="panel">
+  <div class="panel landscape" id="panel">
     <div class="status">
       <span class="lamp"></span>
       <span class="dev" id="device">Kitchen</span>
@@ -339,7 +339,7 @@
 
   /* ---------- state ---------- */
   var idx = 0, playing = true, pos = 0, last = performance.now();
-  var shuffle = false, repeat = 0, landscape = false;
+  var shuffle = false, repeat = 0, landscape = true;
   var REPEATS = ['Off','All','One'];
 
   var $ = function(id){ return document.getElementById(id); };
@@ -381,14 +381,18 @@
     $('remain').textContent = '-' + fmt(dur - pos);
   }
 
-  /* Scale the true-pixel panel to fit whatever is looking at it. */
+  /* Scale the true-pixel panel to fit whatever is looking at it.
+     `transform` does not change layout size, so the 720px (or 1280px) element
+     still occupies its full width in flow. The stage has to reserve the
+     *scaled* box in both axes or the page overflows sideways and the panel
+     sits off-centre in a track wider than the screen. */
   function fit(){
     var w = landscape ? 1280 : 720, h = landscape ? 720 : 1280;
-    var avail = Math.min(window.innerWidth - 24, 760);
-    var availH = window.innerHeight - 150;
-    var s = Math.min(avail / w, availH / h, 1);
+    var s = Math.min((window.innerWidth - 24) / w, (window.innerHeight - 170) / h, 1);
     panel.style.transform = 'scale(' + s + ')';
-    panel.parentElement.style.height = (h * s) + 'px';
+    var stage = panel.parentElement;
+    stage.style.width = (w * s) + 'px';
+    stage.style.height = (h * s) + 'px';
   }
 
   /* ---------- wiring ---------- */
@@ -396,6 +400,7 @@
     landscape = !landscape;
     panel.classList.toggle('landscape', landscape);
     this.textContent = landscape ? 'Landscape 1280×720' : 'Portrait 720×1280';
+    sizeWell();   // the well is square and sized per orientation
     fit();
   });
   $('albums').addEventListener('click', function(){
@@ -447,7 +452,7 @@
     var v = $('v-vol'); v.textContent = String((parseInt(v.textContent,10) + 10) % 110);
   });
 
-  window.addEventListener('resize', fit);
+  window.addEventListener('resize', function(){ sizeWell(); fit(); });
 
   function tick(now){
     var dt = Math.min((now - last) / 1000, 0.25); last = now;
@@ -464,7 +469,7 @@
   /* The art well is square and sized from the panel width. */
   function sizeWell(){
     var well = $('well');
-    var side = landscape ? 572 : 652;
+    var side = landscape ? 566 : 600;
     well.style.width = well.style.height = side + 'px';
   }
 
@@ -473,7 +478,6 @@
   layout();
   fit();
   requestAnimationFrame(tick);
-  window.addEventListener('resize', function(){ sizeWell(); });
 })();
 </script>
 </body>
