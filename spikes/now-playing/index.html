@@ -20,8 +20,8 @@
     --accent:#00e5ff;
     --on-accent:#08070d;
 
-    --panel-w:1280px;
-    --panel-h:720px;
+    --panel-w:720px;
+    --panel-h:1280px;
 
     --display:"Archivo",system-ui,sans-serif;
     --label:"Barlow Condensed","Archivo Narrow",system-ui,sans-serif;
@@ -60,6 +60,7 @@
     transform-origin:top center;
   }
   .panel.portrait{--panel-w:720px;--panel-h:1280px}
+  .panel:not(.portrait){--panel-w:1280px;--panel-h:720px}
 
   /* ---- the album owns the whole device ---- */
   #art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
@@ -153,14 +154,14 @@
 
 <div class="bar">
   <h1>Front panel</h1>
-  <button class="ui" id="orient">Landscape 1280×720</button>
+  <button class="ui" id="orient">Portrait 720×1280</button>
   <button class="ui" id="albums">Next album</button>
   <button class="ui" id="glass" aria-pressed="true">Glass</button>
   <p>The album fills the device; one smoked-glass plate carries the controls.</p>
 </div>
 
 <div class="stage">
-  <div class="panel" id="panel">
+  <div class="panel portrait" id="panel">
     <canvas id="art" width="900" height="900"></canvas>
 
     <div class="status">
@@ -316,7 +317,7 @@
   }
 
   var idx=0, playing=true, pos=0, last=performance.now();
-  var shuffle=false, repeat=0, portrait=false;
+  var shuffle=false, repeat=0, portrait=true;
   var $ = function(id){ return document.getElementById(id); };
   var panel = $('panel');
 

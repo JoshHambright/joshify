@@ -698,4 +698,49 @@ real decision rather than an assumption: landscape needs a rotation in config,
 while portrait gives a full-width square album cover with the controls stacked
 beneath it, which is close to a record sleeve standing up. Being settled by
 prototype rather than argument.
-**Status:** ✅ Accepted (orientation pending review).
+**Orientation: portrait.** Settled by prototype (D-040). The panel's native
+720×1280 needs no rotation, and a portrait screen gives the album far more of
+the device than a landscape one can.
+**Status:** ✅ Accepted.
+
+---
+
+### D-040 · A glass plate over full-bleed art, in portrait
+**Chose:** The album fills the entire panel. One translucent, blurred plate
+floats over the lower portion carrying the controls. Portrait 720×1280.
+**Why the first attempt failed:** it was art-left, text-right, five identical
+buttons in a row — the stock media player layout. The bevels were finish applied
+to a generic skeleton, which is exactly why they did not rescue it. The
+structure was the problem.
+**Why this fixes legibility, not just looks:** text over unpredictable album art
+**cannot** be made reliably readable by choosing colours — some cover always
+defeats you. The plate is a *known* surface, so the 4.5:1 guarantee (D-035) is
+computed against something we control and actually holds. The two complaints —
+"hard to read" and "looks generic" — had one shared cause and one shared fix.
+**Hierarchy over uniformity:** play is a large accent disc, skip is a bare glyph
+with no box, shuffle and repeat stay quiet until active. Five equal-weight keys
+give the eye nothing to land on, which was doing more damage than the palette.
+**Portrait** because the panel is natively 720×1280 — no rotation to configure —
+and because a portrait screen gives the album substantially more of the device.
+**Consequence:** the chips (volume, queue, visualiser) are hidden in portrait for
+want of width. They need a home; SCREENS.md assigns one.
+**Status:** ✅ Accepted.
+
+---
+
+### D-041 · `backdrop-filter` is back on the menu — D-004 relaxed again
+**Chose:** Use real `backdrop-filter` for the control plate, with a solid-tint
+fallback behind `@supports`.
+**Why:** D-004 ruled it out because VideoCore IV on the Zero 2 W could not
+accelerate it. D-008 moved us to a Pi 5, whose VideoCore VII runs it properly,
+and D-004 was relaxed at the time without anything actually taking advantage.
+The plate is where it earns itself: a blurred translucent surface over live
+artwork is precisely the effect a pre-rendered blur cannot fake, because what it
+blurs changes with what is behind it.
+The pre-rendered backdrop (P3-05) is *not* redundant — it remains the right tool
+for the full-screen ambient wash, where the source is static per track.
+**Worth noting as a pattern:** a hardware decision made for one reason (the
+visualiser needed GLES 3.1) quietly unlocked a design option we had written off
+for another. Re-reading old constraints after a platform change is worth doing
+deliberately rather than by accident.
+**Status:** ✅ Accepted.
