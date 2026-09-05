@@ -744,3 +744,26 @@ visualiser needed GLES 3.1) quietly unlocked a design option we had written off
 for another. Re-reading old constraints after a platform change is worth doing
 deliberately rather than by accident.
 **Status:** ✅ Accepted.
+
+---
+
+### D-042 · The engine owns no timers
+**Chose:** `createPlaybackEngine` takes both its clock and its *scheduler* as
+injected dependencies. The default `realScheduler` is a two-line `setTimeout`
+wrapper; tests pass a scheduler they drive by hand.
+**Why:** P2-01 through P2-09 built the parts — poll cadence, normaliser,
+optimistic layer, broadcaster — but nothing composed them into a running loop,
+and a loop is where the timing bugs live. Injecting the clock alone is not
+enough: the code under test still *waits*, so the after-command burst and the
+track-boundary tightening are only observable by sitting through them. With the
+scheduler injected too, a test asserts the next delay as a value. The full
+24-test suite runs in about 400ms and touches one real timer, in the one test
+that exists to cover `realScheduler`.
+**Also settled here:** a command publishes optimistically **and re-arms the poll**
+before awaiting the network. Re-arming matters as much as publishing — without
+it the confirming burst waits out whatever long idle delay was already pending,
+and the optimistic value sits unconfirmed for seconds.
+**And:** a failed poll — network blip or a payload that will not normalise —
+reports the problem and keeps the last known state on screen. Blanking the
+display is never the right answer to a dropped packet.
+**Status:** ✅ Accepted.

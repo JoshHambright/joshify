@@ -3,7 +3,7 @@
 **This is the live source of truth for build progress.** Update it in the same
 commit as the work it describes.
 
-Last updated: 2026-09-02
+Last updated: 2026-09-05
 
 ---
 
@@ -37,14 +37,14 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 |---|---|:---:|:---:|---|
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
-| 2 | Playback state engine | 10 | 9 | 🟨 In progress |
+| 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 12 | 4 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 0 | ⬜ Not started |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **120** | **34** | |
+| | **Total** | **120** | **36** | |
 
 ---
 
@@ -84,7 +84,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P1-07 | Typed Spotify HTTP client (only the endpoints we need) | ✅ | Transport only — returns raw payloads so shape-parsing stays in the P2-01 normaliser. 204 → null |
 | P1-08 | Rate-limit handling: honour `Retry-After`, backoff | ✅ | Full-jitter exponential backoff; obeys `Retry-After`; never retries what cannot succeed. Proactive budget deferred to P2-03, which owns request volume |
 | P1-09 | Error taxonomy: auth / rate-limit / network / no-device / not-premium | ✅ | 8 kinds chosen by *what the device should do*, not by status. 403 splits on message: scope vs Premium |
-| P1-10 | **Fake Spotify server** for tests — same shapes, scriptable failures | ⬜ | Load-bearing for P2–P5 CI |
+| P1-10 | **Fake Spotify server** for tests — same shapes, scriptable failures | ✅ | Real HTTP on a loopback port, so the code under test does real `fetch`, real form encoding, real status handling. Scriptable failures, recorded requests. Every suite in P1–P2 runs against it; CI never needs a credential |
 | P1-11 | `joshify auth` CLI command for first-run setup | ✅ | Also `status` and `logout`. Flags a non-Premium account at setup rather than letting every control 403 later |
 
 ---
@@ -104,7 +104,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P2-07 | Fastify server + localhost-only binding | ✅ | Loopback default asserted by a real refused LAN connection. Plus `Host` validation against DNS rebinding and JSON-only bodies against cross-origin forms (D-034) |
 | P2-08 | WebSocket state push with diffing | ✅ | Diffs carry `from` as well as `version`; an unchanged tick sends nothing (D-033) |
 | P2-09 | Reconnect/resume semantics for the UI socket | ✅ | Recovery is always a fresh snapshot — no replay buffer, so no second correctness path |
-| P2-10 | Full unit suite for the engine against the fake server | ⬜ | Includes clock-driven interpolation tests |
+| P2-10 | Full unit suite for the engine against the fake server | ✅ | The wording undersold it: there was no engine — P2-01…09 were parts nobody composed. `engine/playback-engine.ts` is that composition; 24 tests drive it against the fake with an injected clock and a hand-driven scheduler, so the whole loop runs without a real timer (D-042) |
 
 ---
 
