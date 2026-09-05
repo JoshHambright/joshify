@@ -145,7 +145,7 @@ const queryReadout = (container: HTMLElement): string =>
   container.querySelector('[data-query]')?.getAttribute('data-query') ?? '';
 
 const rowTitles = (container: HTMLElement): string[] =>
-  [...container.querySelectorAll('.title')].map((node) => node.textContent ?? '');
+  [...container.querySelectorAll('.title')].map((node) => node.textContent);
 
 afterEach(cleanup);
 

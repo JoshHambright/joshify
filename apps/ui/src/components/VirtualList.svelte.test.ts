@@ -45,7 +45,7 @@ const mount = (over: { height?: number; overscan?: number } = {}) => {
 };
 
 const cells = (container: HTMLElement): string[] =>
-  [...container.querySelectorAll('.cell')].map((node) => node.textContent ?? '');
+  [...container.querySelectorAll('.cell')].map((node) => node.textContent);
 
 /** Scroll the viewport the way a finger would, without a layout to do it. */
 const scrollTo = async (container: HTMLElement, scrollTop: number): Promise<void> => {

@@ -108,7 +108,7 @@ const layerKey = (layer: KeyboardLayer): KeyCap => ({
 });
 
 const capsOf = (row: string, upper: boolean): readonly KeyCap[] =>
-  [...row].map((char) => charKey(upper ? char.toUpperCase() : char));
+  Array.from(row, (char) => charKey(upper ? char.toUpperCase() : char));
 
 /**
  * The board as it should be drawn right now.
@@ -148,13 +148,13 @@ const nextShift = (shift: ShiftState): ShiftState =>
  * leave a lone surrogate in the query string — which is not a character the
  * user can see, delete, or search for.
  */
-const dropLast = (text: string): string => [...text].slice(0, -1).join('');
+const dropLast = (text: string): string => Array.from(text).slice(0, -1).join('');
 
 export const pressKey = (state: KeyboardState, key: KeyCap): KeyboardState => {
   switch (key.kind) {
     case 'char': {
       const value = key.value ?? '';
-      if ([...state.text].length >= MAX_QUERY_LENGTH) return state;
+      if (Array.from(state.text).length >= MAX_QUERY_LENGTH) return state;
       return {
         ...state,
         text: state.text + value,

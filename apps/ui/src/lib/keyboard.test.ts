@@ -27,7 +27,10 @@ const capNamed = (from: KeyboardState, name: string): KeyCap => {
 
 /** Type a whole string through the board, so shift behaviour is exercised. */
 const type = (from: KeyboardState, text: string): KeyboardState =>
-  [...text].reduce((current, char) => pressKey(current, capNamed(current, char)), from);
+  Array.from(text).reduce(
+    (current, char) => pressKey(current, capNamed(current, char)),
+    from,
+  );
 
 describe('the layout', () => {
   it('is four rows, ten keys across the top', () => {

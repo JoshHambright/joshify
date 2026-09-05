@@ -201,7 +201,7 @@
         items={rows}
         height={listHeight}
         rowHeight={DEFAULT_ROW_HEIGHT}
-        keyOf={(rowItem) => rowItem.id}
+        keyOf={(rowItem: ListRow) => rowItem.id}
         label={query === '' ? 'Library' : 'Search results'}
         {onWindowChange}
       >

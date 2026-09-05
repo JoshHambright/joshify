@@ -35,11 +35,10 @@
   const src = $derived(cache.resolve(cacheKey, images));
 
   // A row coming back into view has already been seen, so it appears rather
-  // than fading in again. Only a genuinely new image is worth 120ms.
-  let shown = $state(false);
-  $effect(() => {
-    shown = cache.isLoaded(cacheKey);
-  });
+  // than fading in again; only a genuinely new image is worth 120ms. Writable
+  // and derived, so a new row starts from what the cache knows about *it*
+  // rather than inheriting the last row's answer.
+  let shown = $derived(cache.isLoaded(cacheKey));
 </script>
 
 <span class="thumb" class:round style="--jf-thumb: {size}px">
