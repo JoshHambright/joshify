@@ -59,33 +59,49 @@
   /* ---- the device ---- */
   .stage{display:flex;justify-content:center;align-items:flex-start;width:100%;overflow:hidden}
   .panel{
+    position:relative;
     width:var(--panel-w);height:var(--panel-h);flex:none;
     background:var(--chassis);border:1px solid #000;border-radius:6px;
     box-shadow:0 0 0 1px #2a2735, 0 24px 60px -20px #000;
     transform-origin:top center;
-    display:flex;flex-direction:column;gap:18px;padding:20px;
+    display:flex;flex-direction:column;gap:14px;padding:18px;
     overflow:hidden; /* a kiosk has nowhere to scroll to (D-039) */
   }
   .panel.landscape{--panel-w:1280px;--panel-h:720px}
 
-  /* ---- status strip ---- */
+  /* ---- blurred backdrop: the album's colour on the whole panel ----
+     A 32px render scaled up — the GPU upscale *is* the blur (D-004/D-011), no
+     backdrop-filter. Heavily scrimmed on purpose: the contrast guarantee is
+     computed against the chassis colour, so the effective background behind
+     text has to stay close to it. Atmosphere, not competition. */
+  .backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;border-radius:6px;pointer-events:none}
+  .backdrop canvas{
+    position:absolute;inset:-12%;width:124%;height:124%;
+    filter:blur(18px) saturate(1.5);opacity:.42;
+  }
+  .backdrop::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 90% at 50% 0%, rgba(22,21,28,.55), rgba(22,21,28,.93) 70%);
+  }
+  .panel > *:not(.backdrop){position:relative;z-index:1}
+
+  /* ---- status strip: a light rail, not a heavy band ---- */
   .status{
-    flex:none;height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;
-    background:var(--chassis-recess);border-radius:3px;box-shadow:var(--recess);
+    flex:none;height:38px;display:flex;align-items:center;gap:12px;padding:0 4px;
   }
   .lamp{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;
     box-shadow:0 0 9px var(--accent)}
-  .status .dev{font-family:var(--label);font-size:17px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink)}
-  .status .via{font-family:var(--label);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
-  .status .clock{margin-left:auto;font-family:var(--mono);font-size:16px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .status .dev{font-family:var(--label);font-size:16px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-dim)}
+  .status .via{font-family:var(--label);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+  .status .clock{margin-left:auto;font-family:var(--mono);font-size:15px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 
   /* ---- art well: the art sits INSIDE the instrument (D-038) ---- */
   .well{
-    flex:none;background:var(--chassis-recess);border-radius:3px;padding:14px;
+    flex:none;background:var(--chassis-recess);border-radius:3px;padding:7px;
     box-shadow:var(--recess);display:grid;place-items:center;
   }
-  .well canvas{display:block;width:100%;height:100%;image-rendering:auto;border-radius:1px;
-    box-shadow:0 6px 18px -6px #000, 0 0 0 1px rgba(0,0,0,.7)}
+  .well canvas{display:block;width:100%;height:100%;image-rendering:auto;
+    box-shadow:0 10px 30px -8px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.8)}
 
   /* ---- track info ---- */
   .meta{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 4px}
@@ -107,9 +123,9 @@
   .times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:17px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
 
   /* ---- transport: buttons that look like buttons ---- */
-  .transport{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .transport{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
   .key{
-    height:92px;border:1px solid var(--rule);border-radius:4px;background:var(--chassis-raised);
+    height:80px;border:1px solid var(--rule);border-radius:4px;background:var(--chassis-raised);
     box-shadow:var(--raise);display:grid;place-items:center;cursor:pointer;color:var(--ink);
     -webkit-tap-highlight-color:transparent;
   }
@@ -122,9 +138,9 @@
   .key .badge{position:absolute;font-family:var(--mono);font-size:11px}
 
   /* ---- secondary strip ---- */
-  .rack{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .rack{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .slot{
-    height:66px;border:1px solid var(--rule);border-radius:3px;background:var(--chassis-raised);
+    height:56px;border:1px solid var(--rule);border-radius:3px;background:var(--chassis-raised);
     box-shadow:var(--raise);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
     cursor:pointer;
   }
@@ -134,12 +150,14 @@
   .slot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   /* ---- landscape rearrangement ---- */
-  .panel.landscape{display:grid;grid-template-columns:600px 1fr;grid-template-rows:54px 1fr;gap:18px}
-  .panel.landscape .status{grid-column:1/-1}
-  .panel.landscape .well{grid-row:2;align-self:start}
-  .panel.landscape .right{display:flex;flex-direction:column;gap:16px;min-height:0}
+  /* Landscape: the picture takes the whole height of the panel; the status
+     rail moves into the right column so nothing steals a band from the art. */
+  .panel.landscape{display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr;gap:18px}
+  .panel.landscape .well{grid-column:1;align-self:center}
+  .panel.landscape .status{order:-1}
+  .panel.landscape .right{grid-column:2;display:flex;flex-direction:column;gap:14px;min-height:0}
   .panel:not(.landscape) .right{display:contents}
-  .panel.landscape .title{font-size:40px}
+  .panel.landscape .title{font-size:42px}
 
   @media (prefers-reduced-motion:reduce){ .key:active{transform:none} }
 </style>
@@ -156,16 +174,18 @@
 
 <div class="stage">
   <div class="panel landscape" id="panel">
-    <div class="status">
-      <span class="lamp"></span>
-      <span class="dev" id="device">Kitchen</span>
-      <span class="via">Spotify Connect</span>
-      <span class="clock" id="clock">21:47</span>
-    </div>
+    <div class="backdrop"><canvas id="bg" width="32" height="32"></canvas></div>
 
     <div class="well" id="well"><canvas id="art" width="640" height="640"></canvas></div>
 
     <div class="right">
+      <div class="status">
+        <span class="lamp"></span>
+        <span class="dev" id="device">Kitchen</span>
+        <span class="via">Spotify Connect</span>
+        <span class="clock" id="clock">21:47</span>
+      </div>
+
       <div class="meta">
         <div class="eyebrow" id="ctx">Playing from album</div>
         <h2 class="title" id="title">Velocity Division</h2>
@@ -271,6 +291,8 @@
 
   var art = document.getElementById('art');
   var ax = art.getContext('2d', { willReadFrequently: true });
+  var bg = document.getElementById('bg');
+  var bx = bg.getContext('2d');
 
   function drawCover(a){
     var p = a.pal, i, j, n, g;
@@ -353,6 +375,10 @@
   function loadAlbum(n){
     var a = ALBUMS[n];
     drawCover(a);
+    /* The pre-rendered backdrop: 640 down to 32, then scaled back up by the
+       compositor. That upscale is the blur (D-005/P3-05). */
+    bx.clearRect(0,0,32,32);
+    bx.drawImage(art, 0, 0, 32, 32);
 
     var chassis = [0x16,0x15,0x1c];
     var raw = extractAccent();
@@ -466,10 +492,11 @@
     requestAnimationFrame(tick);
   }
 
-  /* The art well is square and sized from the panel width. */
+  /* The art is the biggest square the panel will hold. In landscape that is
+     the full content height; in portrait the full content width. */
   function sizeWell(){
     var well = $('well');
-    var side = landscape ? 566 : 600;
+    var side = landscape ? 684 : 684;
     well.style.width = well.style.height = side + 'px';
   }
 
