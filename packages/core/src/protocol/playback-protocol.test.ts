@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE_PLAYBACK, isOk, type PlaybackState } from '@joshify/core';
+import { IDLE_PLAYBACK, isOk, type PlaybackState } from '../index.js';
 import {
   applyPlaybackDiff,
   applyServerMessage,
@@ -11,7 +11,7 @@ import {
   RECONNECT_MAX_DELAY_MS,
   type ClientState,
   type DiffMessage,
-} from './protocol.js';
+} from './playback-protocol.js';
 
 /** Shapes matching the normaliser's output for a playing track (P2-01). */
 const TRACK: NonNullable<PlaybackState['item']> = {

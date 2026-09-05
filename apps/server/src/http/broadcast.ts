@@ -26,7 +26,7 @@ import {
   type HeartbeatMessage,
   type ServerMessage,
   type SnapshotMessage,
-} from './protocol.js';
+} from '@joshify/core';
 
 /** One connected client, seen only as somewhere to put a frame. */
 export interface Subscriber {

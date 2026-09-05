@@ -12,7 +12,7 @@ import {
   parseServerMessage,
   type ClientState,
   type ServerMessage,
-} from './protocol.js';
+} from '@joshify/core';
 import {
   DEFAULT_HOST,
   startHttpServer,

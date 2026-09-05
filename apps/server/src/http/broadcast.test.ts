@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { IDLE_PLAYBACK, type PlaybackState } from '@joshify/core';
 import { createBroadcaster, type Subscriber } from './broadcast.js';
-import { parseServerMessage, type ServerMessage } from './protocol.js';
+import { parseServerMessage, type ServerMessage } from '@joshify/core';
 
 const PLAYING: PlaybackState = {
   isPlaying: true,

@@ -10,7 +10,8 @@
  *
  * Everything here is pure: no sockets, no timers, no Fastify.
  */
-import { err, ok, type PlaybackState, type Result } from '@joshify/core';
+import { err, ok, type Result } from '../result.js';
+import type { PlaybackState } from '../playback/state.js';
 
 /**
  * A shallow partial of `PlaybackState`: a key that is present replaces the

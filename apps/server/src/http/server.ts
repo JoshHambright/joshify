@@ -30,7 +30,7 @@ import type {
   SpotifyCommands,
 } from '../spotify/commands.js';
 import type { Broadcaster } from './broadcast.js';
-import { parseClientMessage } from './protocol.js';
+import { parseClientMessage } from '@joshify/core';
 
 /** Loopback: reachable from the Pi's own browser, from nothing else. */
 export const DEFAULT_HOST = '127.0.0.1';

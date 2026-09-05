@@ -72,3 +72,20 @@ export {
   type PendingChange,
 } from './playback/optimistic.js';
 export { playingItemKey } from './playback/item-key.js';
+export {
+  applyPlaybackDiff,
+  applyServerMessage,
+  diffPlaybackState,
+  isEmptyDiff,
+  parseClientMessage,
+  parseServerMessage,
+  type ClientMessage,
+  type ClientState,
+  type DiffMessage,
+  type HeartbeatMessage,
+  type PlaybackDiff,
+  type ProtocolGap,
+  type ResyncMessage,
+  type ServerMessage,
+  type SnapshotMessage,
+} from './protocol/playback-protocol.js';
