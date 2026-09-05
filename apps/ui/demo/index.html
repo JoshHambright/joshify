@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Joshify — panel</title>
+    <style>
+      body {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        height: 100vh;
+        margin: 0;
+        background: #000;
+      }
+      #harness {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        padding: 10px;
+        background: #101014;
+        font: 12px system-ui, sans-serif;
+      }
+      #harness button {
+        padding: 7px 12px;
+        border: 1px solid #333;
+        border-radius: 6px;
+        background: #1a1a20;
+        color: #ccc;
+        font: inherit;
+      }
+      #harness button:active {
+        border-color: #888;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="panel"></div>
+    <div id="harness"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
