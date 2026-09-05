@@ -6,282 +6,249 @@
 <title>Nightcrawler</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* ------------------------------------------------------------------ *
- * Nightcrawler — a soil cross-section. One committed visual world:
- * an earth profile lit from above. Every colour is painted explicitly
- * so the page never borrows the host's ground.
+ * Nightcrawler — set as a leaf from a Victorian natural-history text.
+ * One committed world: laid paper, sepia ink, and two hand-applied
+ * tints. Every colour is painted explicitly, so the sheet never
+ * borrows the host's ground.
  * ------------------------------------------------------------------ */
 :root {
-  --soil-deep:  #15100c;
-  --soil-b:     #1f1713;
-  --soil-a:     #2b1f17;
-  --litter:     #3d2c1f;
-  --page:       #0d0a08;
-  --panel:      #1c1510;
-  --rule:       #3a2c22;
-  --rule-soft:  #2a1f18;
-  --ink:        #efe5d7;
-  --ink-dim:    #9c8875;
-  --ink-faint:  #6b5b4c;
-  --worm:       #c98a86;
-  --worm-lit:   #e0a9a2;
-  --clitellum:  #ebc7ac;
-  --leaf:       #7e9350;
-  --hyphae:     #dacba4;
-  --stone:      #514c46;
-
-  --step: clamp(6px, 1.1vw, 10px);
+  --paper:       #e8dfc8;
+  --paper-lit:   #f0e8d6;   /* an excavated void, left un-inked */
+  --paper-edge:  #ded2b5;
+  --ink:         #2a2118;
+  --ink-soft:    #5f5140;
+  --ink-faint:   #8d7d66;
+  --rubric:      #9e3b28;   /* the second colour, spent on one rule */
+  --tint-worm:   #bd8171;
+  --tint-leaf:   #8b9464;
 }
 
 * { box-sizing: border-box; }
 
+html { background: var(--paper); }
+
 body {
   margin: 0;
-  background: var(--page);
+  background: var(--paper);
   color: var(--ink);
-  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.55;
+  font-family: "Old Standard TT", "Iowan Old Style", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.52;
   -webkit-font-smoothing: antialiased;
-  /* faint warm light from the surface, top-down */
-  background-image: radial-gradient(120% 60% at 50% -10%, rgba(255, 218, 160, 0.07), transparent 62%);
-  background-attachment: fixed;
+  text-rendering: optimizeLegibility;
 }
 
-.wrap {
-  max-width: 980px;
+.leaf {
+  max-width: 940px;
   margin: 0 auto;
-  padding: clamp(20px, 4vw, 44px) clamp(14px, 3vw, 28px) 56px;
+  padding: clamp(18px, 3.5vw, 40px) clamp(16px, 4vw, 46px) 64px;
+}
+
+/* ---- running head, as a book sets one ---- */
+.running {
   display: flex;
-  flex-direction: column;
-  gap: clamp(16px, 2.4vw, 26px);
-}
-
-/* ---- masthead ---- */
-.masthead { display: flex; flex-direction: column; gap: 6px; }
-
-.eyebrow {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 11px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.19em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+}
+.running .mid { text-align: center; flex: 1 1 auto; }
+.running .folio { font-variant-numeric: tabular-nums; }
+.rule-hair { border: 0; border-top: 1px solid var(--ink); opacity: 0.42; margin: 0 0 clamp(22px, 4vw, 38px); }
+
+/* ---- title block ---- */
+.title-block { text-align: center; margin-bottom: clamp(20px, 3.4vw, 34px); }
+h1 {
+  font-family: "Libre Caslon Display", "Libre Caslon Text", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(44px, 8.4vw, 82px);
+  line-height: 0.98;
+  letter-spacing: 0.005em;
+  margin: 0 0 6px;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.subtitle {
+  font-size: 11.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
   margin: 0;
 }
+.swell { display: block; width: 168px; height: 9px; margin: 13px auto 0; }
+.swell path { fill: var(--rubric); }
 
-h1 {
-  font-family: "Fraunces", Georgia, serif;
-  font-optical-sizing: auto;
-  font-weight: 600;
-  font-size: clamp(38px, 7vw, 62px);
-  line-height: 0.94;
-  letter-spacing: -0.015em;
-  margin: 0;
-  text-wrap: balance;
+/* ---- the standfirst, opened with an initial ---- */
+.standfirst {
+  max-width: 63ch;
+  margin: 0 auto clamp(26px, 4vw, 40px);
+  font-size: 17.5px;
+  line-height: 1.58;
+}
+.standfirst::first-letter {
+  float: left;
+  font-family: "Libre Caslon Display", Georgia, serif;
+  font-size: 3.2em;
+  line-height: 0.84;
+  padding: 0.02em 0.035em 0 0;
   color: var(--ink);
 }
+.standfirst i { color: var(--ink-soft); }
 
-.standfirst {
-  margin: 2px 0 0;
-  max-width: 56ch;
-  color: var(--ink-dim);
+/* ---- the plate: thick rule outside, thin within ---- */
+.plate-frame {
+  border: 2px solid var(--ink);
+  padding: 5px;
+  background: var(--paper);
 }
-.standfirst em { color: var(--worm); font-style: normal; }
-
-/* ---- the plate: ruler + board ---- */
 .plate {
   display: flex;
   align-items: stretch;
-  gap: 0;
-  border: 1px solid var(--rule);
-  background: var(--soil-deep);
-  padding: 0;
-  position: relative;
+  border: 1px solid var(--ink);
+  background: var(--paper);
 }
 
-.ruler {
-  width: 108px;
-  flex: 0 0 108px;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--rule);
-  background: var(--panel);
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-}
-.band {
+/* the engraved scale, in inches */
+.scale {
+  width: 104px;
+  flex: 0 0 104px;
   position: relative;
-  padding: 7px 10px 0;
-  border-bottom: 1px solid var(--rule-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
+  border-right: 1px solid var(--ink);
+  background: var(--paper);
 }
-.band:last-child { border-bottom: 0; }
-.band .depth {
-  font-size: 11px;
-  color: var(--ink-dim);
-  font-variant-numeric: tabular-nums;
-}
-.band .horizon {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.band-o { flex: 2 0 0; background: linear-gradient(90deg, rgba(51,36,26,0.9), var(--panel)); }
-.band-a { flex: 7 0 0; background: linear-gradient(90deg, rgba(36,26,20,0.9), var(--panel)); }
-.band-b { flex: 11 0 0; background: linear-gradient(90deg, rgba(25,19,16,0.9), var(--panel)); }
-.floor {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 9.5px;
-  white-space: nowrap;
-  color: var(--ink-faint);
-  padding: 4px 10px 5px;
-  border-top: 1px solid var(--rule);
-  font-variant-numeric: tabular-nums;
-}
+.scale canvas { width: 100%; height: 100%; display: block; }
 
-.board-slot {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-  background: var(--soil-b);
-}
-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  touch-action: none;
-  background: var(--soil-a);
-}
+.board-slot { position: relative; flex: 1 1 auto; min-width: 0; display: flex; }
+#board { display: block; width: 100%; height: auto; touch-action: none; }
 
-/* ---- overlay ---- */
+figcaption {
+  margin: 11px auto 0;
+  max-width: 66ch;
+  text-align: center;
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+figcaption b { font-style: normal; font-weight: 400; color: var(--ink); }
+figure { margin: 0 0 clamp(26px, 4vw, 40px); }
+
+/* ---- the slip pasted over the plate ---- */
 .overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
-  background: rgba(13, 10, 8, 0.72);
-  backdrop-filter: blur(2px);
+  padding: 16px;
+  background: rgba(232, 223, 200, 0.82);
 }
 .overlay[hidden] { display: none !important; }
-.card {
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  padding: 20px 24px 22px;
-  max-width: 400px;
-  text-align: left;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+.slip {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  padding: 3px;
+  max-width: 430px;
+  box-shadow: 3px 4px 0 rgba(42, 33, 24, 0.18);
 }
-.card h2 {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 600;
-  font-size: 25px;
-  line-height: 1.1;
-  margin: 0 0 8px;
-  color: var(--ink);
+.slip-inner { border: 1px solid var(--ink); padding: 20px 24px 22px; }
+.slip h2 {
+  font-family: "Libre Caslon Display", Georgia, serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.14;
+  margin: 0 0 9px;
   text-wrap: balance;
 }
-.card p { margin: 0 0 14px; color: var(--ink-dim); font-size: 14px; }
-.card p:last-of-type { margin-bottom: 0; }
-.card .verdict { color: var(--worm); }
-
-button {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--soil-deep);
-  background: var(--worm);
-  border: 0;
-  padding: 10px 18px;
-  cursor: pointer;
-  margin-top: 16px;
-}
-button:hover { background: var(--worm-lit); }
-button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px; }
-
-/* ---- specimen fields ---- */
-.specimen {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  border: 1px solid var(--rule);
-  border-top: 0;
-}
-.field {
-  padding: 10px 14px 12px;
-  border-right: 1px solid var(--rule-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.field:last-child { border-right: 0; }
-.field dt {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.field dd {
-  margin: 0;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 26px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+.slip p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
+.slip .tally {
+  display: block;
+  margin-top: 11px;
+  font-style: italic;
   color: var(--ink);
 }
-.field dd .unit {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--ink-faint);
-  margin-left: 3px;
-}
-#f-leaves dd { color: var(--leaf); }
-
-/* ---- foot ---- */
-.keys {
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+button {
+  font-family: inherit;
   font-size: 11.5px;
-  color: var(--ink-faint);
-  letter-spacing: 0.04em;
-  margin: 0;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 8px 17px 7px;
+  cursor: pointer;
+  margin-top: 17px;
 }
-.keys kbd {
-  font: inherit;
-  color: var(--ink-dim);
-  border: 1px solid var(--rule);
-  padding: 1px 5px;
-  margin: 0 1px;
-}
-.note {
-  border-top: 1px solid var(--rule-soft);
-  padding-top: 14px;
-  margin: 0;
-  max-width: 62ch;
-  font-size: 13.5px;
-  color: var(--ink-faint);
-}
-.note strong { color: var(--ink-dim); font-weight: 500; }
+button:hover { background: var(--ink); color: var(--paper); }
+button:focus-visible { outline: 2px solid var(--rubric); outline-offset: 2px; }
 
-@media (max-width: 620px) {
-  .ruler { display: none; }
-  .specimen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .field:nth-child(2) { border-right: 0; }
-  .field:nth-child(-n+2) { border-bottom: 1px solid var(--rule-soft); }
-  .field dd { font-size: 22px; }
+/* ---- table of observations ---- */
+.tbl-head {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 7px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: clamp(24px, 4vw, 36px);
+}
+th {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink-soft);
+  padding: 7px 10px 6px;
+  border-bottom: 1px solid var(--ink);
+  text-align: center;
+}
+td {
+  font-family: "Libre Caslon Display", Georgia, serif;
+  font-size: 28px;
+  line-height: 1.1;
+  text-align: center;
+  padding: 12px 10px 14px;
+  font-variant-numeric: tabular-nums;
+}
+th + th, td + td { border-left: 1px solid var(--ink); }
+td .unit { font-family: "Old Standard TT", Georgia, serif; font-size: 14px; font-style: italic; color: var(--ink-soft); margin-left: 3px; }
+
+/* ---- directions and footnote ---- */
+.directions { margin: 0 0 22px; font-size: 15.5px; color: var(--ink-soft); max-width: 66ch; }
+.directions .lead { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink); }
+.directions kbd { font: inherit; font-style: italic; color: var(--ink); }
+.footnote {
+  border-top: 1px solid var(--ink);
+  padding-top: 11px;
+  margin: 0;
+  max-width: 70ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+.footnote sup { color: var(--rubric); }
+.footnote i { color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .scale { display: none; }
+  .running .mid { display: none; }
+  td { font-size: 22px; }
+  th { font-size: 12.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -290,61 +257,78 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="leaf">
 
-  <header class="masthead">
-    <p class="eyebrow">Plate I &nbsp;·&nbsp; Lumbricus terrestris &nbsp;·&nbsp; soil profile, 40 cm</p>
+  <div class="running">
+    <span>Chap. II.</span>
+    <span class="mid">On the habits of worms</span>
+    <span class="folio">17</span>
+  </div>
+  <hr class="rule-hair">
+
+  <div class="title-block">
     <h1>Nightcrawler</h1>
-    <p class="standfirst">Snake, but the snake is an earthworm. It eats fallen leaves, it
-      loosens every cell it passes through, and it has <em>no eyes</em> — so watch the burrow
-      behind you. The soil wraps at both sides. Above is open air. Below is bedrock.</p>
-  </header>
+    <p class="subtitle">A diversion upon the formation of vegetable mould</p>
+    <svg class="swell" viewBox="0 0 200 9" aria-hidden="true">
+      <path d="M2 4.5 Q 100 0 198 4.5 Q 100 9 2 4.5 Z"></path>
+    </svg>
+  </div>
 
-  <div class="plate">
-    <div class="ruler" aria-hidden="true">
-      <div class="band band-o">
-        <span class="depth">0</span>
-        <span class="horizon">O · litter</span>
-      </div>
-      <div class="band band-a">
-        <span class="depth">4 cm</span>
-        <span class="horizon">A · topsoil</span>
-      </div>
-      <div class="band band-b">
-        <span class="depth">18 cm</span>
-        <span class="horizon">B · subsoil</span>
-        <span class="floor">40 cm — bedrock</span>
-      </div>
-    </div>
+  <p class="standfirst">Snake, but the animal is an earthworm, and the board a vertical
+    section of garden soil twenty inches in depth. It feeds upon fallen leaves, which
+    gather near the surface; it loosens every inch of earth it passes through; and it has
+    <i>no eyes</i>, so that it must remember the burrow behind it. The mould continues at
+    either hand. Above lies the open air, and below, the subsoil ends.</p>
 
-    <div class="board-slot">
-      <canvas id="board" width="840" height="600" role="img"
-              aria-label="Soil cross-section. Use the arrow keys to steer the earthworm."></canvas>
-      <div class="overlay" id="overlay">
-        <div class="card">
-          <h2 id="ov-title">Burrow.</h2>
-          <p id="ov-body">Steer with the arrow keys, <kbd>WASD</kbd>, or a swipe across the plate.
-            Leaf litter collects near the surface — that is where you have to go for it.</p>
-          <button id="ov-btn" type="button">Start burrowing</button>
+  <figure>
+    <div class="plate-frame">
+      <div class="plate">
+        <div class="scale"><canvas id="scale" width="104" height="600" aria-hidden="true"></canvas></div>
+        <div class="board-slot">
+          <canvas id="board" width="800" height="600" role="img"
+                  aria-label="Engraved vertical section of garden soil. Use the arrow keys to steer the earthworm."></canvas>
+          <div class="overlay" id="overlay">
+            <div class="slip">
+              <div class="slip-inner">
+                <h2 id="ov-title">To begin.</h2>
+                <p id="ov-body">Steer with the arrow keys, with W A S D, or with a finger drawn
+                  across the plate. Leaves gather near the surface: that is where the animal must
+                  go, and where the open air waits.</p>
+                <button id="ov-btn" type="button">Begin the observation</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+    <figcaption><b>Fig. 1.</b>—Vertical section of a garden soil, twenty inches in depth,
+      showing the burrow of a full-grown <i>Lumbricus terrestris</i>, with its castings,
+      fallen leaves, embedded stones, and a growth of fungal hyphæ. Drawn to the scale
+      at the left.</figcaption>
+  </figure>
 
-  <dl class="specimen">
-    <div class="field" id="f-leaves"><dt>Leaves eaten</dt><dd id="v-leaves">0</dd></div>
-    <div class="field"><dt>Segments</dt><dd id="v-segments">6</dd></div>
-    <div class="field"><dt>Head depth</dt><dd><span id="v-depth">12</span><span class="unit">cm</span></dd></div>
-    <div class="field"><dt>Best</dt><dd id="v-best">0</dd></div>
-  </dl>
+  <p class="tbl-head">Table I.—Observations</p>
+  <table>
+    <thead>
+      <tr><th scope="col">Leaves consumed</th><th scope="col">Segments</th>
+          <th scope="col">Depth of head</th><th scope="col">Best recorded</th></tr>
+    </thead>
+    <tbody>
+      <tr><td id="v-leaves">0</td><td id="v-segments">6</td>
+          <td><span id="v-depth">10</span><span class="unit">in.</span></td><td id="v-best">0</td></tr>
+    </tbody>
+  </table>
 
-  <p class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>WASD</kbd> steer
-    &nbsp;·&nbsp; <kbd>Space</kbd> pause &nbsp;·&nbsp; <kbd>R</kbd> restart &nbsp;·&nbsp; swipe on the plate</p>
+  <p class="directions"><span class="lead">Directions.</span>—The arrow keys or
+    <kbd>W A S D</kbd> steer the animal; the <kbd>space-bar</kbd> suspends the observation;
+    <kbd>R</kbd> begins it afresh. Upon a touch-screen, draw the finger across the plate.</p>
 
-  <p class="note"><strong>Field note.</strong> The pale swollen band a third of the way down the
-    body is the clitellum; it secretes the cocoon and is the only reliable landmark on a worm.
-    The dark granules dropped behind you are castings. Every cell you tunnel through stays
-    loosened for the rest of the run — that aeration is what the animal is actually for.</p>
+  <p class="footnote"><sup>*</sup> After Darwin, <i>The Formation of Vegetable Mould through
+    the Action of Worms</i> (London: John Murray, 1881), wherein the worms of an English field
+    are reckoned to pass between ten and eighteen tons of earth to the acre through their
+    bodies in the course of a single year. The castings dropped behind the animal here are
+    that same labour, in little; and the pale swollen band a fifth of the way down its body
+    is the clitellum, by which the cocoon is secreted, and the only sure landmark on a worm.</p>
 
 </div>
 
@@ -352,50 +336,238 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
 (() => {
   "use strict";
 
-  /* ---------------- constants: the soil profile ---------------- */
+  /* ---------------- the section, measured as Darwin measured it ---------------- */
   const COLS = 28, ROWS = 20;
-  const CM_PER_ROW = 2;                 // 20 rows × 2 cm = a 40 cm profile
-  const O_END = 2, A_END = 9;           // row < 2 → O horizon, < 9 → A, else B
+  const IN_PER_ROW = 1;                 // twenty rows, twenty inches
+  const O_END = 2, A_END = 9;           // litter | vegetable mould | subsoil
   const START_LEN = 6;
-  const GROW_PER_LEAF = 2;              // worms grow long, not fat
+  const GROW_PER_LEAF = 2;
   const BASE_STEP = 150, MIN_STEP = 78, STEP_DECAY = 3.2;
-  const HYPHAE_EVERY = 4;               // every 4th leaf spawns a fungal patch
-  const HYPHAE_LIFE = 46;               // steps before it rots away
-  const PEBBLE_EVERY = 5;               // a stone works into the profile
+  const HYPHAE_EVERY = 4, HYPHAE_LIFE = 46, PEBBLE_EVERY = 5;
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const INK = "42,33,24";
   const C = {
-    litter: "#3d2c1f", topsoil: "#2b1f17", subsoil: "#1f1713",
-    worm: "#c98a86", wormLit: "#e0a9a2", wormDark: "#8f5c59",
-    clitellum: "#ebc7ac", leaf: "#7e9350", leafDark: "#57663a",
-    hyphae: "#dacba4", stone: "#514c46", stoneLit: "#6d675f",
-    casting: "rgba(8,5,3,0.9)"
+    paper: "#e8dfc8", paperLit: "#f2ebda",
+    litter: "#e3d8bd", mould: "#e6dcc2", subsoil: "#e1d6b9",
+    ink: "#2a2118", tintWorm: "#bd8171", tintLeaf: "#8b9464"
   };
+  const ink = (a) => "rgba(" + INK + "," + a + ")";
 
-  /* ---------------- canvas plumbing ---------------- */
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
-  let cell = 30, dpr = 1;
-  const grain = document.createElement("canvas");
-  const gctx = grain.getContext("2d");
+  const scaleCan = document.getElementById("scale");
+  const sctx = scaleCan.getContext("2d");
+  let cell = 28, dpr = 1;
+
+  const soil = document.createElement("canvas");   // baked: the engraved ground
+  const soilCtx = soil.getContext("2d");
+  const bur = document.createElement("canvas");    // baked: the excavated burrow
+  const burCtx = bur.getContext("2d");
+  let burrowDirty = true;
 
   function horizonOf(row) { return row < O_END ? 0 : row < A_END ? 1 : 2; }
-  function soilColour(row) {
-    const h = horizonOf(row);
-    return h === 0 ? C.litter : h === 1 ? C.topsoil : C.subsoil;
-  }
 
-  // deterministic per-cell noise so the soil texture never boils between frames
+  // deterministic per-point noise: baked grain must not boil between frames
   function hash(x, y) {
     let n = (x * 374761393 + y * 668265263) ^ 0x5bf03635;
     n = (n ^ (n >>> 13)) * 1274126177;
     return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
   }
 
+  /* A line drawn by a hand, not a plotter: one control point pushed aside. */
+  function waver(c, x1, y1, x2, y2, amt, seed) {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    const off = (hash(seed, Math.round(len)) - 0.5) * amt;
+    c.moveTo(x1, y1);
+    c.quadraticCurveTo(mx - (dy / len) * off, my + (dx / len) * off, x2, y2);
+  }
+
+  /* ---------------- the engraved ground, baked once ---------------- */
+  function bakeSoil(w, h) {
+    soil.width = Math.round(w * dpr); soil.height = Math.round(h * dpr);
+    soilCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const g = soilCtx;
+
+    for (let r = 0; r < ROWS; r++) {
+      const hz = horizonOf(r);
+      g.fillStyle = hz === 0 ? C.litter : hz === 1 ? C.mould : C.subsoil;
+      g.fillRect(0, r * cell, w, cell);
+    }
+
+    // Stipple. The engraver darkens the plate by crowding the dots, so density
+    // and dot size are what distinguish one horizon from the next.
+    for (let r = 0; r < ROWS; r++) {
+      const hz = horizonOf(r);
+      const count = hz === 0 ? 6 : hz === 1 ? 15 : 27;
+      const rad = hz === 0 ? 1.35 : hz === 1 ? 0.75 : 0.62;
+      const depth = r / ROWS;
+      for (let c = 0; c < COLS; c++) {
+        for (let k = 0; k < count; k++) {
+          const a = hash(c * 131 + k * 7, r * 89 + k * 17);
+          const b = hash(r * 53 + k * 11, c * 29 + k * 3);
+          g.fillStyle = ink((0.24 + b * 0.32 + depth * 0.20).toFixed(3));
+          g.beginPath();
+          g.arc((c + a) * cell, (r + b) * cell, rad * (0.7 + hash(k, c + r) * 0.6), 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+    }
+
+    // Hatching through the subsoil — a second set of lines, laid at an angle,
+    // is how depth was shown before halftone.
+    g.strokeStyle = ink(0.22);
+    g.lineWidth = 0.85;
+    g.beginPath();
+    for (let r = A_END; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c += 1) {
+        if (hash(c * 7, r * 13) > 0.30 + (r - A_END) / (ROWS - A_END) * 0.55) continue;
+        const x = (c + hash(c, r)) * cell, y = (r + hash(r, c)) * cell;
+        const L = cell * (0.5 + hash(r, c) * 0.6);
+        waver(g, x, y, x + L * 0.72, y + L * 0.5, 1.6, c * 31 + r);
+      }
+    }
+    g.stroke();
+
+    // Fragments of leaf and rootlet through the litter and the mould
+    g.strokeStyle = ink(0.34);
+    g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 0; i < 78; i++) {
+      const t = hash(7, i * 5);
+      // crowded into the litter, thinning downward through the mould
+      const y = t * t * cell * A_END * 1.05;
+      const x = hash(i * 3, 11) * w;
+      const a = hash(i, i * 2) * Math.PI, L = cell * (0.3 + hash(i, 9) * 0.5);
+      waver(g, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L, 3.4, i * 17);
+    }
+    g.stroke();
+
+    // Roots descending from the surface, with their hairs
+    for (let i = 0; i < 3; i++) {
+      const x0 = (0.14 + i * 0.33 + hash(i, 3) * 0.08) * w;
+      const depth = h * (0.28 + hash(i, 8) * 0.32);
+      let x = x0;
+      const spine = [[x0, 0]];
+      for (let y = cell * 0.7; y < depth; y += cell * 0.7) {
+        x += (hash(i * 19, Math.round(y)) - 0.5) * cell * 0.55;
+        spine.push([x, y]);
+      }
+      // drawn segment by segment, so the line thins toward the tip as a root does
+      for (let k = 1; k < spine.length; k++) {
+        const f = 1 - k / spine.length;
+        g.strokeStyle = ink(0.20 + f * 0.26);
+        g.lineWidth = 0.5 + f * 1.9;
+        g.beginPath();
+        g.moveTo(spine[k - 1][0], spine[k - 1][1]);
+        g.lineTo(spine[k][0], spine[k][1]);
+        g.stroke();
+      }
+      g.strokeStyle = ink(0.28);
+      g.lineWidth = 0.7;
+      g.beginPath();
+      for (let k = 1; k < spine.length; k++) {
+        if (hash(i, k) > 0.62) continue;
+        const dir = hash(k, i) > 0.5 ? 1 : -1;
+        waver(g, spine[k][0], spine[k][1],
+              spine[k][0] + dir * cell * (0.35 + hash(k, i) * 0.75),
+              spine[k][1] + cell * 0.45, 2.4, k * 13 + i);
+      }
+      g.stroke();
+    }
+
+    // The boundaries between horizons, as a section drawing rules them:
+    // a firm line, shadowed by a broken one.
+    for (const r of [O_END, A_END]) {
+      g.strokeStyle = ink(0.62);
+      g.lineWidth = 1.3;
+      g.beginPath();
+      for (let x = 0; x <= w; x += 8) {
+        const y = r * cell + Math.sin(x * 0.031) * 2.6 + (hash(x, r) - 0.5) * 2.4;
+        x === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.stroke();
+      g.strokeStyle = ink(0.30);
+      g.lineWidth = 0.8;
+      g.setLineDash([5, 6]);
+      g.beginPath();
+      for (let x = 0; x <= w; x += 8) {
+        const y = r * cell + 4 + Math.sin(x * 0.031) * 2.6;
+        x === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.stroke();
+      g.setLineDash([]);
+    }
+
+    // Foxing — the paper is a hundred and forty years old
+    for (let i = 0; i < 16; i++) {
+      const x = hash(i * 23, 5) * w, y = hash(4, i * 29) * h;
+      const r = cell * (0.4 + hash(i, i) * 1.1);
+      const f = soilCtx.createRadialGradient(x, y, 0, x, y, r);
+      f.addColorStop(0, "rgba(150,110,60,0.10)");
+      f.addColorStop(1, "rgba(150,110,60,0)");
+      g.fillStyle = f;
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+  }
+
+  /* ---------------- the scale, in inches ---------------- */
+  function drawScale(h) {
+    const w = 104;
+    scaleCan.width = Math.round(w * dpr);
+    scaleCan.height = Math.round(h * dpr);
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sctx.fillStyle = C.paper;
+    sctx.fillRect(0, 0, w, h);
+
+    const axis = w - 13;
+    sctx.strokeStyle = C.ink;
+    sctx.lineWidth = 1.1;
+    sctx.beginPath(); sctx.moveTo(axis, 0); sctx.lineTo(axis, h); sctx.stroke();
+
+    sctx.fillStyle = C.ink;
+    sctx.textAlign = "right";
+    sctx.textBaseline = "middle";
+    for (let i = 0; i <= ROWS; i++) {
+      const y = i * cell;
+      const major = i % 5 === 0;
+      sctx.lineWidth = major ? 1.1 : 0.8;
+      sctx.strokeStyle = major ? C.ink : ink(0.5);
+      sctx.beginPath();
+      sctx.moveTo(axis, y); sctx.lineTo(axis - (major ? 11 : 6), y);
+      sctx.stroke();
+      if (major) {
+        sctx.font = 'italic 12px "Old Standard TT", Georgia, serif';
+        sctx.fillText(i === 0 ? "0" : String(i * IN_PER_ROW),
+                      axis - 14, Math.min(h - 7, Math.max(7, y)));
+      }
+    }
+    // braces naming the three beds, set vertically against the rule
+    const beds = [[0, O_END, "Litter"], [O_END, A_END, "Vegetable mould"], [A_END, ROWS, "Subsoil"]];
+    sctx.textAlign = "center";
+    for (const [a, b, name] of beds) {
+      const y0 = a * cell, y1 = b * cell, mid = (y0 + y1) / 2;
+      sctx.strokeStyle = ink(0.55);
+      sctx.lineWidth = 0.9;
+      sctx.beginPath();
+      sctx.moveTo(34, y0 + 3); sctx.lineTo(30, y0 + 8);
+      sctx.lineTo(30, y1 - 8); sctx.lineTo(34, y1 - 3);
+      sctx.stroke();
+      sctx.save();
+      sctx.translate(47, mid);
+      sctx.rotate(-Math.PI / 2);
+      sctx.fillStyle = C.ink;
+      sctx.font = '13px "Old Standard TT", Georgia, serif';
+      sctx.fillText(name, 0, 0);
+      sctx.restore();
+    }
+  }
+
   function resize() {
-    const w = canvas.parentElement.clientWidth || 840;
-    cell = Math.max(10, w / COLS);
+    const slot = canvas.parentElement.clientWidth || 760;
+    cell = Math.max(10, slot / COLS);
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cssW = cell * COLS, cssH = cell * ROWS;
     canvas.style.width = cssW + "px";
@@ -404,58 +576,16 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     canvas.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     bakeSoil(cssW, cssH);
+    drawScale(cssH);
+    bur.width = canvas.width; bur.height = canvas.height;
+    burCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    burrowDirty = true;
     draw(1);
   }
 
-  // The static earth: horizon fills, grit, bedding lines, light from above.
-  function bakeSoil(w, h) {
-    grain.width = Math.round(w * dpr);
-    grain.height = Math.round(h * dpr);
-    gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    for (let r = 0; r < ROWS; r++) {
-      gctx.fillStyle = soilColour(r);
-      gctx.fillRect(0, r * cell, w, cell);
-    }
-    // grit
-    for (let r = 0; r < ROWS; r++) {
-      const grit = horizonOf(r) === 2 ? 5 : 8;   // subsoil is finer, denser
-      for (let c = 0; c < COLS; c++) {
-        for (let k = 0; k < grit; k++) {
-          const a = hash(c * 91 + k, r * 57 + k * 13);
-          const b = hash(r * 31 + k * 7, c * 17 + k);
-          const s = 0.6 + hash(c + k, r + k) * 1.5;
-          gctx.fillStyle = b > 0.6
-            ? "rgba(214,183,144," + (0.05 + b * 0.07).toFixed(3) + ")"
-            : "rgba(0,0,0," + (0.10 + a * 0.16).toFixed(3) + ")";
-          gctx.beginPath();
-          gctx.arc((c + a) * cell, (r + b) * cell, s, 0, Math.PI * 2);
-          gctx.fill();
-        }
-      }
-    }
-    // horizon boundaries — a real soil profile has visible bedding
-    gctx.strokeStyle = "rgba(0,0,0,0.22)";
-    gctx.lineWidth = 1;
-    for (const r of [O_END, A_END]) {
-      gctx.beginPath();
-      for (let x = 0; x <= w; x += 6) {
-        const y = r * cell + Math.sin(x * 0.045) * 2.2 + hash(x, r) * 1.4;
-        x === 0 ? gctx.moveTo(x, y) : gctx.lineTo(x, y);
-      }
-      gctx.stroke();
-    }
-    // daylight bleeding down from the surface
-    const g = gctx.createLinearGradient(0, 0, 0, cell * 7);
-    g.addColorStop(0, "rgba(255,224,171,0.10)");
-    g.addColorStop(1, "rgba(255,224,171,0)");
-    gctx.fillStyle = g;
-    gctx.fillRect(0, 0, w, cell * 7);
-  }
-
-  /* ---------------- game state ---------------- */
+  /* ---------------- state ---------------- */
   let state, worm, prevWorm, dir, queue, leaf, hyphae, pebbles, burrow, castings,
-      puffs, leaves, best = 0, stepMs, acc, last, deathText, deathTitle, phase = 0;
+      specks, leaves, best = 0, stepMs, acc, last, deathText, deathTitle, phase = 0;
 
   try { best = parseInt(localStorage.getItem("nightcrawler.best") || "0", 10) || 0; } catch (e) { best = 0; }
 
@@ -469,8 +599,7 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     return false;
   }
 
-  // Litter is organic matter: it collects near the surface. Weighting the
-  // spawn upward is what makes the lethal top edge a real decision.
+  // Leaf-fall collects at the surface, so the food sits beside the lethal edge.
   function spawn(surfaceBias) {
     for (let tries = 0; tries < 400; tries++) {
       const x = Math.floor(Math.random() * COLS);
@@ -487,23 +616,18 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     for (let i = 0; i < START_LEN; i++) worm.push({ x: Math.floor(COLS / 2) - i, y: my });
     prevWorm = worm.map(s => ({ x: s.x, y: s.y }));
     dir = { x: 1, y: 0 };
-    queue = [];
-    pebbles = [];
+    queue = []; pebbles = []; castings = []; specks = []; hyphae = null;
     burrow = new Set(worm.map(s => key(s.x, s.y)));
-    castings = [];
-    puffs = [];
-    hyphae = null;
-    leaves = 0;
-    stepMs = BASE_STEP;
-    acc = 0;
+    burrowDirty = true;
+    leaves = 0; stepMs = BASE_STEP; acc = 0;
     leaf = spawn(true);
-    updateHUD();
+    updateTable();
   }
 
-  function updateHUD() {
+  function updateTable() {
     document.getElementById("v-leaves").textContent = leaves;
     document.getElementById("v-segments").textContent = worm.length;
-    document.getElementById("v-depth").textContent = worm[0].y * CM_PER_ROW + 1;
+    document.getElementById("v-depth").textContent = worm[0].y * IN_PER_ROW + 1;
     document.getElementById("v-best").textContent = best;
   }
 
@@ -515,35 +639,39 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     }
 
     const head = worm[0];
-    const nx = (head.x + dir.x + COLS) % COLS;   // soil continues sideways
+    const nx = (head.x + dir.x + COLS) % COLS;     // the mould continues at either hand
     const ny = head.y + dir.y;
 
-    if (ny < 0)      return die("Surfaced at dawn.", "A robin was waiting. Nightcrawlers come up to feed, and that is exactly when the birds are working.");
-    if (ny >= ROWS)  return die("Struck bedrock.", "Forty centimetres down the profile runs out. No burrow goes deeper than the parent rock.");
+    if (ny < 0) return die("It came up, and a thrush was waiting.",
+      "Nightcrawlers rise after dark to draw leaves down into the burrow. Daylight at the mouth of it is the one thing the earth does not protect against.");
+    if (ny >= ROWS) return die("The section ends at twenty inches.",
+      "Below the subsoil lies the parent rock, which no worm has ever worked. The burrow could be carried no further.");
     if (pebbles.some(p => p.x === nx && p.y === ny))
-      return die("Ran head-first into a stone.", "A worm can shove aside a grain of sand. It cannot shove aside a pebble.");
+      return die("It met a stone.",
+        "A grain of sand the animal may swallow and pass; a pebble it can only go around. This one it did not.");
 
     const tail = worm[worm.length - 1];
     const eating = leaf && leaf.x === nx && leaf.y === ny;
     const feasting = hyphae && hyphae.x === nx && hyphae.y === ny;
     const bodyHit = worm.some((s, i) =>
       s.x === nx && s.y === ny && !(i === worm.length - 1 && !eating && !feasting));
-    if (bodyHit) return die("Tangled in your own coils.", "The burrow behind you is as solid as the soil around it. A worm has no eyes — it maps by touch, and you lost the thread.");
+    if (bodyHit) return die("It fouled its own burrow.",
+      "A worm has no eyes whatever, and maps the ground by touch alone. The coils behind it are as solid to it as the earth on every side.");
 
     prevWorm = worm.map(s => ({ x: s.x, y: s.y }));
     worm.unshift({ x: nx, y: ny });
-    burrow.add(key(nx, ny));
+    if (!burrow.has(key(nx, ny))) { burrow.add(key(nx, ny)); burrowDirty = true; }
 
     let grow = 0;
-    if (eating)   { grow = GROW_PER_LEAF;     leaves++; puff(nx, ny, C.leaf);   leaf = spawn(true); }
-    if (feasting) { grow = GROW_PER_LEAF + 2; leaves += 3; puff(nx, ny, C.hyphae); hyphae = null; }
+    if (eating)   { grow = GROW_PER_LEAF;     leaves++;    speck(nx, ny); leaf = spawn(true); }
+    if (feasting) { grow = GROW_PER_LEAF + 2; leaves += 3; speck(nx, ny); hyphae = null; }
 
     if (eating || feasting) {
       stepMs = Math.max(MIN_STEP, BASE_STEP - leaves * STEP_DECAY);
       if (eating && leaves % PEBBLE_EVERY === 0) { const p = spawn(false); if (p) pebbles.push(p); }
       if (eating && leaves % HYPHAE_EVERY === 0 && !hyphae) {
-        const h = spawn(false);
-        if (h) { hyphae = h; hyphae.life = HYPHAE_LIFE; }
+        const hy = spawn(false);
+        if (hy) { hyphae = hy; hyphae.life = HYPHAE_LIFE; }
       }
       if (best < leaves) {
         best = leaves;
@@ -555,7 +683,7 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     while (worm.length > prevWorm.length) prevWorm.push({ x: tail.x, y: tail.y });
     if (!grow) worm.pop();
 
-    // castings: a worm voids processed soil behind itself as it goes
+    // castings: earth passed through the body and voided at the mouth of the burrow
     if (Math.random() < 0.16) {
       const t = worm[worm.length - 1];
       castings.push({ x: t.x, y: t.y, seed: Math.random() });
@@ -563,130 +691,178 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     }
 
     if (hyphae && --hyphae.life <= 0) hyphae = null;
-    updateHUD();
+    updateTable();
   }
 
-  function puff(x, y, colour) {
+  function speck(x, y) {
     if (reduceMotion) return;
-    for (let i = 0; i < 9; i++) {
-      const a = Math.random() * Math.PI * 2, sp = 0.4 + Math.random() * 1.5;
-      puffs.push({ x: (x + 0.5) * cell, y: (y + 0.5) * cell,
-                   vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.3,
-                   life: 1, colour });
+    for (let i = 0; i < 10; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 0.4 + Math.random() * 1.4;
+      specks.push({ x: (x + 0.5) * cell, y: (y + 0.5) * cell,
+                    vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.3, life: 1 });
     }
   }
 
-  function die(title, body) {
-    state = "dead";
-    deathTitle = title;
-    deathText = body;
-    showOverlay();
-  }
+  function die(title, body) { state = "dead"; deathTitle = title; deathText = body; showSlip(); }
 
-  /* ---------------- drawing ---------------- */
-  function rounded(c, x, y, w, h, r) {
+  /* ---------------- the burrow: a void the engraver leaves un-inked ---------------- */
+  function burrowPath(c) {
+    const bw = cell * 0.35;
     c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
+    for (const k of burrow) {
+      const [x, y] = k.split(",").map(Number);
+      const cx = (x + 0.5) * cell, cy = (y + 0.5) * cell;
+      const r = cell * (0.40 + hash(x * 13, y * 7) * 0.09);   // no two inches alike
+      c.moveTo(cx + r, cy);
+      c.arc(cx, cy, r, 0, Math.PI * 2);
+      if (burrow.has(key(x + 1, y))) c.rect(cx, cy - bw, cell, bw * 2);
+      if (burrow.has(key(x, y + 1))) c.rect(cx - bw, cy, bw * 2, cell);
+    }
   }
 
+  function bakeBurrow() {
+    burCtx.clearRect(0, 0, cell * COLS, cell * ROWS);
+    burrowPath(burCtx);
+    burCtx.strokeStyle = ink(0.62);
+    burCtx.lineWidth = 2.3;
+    burCtx.lineJoin = "round";
+    burCtx.stroke();                       // interiors are covered by the fill below
+    burrowPath(burCtx);
+    burCtx.fillStyle = C.paperLit;
+    burCtx.fill();
+
+    burCtx.save();                         // crumbled earth, kept inside the wall
+    burrowPath(burCtx);
+    burCtx.clip();
+    burCtx.fillStyle = ink(0.26);
+    for (const k of burrow) {
+      const [x, y] = k.split(",").map(Number);
+      for (let i = 0; i < 5; i++) {
+        const a = hash(x * 31 + i, y * 17), b = hash(y * 23 + i, x * 41);
+        burCtx.beginPath();
+        burCtx.arc((x + a) * cell, (y + b) * cell, 0.7, 0, Math.PI * 2);
+        burCtx.fill();
+      }
+    }
+    burCtx.restore();
+    burrowDirty = false;
+  }
+
+  /* ---------------- engraved objects ---------------- */
   function drawLeaf(cx, cy, s, seed) {
-    const rot = seed * Math.PI * 2, L = s * 0.50, W = s * 0.28;
+    const rot = seed * Math.PI * 2, L = s * 0.62, W = s * 0.34;
     ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rot);
-    ctx.fillStyle = C.leaf;
+    ctx.translate(cx, cy); ctx.rotate(rot);
     ctx.beginPath();
     ctx.moveTo(-L, 0);
     ctx.quadraticCurveTo(0, -W, L, 0);
     ctx.quadraticCurveTo(0, W, -L, 0);
-    ctx.fill();
-    ctx.strokeStyle = C.leafDark;
-    ctx.lineWidth = Math.max(1, s * 0.035);
+    ctx.closePath();
+    ctx.fillStyle = C.tintLeaf; ctx.globalAlpha = 0.42; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.15; ctx.stroke();
+    ctx.strokeStyle = ink(0.62); ctx.lineWidth = 0.85;
     ctx.beginPath();
-    ctx.moveTo(-L * 0.85, 0);
-    ctx.lineTo(L * 0.85, 0);
+    ctx.moveTo(-L * 0.88, 0); ctx.lineTo(L * 0.9, 0);
+    for (let i = -3; i <= 3; i++) {                       // the veins
+      if (!i) continue;
+      const t = i / 4.4, bx = t * L * 0.8, sgn = i > 0 ? 1 : -1;
+      ctx.moveTo(bx, 0);
+      ctx.quadraticCurveTo(bx + L * 0.1, sgn * W * 0.3, bx + L * 0.22, sgn * W * 0.55);
+      ctx.moveTo(bx, 0);
+      ctx.quadraticCurveTo(bx + L * 0.1, -sgn * W * 0.3, bx + L * 0.22, -sgn * W * 0.55);
+    }
     ctx.stroke();
     ctx.restore();
   }
 
-  function drawHyphae(cx, cy, s, t) {
-    const pulse = reduceMotion ? 0.85 : 0.72 + Math.sin(t * 0.006) * 0.22;
+  function drawHyphae(cx, cy, s) {
     const fade = hyphae.life < 12 ? hyphae.life / 12 : 1;
     ctx.save();
-    ctx.globalAlpha = pulse * fade;
-    ctx.strokeStyle = C.hyphae;
-    ctx.lineWidth = Math.max(1, s * 0.035);
-    ctx.lineCap = "round";
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2 + hyphae.seed * 6;
-      const r1 = s * 0.10, r2 = s * (0.28 + (i % 3) * 0.06);
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
-      ctx.quadraticCurveTo(cx + Math.cos(a + 0.4) * r2 * 0.7, cy + Math.sin(a + 0.4) * r2 * 0.7,
-                           cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
-      ctx.stroke();
-    }
-    ctx.fillStyle = C.hyphae;
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = ink(0.66);
+    ctx.lineWidth = 0.85;
     ctx.beginPath();
-    ctx.arc(cx, cy, s * 0.09, 0, Math.PI * 2);
-    ctx.fill();
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 11) * Math.PI * 2 + hyphae.seed * 6;
+      const r1 = s * 0.08, r2 = s * (0.3 + (i % 3) * 0.07);
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.quadraticCurveTo(cx + Math.cos(a + 0.45) * r2 * 0.7, cy + Math.sin(a + 0.45) * r2 * 0.7,
+                           cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      const bx = cx + Math.cos(a) * r2, by = cy + Math.sin(a) * r2;
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + Math.cos(a + 0.9) * s * 0.09, by + Math.sin(a + 0.9) * s * 0.09);
+    }
+    ctx.stroke();
     ctx.restore();
   }
 
   function drawPebble(cx, cy, s, seed) {
-    const n = 7;
-    ctx.save();
-    ctx.beginPath();
+    const n = 8, pts = [];
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + seed * 5;
-      const r = s * (0.28 + hash(i * 13, Math.floor(seed * 997)) * 0.12);
-      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
-      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      const r = s * (0.27 + hash(i * 13, Math.floor(seed * 997)) * 0.13);
+      pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
     }
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
     ctx.closePath();
-    ctx.fillStyle = C.stone;
-    ctx.fill();
-    ctx.strokeStyle = C.stoneLit;
-    ctx.lineWidth = 1;
+    ctx.fillStyle = C.paperLit; ctx.fill();
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.save();                                    // hatched on the shaded flank
+    ctx.clip();
+    ctx.strokeStyle = ink(0.5); ctx.lineWidth = 0.75;
+    ctx.beginPath();
+    for (let i = -6; i <= 6; i++) {
+      const o = i * s * 0.075;
+      ctx.moveTo(cx + o + s * 0.02, cy - s * 0.4);
+      ctx.lineTo(cx + o + s * 0.42, cy + s * 0.4);
+    }
     ctx.stroke();
     ctx.restore();
   }
 
-  /* The worm is one filled polygon of variable half-width: it tapers to the
-     tail, swells at the clitellum, and carries a peristaltic wave down its
-     length — which is how the animal actually moves. */
-  function clitStart(n) { return Math.max(2, Math.min(n - 5, Math.round(n * 0.22))); }
+  function drawCasting(cx, cy, seed) {
+    ctx.strokeStyle = ink(0.66);
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {                  // a little coiled coprolite
+      const r = cell * (0.05 + i * 0.045);
+      ctx.moveTo(cx + r, cy + i * cell * 0.03);
+      ctx.arc(cx, cy + i * cell * 0.03, r, 0, Math.PI * 1.75);
+    }
+    ctx.stroke();
+    ctx.fillStyle = ink(0.5);
+    ctx.beginPath();
+    ctx.arc(cx + (hash(Math.round(seed * 900), 3) - 0.5) * cell * 0.2, cy, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /* ---------------- the animal, in line and hatch ---------------- */
+  function clitStart(n) { return Math.max(2, Math.min(n - 5, Math.round(n * 0.20))); }
 
   function halfWidth(i, n) {
     let w = cell * 0.33;
     const fromTail = n - 1 - i;
-    if (fromTail < 4) w *= 0.42 + fromTail * 0.145;
+    if (fromTail < 3) w *= 0.56 + fromTail * 0.155;
     if (i < 2) w *= 1.04;
     const cs = clitStart(n);
-    if (i >= cs && i < cs + 3) w *= 1.20;             // clitellum
+    if (i >= cs && i < cs + 3) w *= 1.20;             // the clitellum
     if (!reduceMotion) w *= 1 + 0.13 * Math.sin(phase - i * 0.62);
     return w;
   }
 
   function drawWorm(t) {
-    const n = worm.length;
+    const n = worm.length, cs = clitStart(n);
     const pos = new Array(n);
     for (let i = 0; i < n; i++) {
-      const cur = worm[i];
-      const pv = prevWorm[i] || cur;
+      const cur = worm[i], pv = prevWorm[i] || cur;
       let px = pv.x;
-      if (cur.x - px > 1) px += COLS;                 // wrapped left→right
+      if (cur.x - px > 1) px += COLS;                 // slid off the left hand
       if (cur.x - px < -1) px -= COLS;
       pos[i] = { x: (px + (cur.x - px) * t + 0.5) * cell,
                  y: (pv.y + (cur.y - pv.y) * t + 0.5) * cell };
     }
 
-    // split at the wrap seam so the body never draws a stripe across the plate
     const runs = [];
     let run = [0];
     for (let i = 1; i < n; i++) {
@@ -698,12 +874,13 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     for (const r of runs) {
       if (r.length === 1) {
         const i = r[0], p = pos[i];
-        ctx.fillStyle = (i >= clitStart(n) && i < clitStart(n) + 3) ? C.clitellum : C.worm;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, halfWidth(i, n), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, halfWidth(i, n), 0, Math.PI * 2);
+        ctx.fillStyle = C.tintWorm; ctx.globalAlpha = (i >= cs && i < cs + 3) ? 0.30 : 0.64;
+        ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.3; ctx.stroke();
         continue;
       }
+
       const left = [], right = [], norm = [];
       for (let k = 0; k < r.length; k++) {
         const i = r[k];
@@ -717,25 +894,28 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
         right.push({ x: pos[i].x - nx * hw, y: pos[i].y - ny * hw });
       }
 
-      // body
-      ctx.beginPath();
-      ctx.moveTo(left[0].x, left[0].y);
-      for (let k = 1; k < left.length; k++) ctx.lineTo(left[k].x, left[k].y);
-      for (let k = right.length - 1; k >= 0; k--) ctx.lineTo(right[k].x, right[k].y);
-      ctx.closePath();
-      ctx.fillStyle = C.worm;
-      ctx.fill();
-
-      // round the ends
-      for (const k of [0, r.length - 1]) {
+      const outline = () => {
         ctx.beginPath();
-        ctx.arc(pos[r[k]].x, pos[r[k]].y, norm[k].hw, 0, Math.PI * 2);
-        ctx.fill();
-      }
+        ctx.moveTo(left[0].x, left[0].y);
+        for (let k = 1; k < left.length; k++) ctx.lineTo(left[k].x, left[k].y);
+        const e = r.length - 1;
+        ctx.arc(pos[r[e]].x, pos[r[e]].y, norm[e].hw, Math.atan2(norm[e].ny, norm[e].nx),
+                Math.atan2(-norm[e].ny, -norm[e].nx));
+        for (let k = right.length - 1; k >= 0; k--) ctx.lineTo(right[k].x, right[k].y);
+        ctx.arc(pos[r[0]].x, pos[r[0]].y, norm[0].hw, Math.atan2(-norm[0].ny, -norm[0].nx),
+                Math.atan2(norm[0].ny, norm[0].nx));
+        ctx.closePath();
+      };
 
-      // clitellum band, drawn over the body
+      // the hand-applied tint, laid inside the line as a colourist would
+      outline();
+      ctx.fillStyle = C.tintWorm;
+      ctx.globalAlpha = 0.64;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // the clitellum is left paler than the rest of the body
       const band = [];
-      const cs = clitStart(n);
       for (let k = 0; k < r.length; k++) if (r[k] >= cs && r[k] < cs + 3) band.push(k);
       if (band.length > 1) {
         ctx.beginPath();
@@ -743,136 +923,115 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
         for (const k of band) ctx.lineTo(left[k].x, left[k].y);
         for (let j = band.length - 1; j >= 0; j--) ctx.lineTo(right[band[j]].x, right[band[j]].y);
         ctx.closePath();
-        ctx.fillStyle = C.clitellum;
-        ctx.fill();
+        ctx.fillStyle = C.paperLit; ctx.globalAlpha = 0.62; ctx.fill(); ctx.globalAlpha = 1;
       }
 
-      // annuli — the ring joints between segments
-      ctx.strokeStyle = "rgba(88,42,41,0.42)";
-      ctx.lineWidth = Math.max(1, cell * 0.055);
-      for (let k = 1; k < r.length - 1; k++) {
+      // Cross-lines for the annuli, weighted toward the shaded flank: an engraver
+      // renders a cylinder by crowding the line on one side and letting the paper
+      // stand for the light on the other.
+      ctx.save();
+      outline();
+      ctx.clip();
+      ctx.lineCap = "round";
+      for (let k = 0; k < r.length; k++) {
         const { nx, ny, hw } = norm[k], p = pos[r[k]];
+        const isBand = r[k] >= cs && r[k] < cs + 3;
+        ctx.strokeStyle = ink(isBand ? 0.26 : 0.54);
+        ctx.lineWidth = Math.max(0.7, cell * 0.045);
         ctx.beginPath();
-        ctx.moveTo(p.x + nx * hw * 0.82, p.y + ny * hw * 0.82);
-        ctx.lineTo(p.x - nx * hw * 0.82, p.y - ny * hw * 0.82);
+        ctx.moveTo(p.x - nx * hw * 0.12, p.y - ny * hw * 0.12);
+        ctx.lineTo(p.x - nx * hw * 1.02, p.y - ny * hw * 1.02);
+        ctx.stroke();
+        ctx.strokeStyle = ink(isBand ? 0.12 : 0.26);
+        ctx.lineWidth = Math.max(0.55, cell * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(p.x + nx * hw * 0.72, p.y + ny * hw * 0.72);
+        ctx.lineTo(p.x + nx * hw * 0.2, p.y + ny * hw * 0.2);
         ctx.stroke();
       }
+      ctx.restore();
 
-      // a cylinder needs one lit edge and one shaded one
-      ctx.lineWidth = Math.max(1, cell * 0.055);
-      ctx.strokeStyle = "rgba(255,214,205,0.20)";
-      ctx.beginPath();
-      for (let k = 0; k < left.length; k++)
-        k === 0 ? ctx.moveTo(left[k].x, left[k].y) : ctx.lineTo(left[k].x, left[k].y);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(0,0,0,0.22)";
-      ctx.beginPath();
-      for (let k = 0; k < right.length; k++)
-        k === 0 ? ctx.moveTo(right[k].x, right[k].y) : ctx.lineTo(right[k].x, right[k].y);
+      // the contour last, so it sits over the hatching
+      outline();
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 1.35;
+      ctx.lineJoin = "round";
       ctx.stroke();
     }
 
-    // prostomium: the fleshy lobe over the mouth. No eyes — worms have none.
+    // The prostomium — the fleshy lobe above the mouth. No eyes: it has none.
     const h = pos[0], hw = halfWidth(0, n);
     ctx.save();
     ctx.translate(h.x, h.y);
     ctx.rotate(Math.atan2(dir.y, dir.x));
-    ctx.fillStyle = C.wormLit;
     ctx.beginPath();
-    ctx.ellipse(hw * 0.42, 0, hw * 0.72, hw * 0.62, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(90,45,44,0.45)";
-    ctx.lineWidth = Math.max(1, cell * 0.05);
+    ctx.ellipse(hw * 0.46, 0, hw * 0.7, hw * 0.58, 0, 0, Math.PI * 2);
+    ctx.fillStyle = C.tintWorm; ctx.globalAlpha = 0.34; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.15; ctx.stroke();
+    ctx.strokeStyle = ink(0.6); ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(hw * 0.95, -hw * 0.22);
-    ctx.lineTo(hw * 0.95, hw * 0.22);
+    ctx.moveTo(hw * 0.92, -hw * 0.2); ctx.lineTo(hw * 0.92, hw * 0.2);
     ctx.stroke();
     ctx.restore();
   }
 
+  /* ---------------- the plate, per frame ---------------- */
   function draw(t) {
     const w = cell * COLS, h = cell * ROWS;
     ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(grain, 0, 0, w, h);
+    ctx.drawImage(soil, 0, 0, w, h);
+    if (burrowDirty) bakeBurrow();
+    ctx.drawImage(bur, 0, 0, w, h);
 
-    // burrow network — the run's permanent record
-    ctx.fillStyle = "rgba(0,0,0,0.20)";
-    for (const k of burrow) {
-      const [x, y] = k.split(",").map(Number);
-      rounded(ctx, x * cell, y * cell, cell, cell, cell * 0.3);
-      ctx.fill();
-    }
-
-    // castings
-    for (const c of castings) {
-      ctx.fillStyle = C.casting;
-      for (let i = 0; i < 3; i++) {
-        const a = hash(Math.floor(c.seed * 900) + i, i * 31);
-        const b = hash(i * 17, Math.floor(c.seed * 700) + i);
-        ctx.beginPath();
-        ctx.arc((c.x + 0.26 + a * 0.48) * cell, (c.y + 0.26 + b * 0.48) * cell, cell * 0.085, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
+    for (const c of castings) drawCasting((c.x + 0.5) * cell, (c.y + 0.5) * cell, c.seed);
     for (const p of pebbles) drawPebble((p.x + 0.5) * cell, (p.y + 0.5) * cell, cell, p.seed);
     if (leaf) drawLeaf((leaf.x + 0.5) * cell, (leaf.y + 0.5) * cell, cell, leaf.seed);
-    if (hyphae) drawHyphae((hyphae.x + 0.5) * cell, (hyphae.y + 0.5) * cell, cell, performance.now());
+    if (hyphae) drawHyphae((hyphae.x + 0.5) * cell, (hyphae.y + 0.5) * cell, cell);
 
     drawWorm(t);
 
-    for (const p of puffs) {
-      ctx.globalAlpha = Math.max(0, p.life) * 0.7;
-      ctx.fillStyle = p.colour;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, cell * 0.07, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.fillStyle = C.ink;
+    for (const p of specks) {
+      ctx.globalAlpha = Math.max(0, p.life) * 0.55;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.1, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-
-    // the plate is lit from the surface: vignette the deep corners
-    const v = ctx.createRadialGradient(w / 2, h * 0.28, h * 0.2, w / 2, h * 0.5, h * 1.05);
-    v.addColorStop(0, "rgba(0,0,0,0)");
-    v.addColorStop(1, "rgba(0,0,0,0.22)");
-    ctx.fillStyle = v;
-    ctx.fillRect(0, 0, w, h);
   }
 
-  /* ---------------- loop ---------------- */
   function frame(now) {
     const dt = Math.min(100, now - last);
     last = now;
     if (state !== "paused") phase += dt * 0.011;
     if (state === "playing") {
       acc += dt;
-      for (const p of puffs) { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life -= 0.03; }
-      for (let i = puffs.length - 1; i >= 0; i--) if (puffs[i].life <= 0) puffs.splice(i, 1);
+      for (const p of specks) { p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life -= 0.03; }
+      for (let i = specks.length - 1; i >= 0; i--) if (specks[i].life <= 0) specks.splice(i, 1);
       while (acc >= stepMs && state === "playing") { acc -= stepMs; step(); }
     }
     draw(state === "playing" ? Math.min(1, acc / stepMs) : 1);
     requestAnimationFrame(frame);
   }
 
-  /* ---------------- overlay + input ---------------- */
+  /* ---------------- the slip, and the keys ---------------- */
   const overlay = document.getElementById("overlay");
   const ovTitle = document.getElementById("ov-title");
   const ovBody = document.getElementById("ov-body");
   const ovBtn = document.getElementById("ov-btn");
 
-  function showOverlay() {
+  function showSlip() {
     if (state === "dead") {
       ovTitle.textContent = deathTitle;
-      ovBody.innerHTML = deathText + '<br><span class="verdict">' + leaves +
-        " leaves · " + worm.length + " segments · " + burrow.size + " cells loosened.</span>";
-      ovBtn.textContent = "Burrow again";
+      ovBody.innerHTML = deathText + '<span class="tally">' + leaves + " leaves taken; " +
+        worm.length + " segments; " + burrow.size + " square inches of earth loosened.</span>";
+      ovBtn.textContent = "Begin afresh";
     } else if (state === "paused") {
-      ovTitle.textContent = "Resting.";
-      ovBody.textContent = "Worms do most of their work at night. Take your time.";
+      ovTitle.textContent = "The observation is suspended.";
+      ovBody.textContent = "Worms do the whole of their work by night, and are in no hurry whatever.";
       ovBtn.textContent = "Resume";
     } else {
-      ovTitle.textContent = "Burrow.";
-      ovBody.textContent = "Steer with the arrow keys, WASD, or a swipe across the plate. Leaf litter collects near the surface — that is where you have to go for it.";
-      ovBtn.textContent = "Start burrowing";
+      ovTitle.textContent = "To begin.";
+      ovBody.textContent = "Steer with the arrow keys, with W A S D, or with a finger drawn across the plate. Leaves gather near the surface: that is where the animal must go, and where the open air waits.";
+      ovBtn.textContent = "Begin the observation";
     }
     overlay.hidden = false;
     ovBtn.focus({ preventScroll: true });
@@ -886,11 +1045,7 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     last = performance.now();
   }
 
-  function pause() {
-    if (state !== "playing") return;
-    state = "paused";
-    showOverlay();
-  }
+  function pause() { if (state !== "playing") return; state = "paused"; showSlip(); }
 
   const DIRS = {
     ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 },
@@ -900,7 +1055,7 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
 
   function turn(d) {
     const ref = queue.length ? queue[queue.length - 1] : dir;
-    if (d.x === -ref.x && d.y === -ref.y) return;   // a worm cannot fold back on itself
+    if (d.x === -ref.x && d.y === -ref.y) return;    // a worm cannot fold back on itself
     if (d.x === ref.x && d.y === ref.y) return;
     if (queue.length < 2) queue.push(d);
   }
@@ -913,18 +1068,12 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
       else if (state === "ready") { begin(); turn(DIRS[k]); }
       return;
     }
-    if (k === " " || k === "Escape") {
-      e.preventDefault();
-      state === "playing" ? pause() : begin();
-    } else if (k === "r") {
-      state = "ready";
-      begin();
-    }
+    if (k === " " || k === "Escape") { e.preventDefault(); state === "playing" ? pause() : begin(); }
+    else if (k === "r") { state = "ready"; begin(); }
   });
 
   ovBtn.addEventListener("click", begin);
 
-  // swipe — the Pi's screen is a touchscreen, so this is the primary input there
   let tStart = null;
   canvas.addEventListener("pointerdown", (e) => { tStart = { x: e.clientX, y: e.clientY }; });
   canvas.addEventListener("pointerup", (e) => {
@@ -933,22 +1082,18 @@ button:focus-visible { outline: 2px solid var(--clitellum); outline-offset: 3px;
     tStart = null;
     if (Math.hypot(dx, dy) < 24) { state === "playing" ? pause() : begin(); return; }
     if (state !== "playing") begin();
-    turn(Math.abs(dx) > Math.abs(dy)
-      ? { x: Math.sign(dx), y: 0 }
-      : { x: 0, y: Math.sign(dy) });
+    turn(Math.abs(dx) > Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) });
   });
 
   window.addEventListener("resize", resize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => drawScale(cell * ROWS));
 
-  /* ---------------- boot ---------------- */
   state = "ready";
   reset();
   resize();
-  showOverlay();
+  showSlip();
   last = performance.now();
   requestAnimationFrame(frame);
-  // draw the resting plate so the first frame already shows the animal
-  draw(1);
 })();
 </script>
 </body>
