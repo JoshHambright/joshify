@@ -89,3 +89,4 @@ export {
   type ServerMessage,
   type SnapshotMessage,
 } from './protocol/playback-protocol.js';
+export { DEFAULT_THEME, themeCssVariables, type ThemeTokens } from './theme/tokens.js';

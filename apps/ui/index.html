@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      The panel is a fixed 720×1280 and nothing scrolls it (D-039), so the
+      viewport is pinned: no user scaling, and `viewport-fit=cover` so a bezel
+      or rounded corner never leaves an unpainted strip.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Joshify</title>
+  </head>
+  <body>
+    <div id="panel"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

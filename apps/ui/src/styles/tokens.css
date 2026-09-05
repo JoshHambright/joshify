@@ -1,0 +1,125 @@
+/*
+ * The fixed half of the design system.
+ *
+ * SCREENS.md's restraint is the load-bearing idea here: **only one colour
+ * changes per track.** Everything below is constant — the ink levels, the plate
+ * tint, the type scale, the touch sizes — and the five album-derived tokens
+ * arrive at runtime from the server (theme.ts) and land on the same `:root`.
+ *
+ * That split is what makes the contrast guarantee tractable. A hostile cover
+ * can affect exactly one token, so there is exactly one pairing to prove
+ * (P3-04, D-035) instead of a combinatorial spread.
+ *
+ * These are named `--jf-*` for the chrome and `--joshify-*` for the five that
+ * come off the wire, so that reading a rule tells you which half you are in
+ * and, more usefully, which half can change under you.
+ */
+
+:root {
+  /* --- The album's five. Defaults match core's DEFAULT_THEME, so the panel is
+     never unstyled in the frame before the first track lands. ------------- */
+  --joshify-surface: #101114;
+  --joshify-foreground: #f2f3f5;
+  --joshify-accent: #9aa4b2;
+  --joshify-on-accent: #101114;
+  --joshify-control-tint: #6c7684;
+
+  /* --- Ink. Three levels, fixed. -------------------------------------------
+     --jf-ink-dim was lifted from #8a8699 after the first prototype read as
+     unreadable over artwork; it is deliberately brighter than a mockup wants,
+     because this is a wall-mounted screen seen from across a room, not a
+     desktop app seen from 60cm. */
+  --jf-ink: #f4f2f7;
+  --jf-ink-dim: #b9b5c6;
+  --jf-ink-faint: #7d7a8b;
+
+  /* --- The glass plate (D-040, D-041). ------------------------------------
+     A translucent surface over live artwork. The tint is intentionally cool
+     and near-black: it has to sit legibly over a white sleeve and a black one
+     without changing, since it does not move with the album. */
+  --jf-plate: rgb(14 13 20 / 0.62);
+  --jf-plate-solid: #14131a; /* the @supports fallback, same hue, opaque */
+  --jf-plate-edge: rgb(255 255 255 / 0.09);
+  --jf-plate-blur: 26px;
+  --jf-plate-radius: 26px;
+
+  /* Scrim under the status rail: artwork is unpredictable up there too. */
+  --jf-scrim: linear-gradient(to bottom, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0));
+
+  /* --- Type. Self-hosted; a fallback face would break every measurement in
+     SCREENS.md, so the stacks below are a legibility floor, not a design. --- */
+  --jf-face-display: 'Archivo', system-ui, sans-serif;
+  --jf-face-label: 'Barlow Condensed', 'Archivo Narrow', system-ui, sans-serif;
+  --jf-face-data: 'Share Tech Mono', ui-monospace, monospace;
+
+  --jf-size-title: 54px;
+  --jf-size-heading: 34px;
+  --jf-size-body: 23px;
+  --jf-size-label: 17px;
+  --jf-size-data: 15px;
+  --jf-size-micro: 14px;
+
+  --jf-track-label: 0.13em;
+
+  /* --- Touch. Minimum 48px; nothing important below 56px (SCREENS.md). ----- */
+  --jf-touch-min: 48px;
+  --jf-touch: 56px;
+  --jf-touch-play: 96px;
+
+  /* --- Rhythm. ------------------------------------------------------------- */
+  --jf-gap-tight: 8px;
+  --jf-gap: 16px;
+  --jf-gap-wide: 28px;
+  --jf-pad-plate: 28px;
+  --jf-rail-height: 74px;
+
+  /* --- Motion. A track change crossfades; nothing else animates by default.
+     `--jf-theme-fade` is applied to the colour properties themselves so a new
+     album eases in rather than snapping (P3-08). ---------------------------- */
+  --jf-theme-fade: 420ms;
+  --jf-press: 90ms;
+
+  color-scheme: dark;
+}
+
+/* The panel is 720×1280 and nothing scrolls it. A layout that overflows is
+   broken, not inconvenient (D-039) — so overflow is hidden here rather than
+   left to scroll and hide the bug. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--joshify-surface);
+  color: var(--jf-ink);
+  font-family: var(--jf-face-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* No hover, no right-click, no tooltips, and no text selection: this is an
+   appliance being touched, not a document being read. */
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Times, counts and volume are tabular so digits do not jitter as they count. */
+.jf-data {
+  font-family: var(--jf-face-data);
+  font-size: var(--jf-size-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.jf-label {
+  font-family: var(--jf-face-label);
+  font-size: var(--jf-size-label);
+  font-weight: 600;
+  letter-spacing: var(--jf-track-label);
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --jf-theme-fade: 0ms;
+  }
+}

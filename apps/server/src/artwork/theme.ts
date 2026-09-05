@@ -56,37 +56,17 @@ import {
 } from './contrast.js';
 
 /** RGBA, 4 bytes per pixel, row-major — the shape `jimp`'s bitmap already has. */
+import { DEFAULT_THEME, type ThemeTokens } from '@joshify/core';
+
+// Re-exported so existing callers keep one import for "the theme", even though
+// the contract itself now lives in core where the UI can reach it too.
+export { DEFAULT_THEME, themeCssVariables, type ThemeTokens } from '@joshify/core';
+
 export interface PixelData {
   readonly width: number;
   readonly height: number;
   readonly data: Uint8Array;
 }
-
-export interface ThemeTokens {
-  /** The scrimmed backdrop the chrome sits on. Always dark, tinted by the art. */
-  readonly surface: string;
-  /** Body and title text on `surface`. ≥4.5:1. */
-  readonly foreground: string;
-  /** The album's colour. Safe as text on `surface` (≥4.5:1), not only as fill. */
-  readonly accent: string;
-  /** Text and icons drawn *on top of* `accent`, e.g. a filled button. ≥4.5:1. */
-  readonly onAccent: string;
-  /** Non-text chrome: slider tracks, icon strokes, borders. ≥3:1 on `surface`. */
-  readonly controlTint: string;
-}
-
-/**
- * Used when there is no artwork at all — local files, some podcasts, and the
- * moment before the first fetch lands. Neutral rather than branded: a made-up
- * accent would read as a bug the first time a real one replaced it.
- */
-export const DEFAULT_THEME: ThemeTokens = {
-  surface: '#101114',
-  foreground: '#f2f3f5',
-  accent: '#9aa4b2',
-  onAccent: '#101114',
-  controlTint: '#6c7684',
-};
 
 /** Below this a pixel is see-through enough that its colour is not on screen. */
 const MIN_ALPHA = 128;
@@ -255,17 +235,3 @@ export const extractTheme = (pixels: PixelData): ThemeTokens => {
     ),
   };
 };
-
-/**
- * The tokens under the names the UI binds to.
- *
- * Kept next to the extractor rather than in the UI so that adding a token is
- * one edit: nothing on the browser side should know the roster by heart.
- */
-export const themeCssVariables = (tokens: ThemeTokens): Record<string, string> => ({
-  '--joshify-surface': tokens.surface,
-  '--joshify-foreground': tokens.foreground,
-  '--joshify-accent': tokens.accent,
-  '--joshify-on-accent': tokens.onAccent,
-  '--joshify-control-tint': tokens.controlTint,
-});

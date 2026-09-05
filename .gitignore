@@ -17,3 +17,4 @@ coverage/
 # runtime state
 *.log
 .DS_Store
+dist-web/
