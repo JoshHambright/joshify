@@ -18,6 +18,7 @@ import { createCommandClient } from './lib/commands.js';
 import { createConnection } from './lib/connection.js';
 import { createDeviceSource } from './lib/device-source.js';
 import { createQueueSource } from './lib/queue-source.js';
+import { createSearchSource } from './lib/search-source.js';
 import './styles/tokens.css';
 
 const socketUrl = (): string => {
@@ -49,4 +50,8 @@ const queue = createQueueSource({
   fetch: (input) => httpFetch(input),
 });
 
-mount(App, { target, props: { connection, client, devices, queue } });
+const search = createSearchSource({
+  fetch: (input) => httpFetch(input),
+});
+
+mount(App, { target, props: { connection, client, devices, queue, search } });

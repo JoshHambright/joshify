@@ -22,6 +22,7 @@
   import PlaybackNotice from './components/PlaybackNotice.svelte';
   import Plate from './components/Plate.svelte';
   import QueueList from './components/QueueList.svelte';
+  import SearchScreen from './components/SearchScreen.svelte';
   import Scrubber from './components/Scrubber.svelte';
   import StatusRail from './components/StatusRail.svelte';
   import Transport from './components/Transport.svelte';
@@ -36,12 +37,15 @@
   import type { Connection } from './lib/connection.js';
   import type { DeviceSource } from './lib/device-source.js';
   import type { QueueSource } from './lib/queue-source.js';
+  import type { SearchSource } from './lib/search-source.js';
+  import type { LibraryItem, LibrarySection } from './lib/thumbnails.js';
 
   interface Props {
     connection: Connection;
     client: CommandClient;
     devices: DeviceSource;
     queue: QueueSource;
+    search: SearchSource;
     /**
      * Where the album's five tokens are written. The document root by default,
      * because the body background and the plate's `backdrop-filter` both read
@@ -59,12 +63,13 @@
     client,
     devices,
     queue,
+    search,
     themeTarget,
     now = () => new Date(),
   }: Props = $props();
 
   /** The plate at rest, or the plate grown. That is the whole of navigation. */
-  let surface = $state<'now-playing' | 'devices' | 'queue'>('now-playing');
+  let surface = $state<'now-playing' | 'devices' | 'queue' | 'search'>('now-playing');
   let clock = $state('--:--');
 
   const playback = $derived($connection.state);
@@ -111,10 +116,46 @@
     queue.open();
   };
 
+  /**
+   * Search is the one surface that takes the whole panel, because the keyboard
+   * needs it (SCREENS.md). Everything else is the plate, grown.
+   */
+  const showSearch = (): void => {
+    surface = 'search';
+    devices.close();
+    queue.close();
+    void search.query('');
+  };
+
   const showNowPlaying = (): void => {
     surface = 'now-playing';
     devices.close();
     queue.close();
+  };
+
+  /**
+   * Play what was tapped.
+   *
+   * An album or a playlist plays *in context* so the queue fills with the rest
+   * of it; a track plays alone. Sending a track's uri as a context would be
+   * rejected, and sending an album's as a single track would drop everything
+   * after the first song (P6-07).
+   */
+  // Named rather than inline: a callback written in the template loses its
+  // parameter types to `any`, which `strictTypeChecked` then refuses.
+  const runQuery = (text: string): void => {
+    void search.query(text);
+  };
+
+  const loadMore = (section: LibrarySection, offset: number): void => {
+    void search.loadMore(section, offset);
+  };
+
+  const play = (item: LibraryItem): void => {
+    if (item.uri !== null) {
+      void client.send({ kind: 'play', contextUri: item.uri });
+    }
+    showNowPlaying();
   };
 
   const transfer = (deviceId: string): void => {
@@ -189,6 +230,20 @@
             problem={$queue.problem}
           />
         </div>
+      {:else if surface === 'search'}
+        <div class="grown">
+          <div class="grown-head">
+            <h2 class="jf-label heading">Search</h2>
+            <button class="close" type="button" onclick={showNowPlaying}>Done</button>
+          </div>
+          <SearchScreen
+            results={$search.results}
+            library={$search.library}
+            onQueryChange={runQuery}
+            onPlay={play}
+            onLoadMore={loadMore}
+          />
+        </div>
       {:else if notice !== null}
         <PlaybackNotice {notice} onChooseDevice={showDevices} />
       {:else if item !== null}
@@ -204,6 +259,7 @@
             {playback?.device?.name ?? 'Devices'}
           </button>
           <button class="chip jf-label" type="button" onclick={showQueue}>Queue</button>
+          <button class="chip jf-label" type="button" onclick={showSearch}>Search</button>
         </div>
       {/if}
     </Plate>

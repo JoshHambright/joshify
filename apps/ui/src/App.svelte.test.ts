@@ -26,6 +26,7 @@ import type { Command, CommandClient, CommandTarget } from './lib/commands.js';
 import type { Connection, ConnectionState, LinkStatus } from './lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from './lib/device-source.js';
 import type { QueueSource, QueueSourceState } from './lib/queue-source.js';
+import type { SearchSource, SearchSourceState } from './lib/search-source.js';
 import type { StyleTarget } from './lib/theme.js';
 
 /** Collects the custom properties App writes, without a real document. */
@@ -167,6 +168,38 @@ const fakeQueue = (upcoming: readonly PlayingItem[] = []) => {
   return { source, calls };
 };
 
+const fakeSearch = () => {
+  let value: SearchSourceState = {
+    results: null,
+    library: null,
+    problem: null,
+    pending: false,
+  };
+  const subscribers = new Set<(v: SearchSourceState) => void>();
+  const queries: string[] = [];
+  const source: SearchSource = {
+    subscribe: (run) => {
+      subscribers.add(run);
+      run(value);
+      return () => subscribers.delete(run);
+    },
+    query: (text) => {
+      queries.push(text);
+      return Promise.resolve();
+    },
+    loadMore: () => Promise.resolve(),
+    current: () => value,
+  };
+  return {
+    source,
+    queries,
+    set: (next: Partial<SearchSourceState>) => {
+      value = { ...value, ...next };
+      for (const run of subscribers) run(value);
+    },
+  };
+};
+
 const fakeClient = () => {
   const sent: { command: Command; target: CommandTarget | undefined }[] = [];
   const client: CommandClient = {
@@ -184,6 +217,7 @@ interface Harness {
   connection?: ReturnType<typeof fakeConnection>;
   devices?: ReturnType<typeof fakeDevices>;
   queue?: ReturnType<typeof fakeQueue>;
+  search?: ReturnType<typeof fakeSearch>;
   client?: ReturnType<typeof fakeClient>;
   theme?: ReturnType<typeof fakeThemeTarget>;
 }
@@ -192,6 +226,7 @@ const mountApp = (harness: Harness = {}) => {
   const conn = harness.connection ?? fakeConnection({ state: playing() });
   const devs = harness.devices ?? fakeDevices();
   const q = harness.queue ?? fakeQueue();
+  const find = harness.search ?? fakeSearch();
   const cmd = harness.client ?? fakeClient();
   const theme = harness.theme ?? fakeThemeTarget();
   const rendered = render(App, {
@@ -199,10 +234,11 @@ const mountApp = (harness: Harness = {}) => {
     client: cmd.client,
     devices: devs.source,
     queue: q.source,
+    search: find.source,
     themeTarget: theme.target,
     now: at(21, 47),
   });
-  return { ...rendered, conn, devs, cmd, theme, q };
+  return { ...rendered, conn, devs, cmd, theme, q, find };
 };
 
 afterEach(cleanup);
@@ -526,5 +562,92 @@ describe('the queue surface', () => {
     unmount();
     expect(q.calls.closed).toBeGreaterThanOrEqual(1);
     expect(devs.calls.closed).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('the search surface', () => {
+  it('opens from the chip and asks for the library straight away', async () => {
+    const find = fakeSearch();
+    mountApp({ search: find });
+
+    screen.getByRole('button', { name: 'Search' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    });
+
+    // Empty query means "show the library", not "search for nothing" (D-031).
+    expect(find.queries).toEqual(['']);
+  });
+
+  it('closes the other surfaces when it opens, so only one list polls', async () => {
+    const devs = fakeDevices();
+    const q = fakeQueue();
+    mountApp({ devices: devs, queue: q });
+
+    screen.getByRole('button', { name: 'Kitchen' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByText('Study')).toBeDefined();
+    });
+    screen.getByRole('button', { name: 'Done' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Search' })).toBeDefined();
+    });
+    screen.getByRole('button', { name: 'Search' }).click();
+
+    await vi.waitFor(() => {
+      expect(devs.calls.closed).toBeGreaterThanOrEqual(1);
+    });
+    expect(q.calls.closed).toBeGreaterThanOrEqual(1);
+  });
+
+  // An album plays in context so the queue fills with the rest of it; a track
+  // uri sent as a context would be refused, and an album sent as a track would
+  // drop everything after the first song.
+  it('plays a tapped album in context and returns to the plate', async () => {
+    const find = fakeSearch();
+    const { cmd } = mountApp({ search: find });
+
+    screen.getByRole('button', { name: 'Search' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    });
+
+    find.set({
+      library: {
+        albums: {
+          items: [
+            {
+              kind: 'album',
+              id: 'album-1',
+              uri: 'spotify:album:album-1',
+              title: 'Velocity Division',
+              subtitle: 'Nitrous Cartel',
+              images: [],
+              artists: ['Nitrous Cartel'],
+              totalTracks: 9,
+              releaseYear: 1997,
+            },
+          ],
+          offset: 0,
+          limit: 50,
+          total: 1,
+          nextOffset: null,
+        },
+        playlists: { items: [], offset: 0, limit: 50, total: 0, nextOffset: null },
+      },
+    });
+
+    const row = await vi.waitFor(() =>
+      screen.getByRole('button', { name: /Velocity Division/ }),
+    );
+    row.click();
+
+    await vi.waitFor(() => {
+      expect(cmd.sent).toHaveLength(1);
+    });
+    expect(cmd.sent[0]?.command).toEqual({
+      kind: 'play',
+      contextUri: 'spotify:album:album-1',
+    });
   });
 });

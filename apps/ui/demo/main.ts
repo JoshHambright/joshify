@@ -17,6 +17,7 @@ import type { CommandClient } from '../src/lib/commands.js';
 import type { Connection, ConnectionState } from '../src/lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from '../src/lib/device-source.js';
 import type { QueueSource, QueueSourceState } from '../src/lib/queue-source.js';
+import type { SearchSource, SearchSourceState } from '../src/lib/search-source.js';
 import '../src/styles/tokens.css';
 
 /**
@@ -336,10 +337,74 @@ const queue: QueueSource = {
   current: queueState,
 };
 
+/**
+ * A small fixed library, so the Search surface has something to show. Typing
+ * filters it locally — the real one asks the server, but a review page has no
+ * server, and an empty results list would look like a broken screen rather
+ * than a demo of one.
+ */
+const LIBRARY_ALBUMS = TRACKS.map((t, i) => ({
+  kind: 'album' as const,
+  id: `album-${String(i)}`,
+  uri: `spotify:album:${String(i)}`,
+  title: t.title,
+  subtitle: t.subtitle,
+  images: [{ url: t.art, width: 640, height: 640 }],
+  artists: [t.subtitle],
+  totalTracks: 9,
+  releaseYear: 1997 + i,
+}));
+
+const emptyPage = <T>(items: readonly T[]) => ({
+  items,
+  offset: 0,
+  limit: 50,
+  total: items.length,
+  nextOffset: null,
+});
+
+let searchValue: SearchSourceState = {
+  results: null,
+  library: { albums: emptyPage(LIBRARY_ALBUMS), playlists: emptyPage([]) },
+  problem: null,
+  pending: false,
+};
+const searchListeners = new Set<(v: SearchSourceState) => void>();
+
+const search: SearchSource = {
+  subscribe: (run) => {
+    searchListeners.add(run);
+    run(searchValue);
+    return () => searchListeners.delete(run);
+  },
+  query: (text) => {
+    const trimmed = text.trim().toLowerCase();
+    searchValue = {
+      ...searchValue,
+      results:
+        trimmed === ''
+          ? null
+          : {
+              query: trimmed,
+              tracks: [],
+              albums: LIBRARY_ALBUMS.filter((a) =>
+                `${a.title} ${a.subtitle}`.toLowerCase().includes(trimmed),
+              ),
+              artists: [],
+              playlists: [],
+            },
+    };
+    for (const run of searchListeners) run(searchValue);
+    return Promise.resolve();
+  },
+  loadMore: () => Promise.resolve(),
+  current: () => searchValue,
+};
+
 const target = document.querySelector('#panel');
 if (target === null) throw new Error('#panel is missing');
 
-mount(App, { target, props: { connection, client, devices, queue } });
+mount(App, { target, props: { connection, client, devices, queue, search } });
 
 /**
  * A review harness, not part of the product.

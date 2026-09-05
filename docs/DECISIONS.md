@@ -967,3 +967,30 @@ the screen reading as unfinished.
 **This corrected `SCREENS.md`**, which specified tap-to-jump. Writing the
 screen is what found it; the spec had assumed an endpoint into existence.
 **Status:** ✅ Accepted.
+
+---
+
+### D-052 · Search is fenced twice, on purpose
+**Chose:** the server holds one long-lived search session that answers an
+overtaken request with `{ status: 'superseded' }` (D-032), *and* the client
+checks each answer against the query it last asked for.
+**Why both:** they guard different hops. The session's fence protects the
+server's own idea of the newest query — it is what stops a slow upstream call
+for "bea" from becoming the answer of record after "beatles" has been asked
+for. It cannot do anything about the trip back, where two HTTP responses can
+still arrive out of order and the later-rendered one wins.
+
+This is not belt and braces. Removing either one leaves a real reordering
+window: the server's guards the Spotify call, the client's guards the socket
+back to the panel.
+
+**`superseded` is a success, not a failure.** Being overtaken is the normal
+outcome of typing. Rendering it as an error would flash a fault on the screen
+on every letter, so it publishes nothing and leaves the last real answer
+standing.
+
+**A failed search does not clear the screen either** — the rows already there
+stay, with the problem recorded alongside. Same rule as a failed device refresh
+(D-049) and a dropped socket (D-048): the last true thing on screen is worth
+more than an accurate blank.
+**Status:** ✅ Accepted.

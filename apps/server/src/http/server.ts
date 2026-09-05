@@ -510,6 +510,31 @@ export const createHttpServer = async (
       return await answer(reply, () => reads.search(query.value));
     });
 
+    /**
+     * Both halves in one request, for the Search screen's first paint.
+     *
+     * An empty query shows the library rather than a blank screen (D-031), and
+     * that first paint wants saved albums *and* playlists. Two round trips to
+     * fill one screen is two chances to be half-drawn; the per-section routes
+     * below are what paging uses after that.
+     *
+     * A failure in either half fails the request. A half-library is not a
+     * useful thing to render, and reporting it as success would leave the
+     * screen quietly missing rows nobody knows are missing.
+     */
+    app.get('/api/library', async (request, reply) =>
+      answer(reply, async () => {
+        const page = readPage(request.query);
+        const [albums, playlists] = await Promise.all([
+          reads.savedAlbums(page),
+          reads.playlists(page),
+        ]);
+        if (!albums.ok) return albums;
+        if (!playlists.ok) return playlists;
+        return ok({ albums: albums.value, playlists: playlists.value });
+      }),
+    );
+
     app.get('/api/library/albums', async (request, reply) =>
       answer(reply, () => reads.savedAlbums(readPage(request.query))),
     );

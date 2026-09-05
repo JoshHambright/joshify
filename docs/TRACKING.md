@@ -41,10 +41,10 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 3 | Now Playing | 14 | 13 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 7 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
-| 6 | Search & library | 9 | 3 | 🟨 In progress |
+| 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **52** | |
+| | **Total** | **122** | **57** | |
 
 ---
 
@@ -209,13 +209,13 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
 | P6-01 | Search endpoint proxy with debouncing + cancellation | ✅ | Generation-fenced after the await, so a slow "bea" cannot overwrite a fast "beatles" (D-032) |
-| P6-02 | On-screen keyboard component | 🟨 | Built and tested; the Search surface is not reachable yet. 62px keys from stated arithmetic: `(720 − 28 padding − 72 gaps) / 10`. Shift is one-shot → lock → off |
-| P6-03 | Search results UI (tracks / albums / artists / playlists) | 🟨 | Built and tested; not reachable — needs `/api/library` reshaped and the surface wired into App |
-| P6-04 | **Virtualised list component** | 🟨 | Built and tested; not reachable. Height is a prop, never measured — jsdom reports 0×0 and D-039 makes the panel arithmetic anyway |
+| P6-02 | On-screen keyboard component | ✅ | Reachable from the Search chip. 62px keys from stated arithmetic: `(720 − 28 padding − 72 gaps) / 10`. Shift is one-shot → lock → off |
+| P6-03 | Search results UI (tracks / albums / artists / playlists) | ✅ | Reachable. `search-source.ts` fences on the client as well as the server: the session guards its own idea of the newest query, but responses can still be reordered on the way back (D-052) |
+| P6-04 | **Virtualised list component** | ✅ | Reachable, and reused by the Queue screen. Height is a prop, never measured — jsdom reports 0×0 and D-039 makes the panel arithmetic anyway |
 | P6-05 | Saved albums browse | ✅ | Paged. Advances by rows **sent**, not rows kept — Spotify ships null rows (D-031) |
 | P6-06 | Playlists browse + playlist detail | ✅ | Server side done; the UI is P6-03 |
-| P6-07 | Play-in-context from any result | ⬜ | Album/playlist context, not just single track |
-| P6-08 | Thumbnail loading strategy for long lists | 🟨 | Built and tested; not reachable. Virtualisation is the real eviction — unmounted rows take their decoded bitmaps with them. The bookkeeping is an LRU bounded at 128, because an unbounded map is a leak that shows up in month three, not in a test |
+| P6-07 | Play-in-context from any result | ✅ | An album or playlist plays *in context* so the queue fills with the rest of it. A track uri sent as a context would be refused, and an album sent as a track would drop everything after the first song |
+| P6-08 | Thumbnail loading strategy for long lists | ✅ | Reachable. Virtualisation is the real eviction — unmounted rows take their decoded bitmaps with them. The bookkeeping is an LRU bounded at 128, because an unbounded map is a leak that shows up in month three, not in a test |
 | P6-09 | Performance test: long-list scroll on hardware | ⬜ | Explicit budget, fails CI-on-hardware if exceeded |
 
 ---

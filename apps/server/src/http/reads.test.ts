@@ -266,6 +266,29 @@ describe('GET /api/library', () => {
     expect(spotify.requests.some((r) => r.path === '/v1/me/albums')).toBe(false);
   });
 
+  // An empty query shows the library, and that first paint wants both halves.
+  // Two round trips to fill one screen is two chances to be half-drawn.
+  it('serves both halves in one request for the first paint', async () => {
+    const server = await start();
+
+    const { status, body } = await getJson(server, '/api/library');
+
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ albums: { items: [] }, playlists: { items: [] } });
+  });
+
+  // A half-library is not a useful thing to render, and reporting it as
+  // success leaves the screen quietly missing rows nobody knows are missing.
+  it('fails the combined request when either half fails', async () => {
+    const server = await start();
+    spotify.failNext({ status: 500 });
+    spotify.failNext({ status: 500 });
+
+    const { status } = await getJson(server, '/api/library');
+
+    expect(status).toBe(502);
+  });
+
   it('serves the tracks behind one playlist', async () => {
     const server = await start();
 
