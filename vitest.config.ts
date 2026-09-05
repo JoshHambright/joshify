@@ -24,9 +24,10 @@ export default defineConfig({
   },
   test: {
     include: ['{packages,apps}/*/src/**/*.test.ts'],
-    // Only the component tests need a DOM; everything else runs in Node, which
-    // is both faster and a standing check that the logic has no DOM in it.
-    environmentMatchGlobs: [['apps/ui/src/**/*.svelte.test.ts', 'jsdom']],
+    // Node by default. Only the component tests need a DOM, and they opt in
+    // with a `@vitest-environment jsdom` docblock — which keeps the default a
+    // standing check that the logic has no DOM in it.
+    environment: 'node',
     server: {
       deps: {
         // The testing library's helpers are themselves `.svelte.js` modules, so

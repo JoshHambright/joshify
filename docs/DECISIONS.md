@@ -767,3 +767,44 @@ and the optimistic value sits unconfirmed for seconds.
 reports the problem and keeps the last known state on screen. Blanking the
 display is never the right answer to a dropped packet.
 **Status:** ✅ Accepted.
+
+---
+
+### D-043 · The UI's shared state is a hand-written store, not a rune
+**Chose:** `connection.ts` and `commands.ts` are plain TypeScript modules with
+their dependencies — socket, scheduler, `fetch` — injected. `connection`
+implements the Svelte store contract by hand, so `$connection` still works in a
+template.
+**Why:** the reconnect ladder and the command envelopes are the two places this
+UI can be wrong in a way nobody notices until the device is on a wall. A rune
+can only be exercised inside a mounted component, which means every assertion
+about backoff timing would be made through a DOM and a scheduler we do not
+control. As plain modules they are 54 tests in Node with a fake socket and a
+fake `fetch`, and the one thing worth asserting — the exact body each command
+sends — is asserted directly instead of through a round trip.
+**The cost is honest:** we write `subscribe` ourselves rather than getting it
+free. It is about twelve lines, and it buys the ability to drive the whole
+client state machine from a test.
+**Status:** ✅ Accepted.
+
+**Consequence worth keeping:** the default test environment is Node, and a
+component test opts into jsdom explicitly. That makes "does this logic touch
+the DOM?" a question the test suite answers rather than one we have to
+remember.
+
+---
+
+### D-044 · Shared contracts live in core, even when only one side derives them
+**Chose:** the wire protocol and the theme *token contract* both moved from
+`apps/server` into `packages/core`. The derivation stays where it was — the
+server still owns diffing and colour extraction.
+**Why:** `protocol.ts` opened by arguing that both halves of a contract must
+live together or they drift, and then sat in a package the UI cannot import.
+The theme was heading the same way. The alternative in both cases was a second
+copy on the browser side, which is exactly the drift the original comment warns
+about.
+**The line:** a *contract* is shared; a *derivation* is not. `themeCssVariables`
+is in core because it names the CSS properties both ends agree on;
+`extractTheme` stays on the server because it needs pixels and an image decoder
+the browser bundle should never carry.
+**Status:** ✅ Accepted.

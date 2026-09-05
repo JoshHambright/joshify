@@ -1,4 +1,7 @@
 /**
+ * @vitest-environment jsdom
+ */
+/**
  * The shell's job is the honesty rules from SCREENS.md, so that is what these
  * assert: never a raw error, never a spinner where a last-known truth exists,
  * never a blank screen because a packet dropped.
