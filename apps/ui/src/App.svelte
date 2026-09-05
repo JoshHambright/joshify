@@ -26,6 +26,11 @@
   import Transport from './components/Transport.svelte';
   import { artworkSources } from './lib/artwork.js';
   import { controlsDisabled, noticeFor } from './lib/notices.js';
+  import {
+    createThemeApplier,
+    type StyleTarget,
+    type ThemeApplier,
+  } from './lib/theme.js';
   import type { CommandClient } from './lib/commands.js';
   import type { Connection } from './lib/connection.js';
   import type { DeviceSource } from './lib/device-source.js';
@@ -35,11 +40,12 @@
     client: CommandClient;
     devices: DeviceSource;
     /**
-     * Undefined until the account has been read — and treated as Premium,
-     * because accusing an account of being free before we know is the kind of
-     * confident lie D-022 exists to prevent. P3-14 puts this on the wire.
+     * Where the album's five tokens are written. The document root by default,
+     * because the body background and the plate's `backdrop-filter` both read
+     * them and the body sits outside this component's subtree. Injectable so a
+     * test can assert the write without a real document.
      */
-    isPremium?: boolean | undefined;
+    themeTarget?: StyleTarget | undefined;
     /** Injected so the clock is testable, and so a device with no RTC can be
      *  handed the server's time later rather than showing 1970 (D-023). */
     now?: () => Date;
@@ -49,7 +55,7 @@
     connection,
     client,
     devices,
-    isPremium,
+    themeTarget,
     now = () => new Date(),
   }: Props = $props();
 
@@ -60,13 +66,33 @@
   const playback = $derived($connection.state);
   const item = $derived(playback?.item ?? null);
   const art = $derived(artworkSources(item));
+  const isPremium = $derived(playback?.isPremium ?? null);
   const notice = $derived(
     noticeFor({
       link: $connection.link,
       state: playback,
-      ...(isPremium === undefined ? {} : { isPremium }),
+      ...(isPremium === null ? {} : { isPremium }),
     }),
   );
+
+  /**
+   * Write the album's colour whenever it changes.
+   *
+   * Deliberately *not* gated on `themeFor` matching the current item. The
+   * theme legitimately lands a few hundred milliseconds after the track that
+   * prompted it, and holding the previous album's colour across that gap is
+   * the point — snapping to neutral grey and back would be a visible flicker
+   * on every track change (D-050). The applier already skips a write when the
+   * tokens are unchanged, so a poll that changes nothing costs nothing.
+   */
+  let applier: ThemeApplier | null = null;
+  $effect(() => {
+    // Built on first run rather than at init: writing five custom properties
+    // is a side effect, and side effects belong in an effect.
+    applier ??= createThemeApplier(themeTarget ?? document.documentElement);
+    const theme = playback?.theme;
+    if (theme !== undefined) applier.apply(theme);
+  });
   const controlsOff = $derived(controlsDisabled(notice));
 
   const showDevices = (): void => {

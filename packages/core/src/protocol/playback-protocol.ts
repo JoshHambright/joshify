@@ -5,31 +5,31 @@
  * of the state honest — a diff only applies to the version it was computed
  * against, a snapshot is the only way to start — are worth exactly nothing if
  * the sender and the receiver each implement them from prose. So the sender's
- * `diffPlaybackState` and the receiver's `applyServerMessage` are written
+ * `diffPanelState` and the receiver's `applyServerMessage` are written
  * against each other, in one file, with one set of tests.
  *
  * Everything here is pure: no sockets, no timers, no Fastify.
  */
 import { err, ok, type Result } from '../result.js';
-import type { PlaybackState } from '../playback/state.js';
+import type { PanelState } from '../panel/state.js';
 
 /**
- * A shallow partial of `PlaybackState`: a key that is present replaces the
+ * A shallow partial of `PanelState`: a key that is present replaces the
  * client's value, a key that is absent means "unchanged".
  *
- * Absent-means-unchanged is why this cannot be a `Partial<PlaybackState>` the
+ * Absent-means-unchanged is why this cannot be a `Partial<PanelState>` the
  * client spreads blindly — `item` and `device` are legitimately `null`, and
  * `null` here means "nothing is playing", never "no news".
  */
-export type PlaybackDiff = {
-  readonly [K in keyof PlaybackState]?: PlaybackState[K];
+export type PanelDiff = {
+  readonly [K in keyof PanelState]?: PanelState[K];
 };
 
 /** The full state, and the version it is. The only way into a client's state. */
 export interface SnapshotMessage {
   readonly type: 'snapshot';
   readonly version: number;
-  readonly state: PlaybackState;
+  readonly state: PanelState;
 }
 
 export interface DiffMessage {
@@ -44,7 +44,7 @@ export interface DiffMessage {
    * check then survives any later change to how versions are allocated.
    */
   readonly from: number;
-  readonly changes: PlaybackDiff;
+  readonly changes: PanelDiff;
 }
 
 /**
@@ -74,7 +74,7 @@ export type ClientMessage = ResyncMessage;
 /** What a client holds: a state and the version stamp that state carries. */
 export interface ClientState {
   readonly version: number;
-  readonly state: PlaybackState;
+  readonly state: PanelState;
 }
 
 export interface ProtocolGap {
@@ -91,7 +91,7 @@ export interface ProtocolGap {
 }
 
 /**
- * Structural equality over the JSON-shaped values a `PlaybackState` is made of.
+ * Structural equality over the JSON-shaped values a `PanelState` is made of.
  *
  * Reference equality is useless for this: every poll parses a fresh response
  * into brand new objects, so `!==` would report the album art and the device
@@ -125,27 +125,30 @@ const sameValue = (left: unknown, right: unknown): boolean => {
  * diff would save a few dozen bytes on the rare message and add a merge path
  * — the one place a client can go subtly wrong — to every message.
  */
-export const diffPlaybackState = (
-  from: PlaybackState,
-  to: PlaybackState,
-): PlaybackDiff => {
-  const changes: { -readonly [K in keyof PlaybackState]?: PlaybackState[K] } = {};
+export const diffPanelState = (from: PanelState, to: PanelState): PanelDiff => {
+  const changes: { -readonly [K in keyof PanelState]?: PanelState[K] } = {};
   if (from.isPlaying !== to.isPlaying) changes.isPlaying = to.isPlaying;
   if (from.progressMs !== to.progressMs) changes.progressMs = to.progressMs;
   if (from.shuffle !== to.shuffle) changes.shuffle = to.shuffle;
   if (from.repeat !== to.repeat) changes.repeat = to.repeat;
   if (!sameValue(from.item, to.item)) changes.item = to.item;
   if (!sameValue(from.device, to.device)) changes.device = to.device;
+  // Presentation. Compared structurally like `item` and `device`, because a
+  // fresh extraction builds a new object every time even when every hex string
+  // in it is identical — which is the common case, since most polls do not
+  // change the track.
+  if (!sameValue(from.theme, to.theme)) changes.theme = to.theme;
+  if (from.themeFor !== to.themeFor) changes.themeFor = to.themeFor;
+  if (from.isPremium !== to.isPremium) changes.isPremium = to.isPremium;
   return changes;
 };
 
-export const isEmptyDiff = (diff: PlaybackDiff): boolean =>
-  Object.keys(diff).length === 0;
+export const isEmptyDiff = (diff: PanelDiff): boolean => Object.keys(diff).length === 0;
 
-export const applyPlaybackDiff = (
-  state: PlaybackState,
-  changes: PlaybackDiff,
-): PlaybackState => ({ ...state, ...changes });
+export const applyPanelDiff = (state: PanelState, changes: PanelDiff): PanelState => ({
+  ...state,
+  ...changes,
+});
 
 /**
  * Fold one server message into what the client holds.
@@ -173,7 +176,7 @@ export const applyServerMessage = (
   if (message.type === 'heartbeat') return ok(held);
   return ok({
     version: message.version,
-    state: applyPlaybackDiff(held.state, message.changes),
+    state: applyPanelDiff(held.state, message.changes),
   });
 };
 
@@ -209,7 +212,7 @@ export const parseServerMessage = (raw: string): ServerMessage | null => {
   if (body['type'] === 'snapshot') {
     const state = asRecord(body['state']);
     if (state === null) return null;
-    return { type: 'snapshot', version, state: state as unknown as PlaybackState };
+    return { type: 'snapshot', version, state: state as unknown as PanelState };
   }
   if (body['type'] === 'diff') {
     const from = body['from'];

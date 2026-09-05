@@ -18,9 +18,9 @@
  * whole push protocol is testable without opening a socket, and the WebSocket
  * route stays a twelve-line adapter.
  */
-import { IDLE_PLAYBACK, type PlaybackState } from '@joshify/core';
+import { IDLE_PANEL, type PanelState } from '@joshify/core';
 import {
-  diffPlaybackState,
+  diffPanelState,
   isEmptyDiff,
   type DiffMessage,
   type HeartbeatMessage,
@@ -51,19 +51,19 @@ export interface BroadcasterOptions {
    * State before the first poll completes. Idle by default, which is what the
    * screen should show while the first `GET /me/player` is in flight.
    */
-  readonly initialState?: PlaybackState | undefined;
+  readonly initialState?: PanelState | undefined;
   /** Called when a subscriber's transport throws; that subscriber is dropped. */
   readonly onSendFailure?: ((error: unknown) => void) | undefined;
 }
 
 export interface Broadcaster {
-  readonly getState: () => PlaybackState;
+  readonly getState: () => PanelState;
   readonly getVersion: () => number;
   readonly subscriberCount: () => number;
   /** Registers the subscriber and sends it a snapshot before returning. */
   readonly subscribe: (subscriber: Subscriber) => Subscription;
   /** True when the state differed and a diff went out. */
-  readonly publish: (state: PlaybackState) => boolean;
+  readonly publish: (state: PanelState) => boolean;
   readonly heartbeat: () => void;
 }
 
@@ -77,7 +77,7 @@ const FIRST_VERSION = 1;
 
 export const createBroadcaster = (options: BroadcasterOptions = {}): Broadcaster => {
   const subscribers = new Set<Subscriber>();
-  let state = options.initialState ?? IDLE_PLAYBACK;
+  let state = options.initialState ?? IDLE_PANEL;
   let version = FIRST_VERSION;
 
   const snapshot = (): SnapshotMessage => ({ type: 'snapshot', version, state });
@@ -124,8 +124,8 @@ export const createBroadcaster = (options: BroadcasterOptions = {}): Broadcaster
     };
   };
 
-  const publish = (next: PlaybackState): boolean => {
-    const changes = diffPlaybackState(state, next);
+  const publish = (next: PanelState): boolean => {
+    const changes = diffPanelState(state, next);
     if (isEmptyDiff(changes)) return false;
 
     const message: DiffMessage = {

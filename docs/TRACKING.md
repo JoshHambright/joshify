@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
-| 3 | Now Playing | 14 | 11 | 🟨 In progress |
+| 3 | Now Playing | 14 | 13 | 🟨 In progress |
 | 4 | Control surfaces | 10 | 5 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 3 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **48** | |
+| | **Total** | **122** | **50** | |
 
 ---
 
@@ -126,8 +126,8 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-10 | Transport control components (≥48px targets) | ✅ | Reachable and composed into the panel. Deliberately unequal per D-040: 96px accent play disc, bare skip glyphs, toggles at `--jf-ink-faint` until active. Glyphs are drawn SVG, not characters — the self-hosted faces carry no media symbols, so text would render tofu |
 | P3-11 | Interpolated progress bar rendering | ✅ | Reachable and composed into the panel. Frame loop runs only when something moves — paused, none; dragging, none. Zero extra API calls. Transport and Scrubber run the *same* pure model rather than sharing a value, so they cannot disagree (D-046) |
 | P3-12 | Idle / nothing-playing / not-Premium states | ✅ | `PlaybackNotice` composed into the plate. Offline returns *no* notice when a last known state exists — the amber lamp does the talking, and a banner over a working screen is the spinner mistake in another costume |
-| P3-14 | **Put the account's Premium flag on the wire** | ⬜ | **Gap found in P3-12.** `getProfile` knows `isPremium`; nothing publishes it, so `noticeFor` treats unknown as Premium — right default (never accuse an account before we know) but it means the not-Premium state can never actually fire |
-| P3-13 | **Deliver the theme and prepared artwork over the wire** | ⬜ | **Gap found in P3-07.** Extraction (P3-03) and application (P3-07) both exist and neither is connected: `PlaybackState` carries no theme, so the panel styles itself from `DEFAULT_THEME` forever. Needs a design decision — the artwork pipeline is async (fetch, decode, blur) so the theme legitimately lands *after* the track change, which argues against folding it into the playback diff |
+| P3-14 | **Put the account's Premium flag on the wire** | ✅ | Read once at engine start and published. Three-valued: `null` until asked, and a failed profile read leaves it null rather than guessing |
+| P3-13 | **Deliver the theme over the wire** | ✅ | `PanelState` (core) = playback + `theme` + `themeFor` + `isPremium`, flat so the diff stays granular. The engine publishes the track first and the colour when extraction lands; the UI holds the *previous* album's colour across the gap rather than flashing grey. Generation-fenced, so a slow decode cannot repaint the wrong track (D-050). **Prepared artwork URLs are not included** — that needs the static-serving route, which belongs with P3-05 |
 
 ---
 

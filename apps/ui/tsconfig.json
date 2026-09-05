@@ -9,5 +9,12 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts", "svelte.config.js"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "demo/**/*.ts",
+    "vite.config.ts",
+    "vite.demo.config.ts",
+    "svelte.config.js"
+  ]
 }

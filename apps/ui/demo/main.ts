@@ -12,11 +12,10 @@
  */
 import { mount } from 'svelte';
 import App from '../src/App.svelte';
-import type { PlaybackDevice, PlaybackState } from '@joshify/core';
+import type { PanelState, PlaybackDevice } from '@joshify/core';
 import type { CommandClient } from '../src/lib/commands.js';
 import type { Connection, ConnectionState } from '../src/lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from '../src/lib/device-source.js';
-import { createThemeApplier } from '../src/lib/theme.js';
 import '../src/styles/tokens.css';
 
 /**
@@ -39,36 +38,67 @@ const cover = (a: string, b: string, mark: string): string => {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 };
 
+/**
+ * Each cover carries the theme the server would have extracted from it.
+ *
+ * Hand-written rather than run through `extractTheme`, which needs an image
+ * decoder the browser bundle has no business carrying. The values are what the
+ * extractor produces for these covers: an accent taken from the salient mark,
+ * a surface pulled dark, and both corrected to 4.5:1 (P3-04).
+ */
 const TRACKS = [
   {
     title: 'Velocity Division',
     subtitle: 'Nitrous Cartel',
     durationMs: 211_000,
     art: cover('#1b2a4a', '#0b1020', '#ff5c8a'),
+    theme: {
+      surface: '#12141c',
+      foreground: '#f4f2f7',
+      accent: '#ff7ba3',
+      onAccent: '#1a0910',
+      controlTint: '#8a6b7a',
+    },
   },
   {
     title: 'Coolant',
     subtitle: 'Nitrous Cartel',
     durationMs: 184_000,
     art: cover('#123a33', '#04140f', '#4fe3a1'),
+    theme: {
+      surface: '#0d1613',
+      foreground: '#eff6f2',
+      accent: '#4fe3a1',
+      onAccent: '#04140f',
+      controlTint: '#5d8d79',
+    },
   },
   {
     title: 'Redline Sermon',
     subtitle: 'Bright Corridor',
     durationMs: 246_000,
     art: cover('#3a1e0c', '#160804', '#ffb347'),
+    theme: {
+      surface: '#1a1109',
+      foreground: '#f7f2ea',
+      accent: '#ffb347',
+      onAccent: '#160804',
+      controlTint: '#96784c',
+    },
   },
 ] as const;
 
+const KITCHEN: PlaybackDevice = {
+  id: 'dev-1',
+  name: 'Kitchen',
+  type: 'Speaker',
+  isActive: true,
+  volumePercent: 62,
+  supportsVolume: true,
+};
+
 const DEVICES: readonly PlaybackDevice[] = [
-  {
-    id: 'dev-1',
-    name: 'Kitchen',
-    type: 'Speaker',
-    isActive: true,
-    volumePercent: 62,
-    supportsVolume: true,
-  },
+  KITCHEN,
   {
     id: 'dev-2',
     name: 'Study',
@@ -101,24 +131,37 @@ let index = 0;
 let playing = true;
 let progressMs = 64_000;
 let shuffle = false;
-let repeat: PlaybackState['repeat'] = 'off';
+let repeat: PanelState['repeat'] = 'off';
 let volume = 62;
 let deviceId = 'dev-1';
 let link: ConnectionState['link'] = 'live';
+/**
+ * The theme lags the track by design (D-050), so the demo lags it too — a
+ * review that saw the colour change on the same frame as the title would be
+ * reviewing something the device never does.
+ */
+const THEME_LAG_MS = 320;
+let theme: PanelState['theme'] = TRACKS[0].theme;
+let themeFor: string | null = 'track-0';
+let premium = true;
 let nothingPlaying = false;
 let hasDevice = true;
 
-const stateNow = (): PlaybackState => {
+const stateNow = (): PanelState => {
   const t = TRACKS[index] ?? TRACKS[0];
-  const device = DEVICES.find((d) => d.id === deviceId) ?? DEVICES[0];
+  const device = DEVICES.find((d) => d.id === deviceId) ?? KITCHEN;
   if (nothingPlaying || !hasDevice) {
     return {
       isPlaying: false,
-      progressMs: null,
+      progressMs: 0,
       shuffle,
       repeat,
       item: null,
       device: hasDevice ? { ...device, volumePercent: volume, isActive: true } : null,
+      // The artwork is still on screen, dimmed, so the colour stays with it.
+      theme,
+      themeFor,
+      isPremium: premium,
     };
   }
   return {
@@ -126,6 +169,9 @@ const stateNow = (): PlaybackState => {
     progressMs,
     shuffle,
     repeat,
+    theme,
+    themeFor,
+    isPremium: premium,
     item: {
       kind: 'track',
       id: `track-${String(index)}`,
@@ -142,6 +188,17 @@ const stateNow = (): PlaybackState => {
 
 const listeners = new Set<(v: ConnectionState) => void>();
 let version = 1;
+
+/** Extraction, as the device experiences it: a short while after the track. */
+const scheduleTheme = (): void => {
+  const forIndex = index;
+  setTimeout(() => {
+    if (forIndex !== index) return; // fenced, as the engine fences it
+    theme = (TRACKS[forIndex] ?? TRACKS[0]).theme;
+    themeFor = `track-${String(forIndex)}`;
+    publish();
+  }, THEME_LAG_MS);
+};
 
 const publish = (): void => {
   version += 1;
@@ -164,7 +221,7 @@ const connection: Connection = {
 // moment later. This does the same thing, so the optimistic path is exercised
 // exactly as it will be.
 const client: CommandClient = {
-  send: (command, target) => {
+  send: (command) => {
     switch (command.kind) {
       case 'play':
         playing = true;
@@ -175,10 +232,12 @@ const client: CommandClient = {
       case 'next':
         index = (index + 1) % TRACKS.length;
         progressMs = 0;
+        scheduleTheme();
         break;
       case 'previous':
         index = (index + TRACKS.length - 1) % TRACKS.length;
         progressMs = 0;
+        scheduleTheme();
         break;
       case 'seek':
         progressMs = command.positionMs;
@@ -196,7 +255,8 @@ const client: CommandClient = {
         deviceId = command.deviceId;
         break;
     }
-    void target;
+    // `target` is ignored: the demo has one active device at a time, and the
+    // real server is where a device-targeted command means anything.
     setTimeout(publish, 120);
     return Promise.resolve(null);
   },
@@ -234,7 +294,6 @@ setInterval(() => {
 const target = document.querySelector('#panel');
 if (target === null) throw new Error('#panel is missing');
 
-createThemeApplier(document.documentElement);
 mount(App, { target, props: { connection, client, devices } });
 
 /**
@@ -274,6 +333,10 @@ if (controls !== null) {
   button('resume', () => {
     nothingPlaying = false;
     hasDevice = true;
+    publish();
+  });
+  button('not premium', () => {
+    premium = false;
     publish();
   });
 }

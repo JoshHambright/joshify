@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createTestClock,
+  DEFAULT_THEME,
+  err,
   isOk,
   ok,
   type JoshifyError,
-  type PlaybackState,
+  type PanelState,
+  type ThemeTokens,
 } from '@joshify/core';
 import { startFakeSpotify, type FakeSpotify } from '../testing/fake-spotify.js';
 import { createSpotifyClient } from '../spotify/client.js';
@@ -13,6 +16,7 @@ import { createBroadcaster } from '../http/broadcast.js';
 import {
   createPlaybackEngine,
   realScheduler,
+  type PlaybackEngineConfig,
   type Scheduler,
 } from './playback-engine.js';
 
@@ -78,7 +82,10 @@ let spotify: FakeSpotify;
 let clock: ReturnType<typeof createTestClock>;
 let sched: ReturnType<typeof manualScheduler>;
 
-const build = (onProblem?: (error: JoshifyError) => void) => {
+const build = (
+  onProblem?: (error: JoshifyError) => void,
+  extra: Partial<PlaybackEngineConfig> = {},
+) => {
   const client = createSpotifyClient({
     tokenSource: {
       getAccessToken: () => Promise.resolve(ok(spotify.validAccessToken)),
@@ -95,6 +102,7 @@ const build = (onProblem?: (error: JoshifyError) => void) => {
     clock,
     scheduler: sched.scheduler,
     ...(onProblem === undefined ? {} : { onProblem }),
+    ...extra,
   });
   return { engine, broadcaster };
 };
@@ -115,7 +123,7 @@ describe('the poll loop', () => {
 
     await engine.poll();
 
-    const state: PlaybackState = broadcaster.getState();
+    const state: PanelState = broadcaster.getState();
     expect(state.isPlaying).toBe(true);
     expect(state.item?.title).toBe('Velocity Division');
     expect(state.item?.subtitle).toBe('Nitrous Cartel');
@@ -391,5 +399,180 @@ describe('the real scheduler', () => {
     await vi.waitFor(() => {
       expect(ran).toEqual(['kept']);
     });
+  });
+});
+
+/**
+ * The presentation half (P3-13). The timing is the whole risk here: the theme
+ * legitimately lands after the track it belongs to, and a fence that is wrong
+ * repaints the new album in the old album's colour.
+ */
+describe('the theme', () => {
+  const BLUE: ThemeTokens = {
+    surface: '#0d1418',
+    foreground: '#eef4f6',
+    accent: '#4fa8ff',
+    onAccent: '#04121f',
+    controlTint: '#7d94a0',
+  };
+  const PINK: ThemeTokens = { ...BLUE, accent: '#ff5c8a' };
+
+  /** A presenter the test resolves by hand, so "in flight" is a real state. */
+  const heldPresenter = () => {
+    const pending: { key: string; resolve: (theme: ThemeTokens) => void }[] = [];
+    return {
+      presenter: {
+        themeFor: (item: { id: string | null }) =>
+          new Promise<ThemeTokens>((resolve) => {
+            pending.push({ key: item.id ?? '', resolve });
+          }),
+      },
+      pending,
+      settle: async (index: number, theme: ThemeTokens) => {
+        pending[index]?.resolve(theme);
+        await vi.waitFor(() => {
+          expect(true).toBe(true);
+        });
+      },
+    };
+  };
+
+  it('starts neutral, and says so with a null themeFor', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine } = build();
+    await engine.poll();
+
+    expect(engine.state().theme).toEqual(DEFAULT_THEME);
+    expect(engine.state().themeFor).toBeNull();
+  });
+
+  it('publishes the track first and the colour after', async () => {
+    spotify.playbackState = trackPayload();
+    const held = heldPresenter();
+    const { engine, broadcaster } = build(undefined, { presenter: held.presenter });
+
+    await engine.poll();
+
+    // The title is already on screen while extraction is still running —
+    // making the poll wait for a colour would be exactly backwards.
+    expect(broadcaster.getState().item?.title).toBe('Velocity Division');
+    expect(broadcaster.getState().theme).toEqual(DEFAULT_THEME);
+    expect(held.pending).toHaveLength(1);
+
+    await held.settle(0, BLUE);
+
+    expect(broadcaster.getState().theme).toEqual(BLUE);
+    expect(broadcaster.getState().themeFor).toBe('track-1');
+  });
+
+  it('does not re-extract for a track that has not changed', async () => {
+    spotify.playbackState = trackPayload();
+    const held = heldPresenter();
+    const { engine } = build(undefined, { presenter: held.presenter });
+
+    await engine.poll();
+    await held.settle(0, BLUE);
+    await engine.poll();
+    await engine.poll();
+
+    expect(held.pending).toHaveLength(1);
+  });
+
+  // The fence. Without it, an image that decodes slowly repaints whatever is
+  // playing *now* in the colour of whatever prompted the extraction.
+  it('discards a theme for a track that has already changed', async () => {
+    spotify.playbackState = trackPayload();
+    const held = heldPresenter();
+    const { engine, broadcaster } = build(undefined, { presenter: held.presenter });
+    await engine.poll();
+
+    spotify.playbackState = trackPayload({
+      item: { ...trackPayload().item, id: 'track-2', name: 'Coolant' },
+    });
+    await engine.poll();
+    expect(held.pending).toHaveLength(2);
+
+    // The first track's extraction finishes last. It must not win.
+    await held.settle(1, PINK);
+    await held.settle(0, BLUE);
+
+    expect(broadcaster.getState().theme).toEqual(PINK);
+    expect(broadcaster.getState().themeFor).toBe('track-2');
+  });
+
+  // The artwork is still on screen, dimmed. Snapping the chrome to grey while
+  // the album is still showing would look like a fault.
+  it('keeps the last album colour when playback stops', async () => {
+    spotify.playbackState = trackPayload();
+    const held = heldPresenter();
+    const { engine, broadcaster } = build(undefined, { presenter: held.presenter });
+    await engine.poll();
+    await held.settle(0, BLUE);
+
+    spotify.playbackState = null;
+    await engine.poll();
+
+    expect(broadcaster.getState().item).toBeNull();
+    expect(broadcaster.getState().theme).toEqual(BLUE);
+  });
+
+  // A colour is the least important thing on the panel.
+  it('keeps the colour it has when extraction fails', async () => {
+    spotify.playbackState = trackPayload();
+    const problems: unknown[] = [];
+    const { engine, broadcaster } = build((e) => problems.push(e), {
+      presenter: { themeFor: () => Promise.reject(new Error('decoder exploded')) },
+    });
+
+    await engine.poll();
+    await vi.waitFor(() => {
+      expect(problems).toHaveLength(1);
+    });
+
+    expect(broadcaster.getState().item?.title).toBe('Velocity Division');
+    expect(broadcaster.getState().theme).toEqual(DEFAULT_THEME);
+  });
+});
+
+describe('the Premium flag', () => {
+  it('stays null until the account has been read', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine } = build();
+    await engine.poll();
+
+    // Null, not false: accusing an account of being free before we know is the
+    // confident lie D-022 exists to prevent.
+    expect(engine.state().isPremium).toBeNull();
+  });
+
+  it('publishes the answer once the profile is read', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, broadcaster } = build(undefined, {
+      readProfile: () => Promise.resolve(ok({ isPremium: true })),
+    });
+
+    engine.start();
+    await vi.waitFor(() => {
+      expect(broadcaster.getState().isPremium).toBe(true);
+    });
+    engine.stop();
+  });
+
+  it('leaves the account unclassified when the profile read fails', async () => {
+    spotify.playbackState = trackPayload();
+    const problems: unknown[] = [];
+    const { engine } = build((e) => problems.push(e), {
+      readProfile: () =>
+        Promise.resolve(
+          err({ kind: 'network' as const, message: 'offline', retryable: true }),
+        ),
+    });
+
+    engine.start();
+    await vi.waitFor(() => {
+      expect(problems).toHaveLength(1);
+    });
+    expect(engine.state().isPremium).toBeNull();
+    engine.stop();
   });
 });

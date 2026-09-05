@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE_PLAYBACK, isOk, type PlaybackState } from '../index.js';
+import { IDLE_PANEL, isOk, type PanelState } from '../index.js';
 import {
-  applyPlaybackDiff,
+  applyPanelDiff,
   applyServerMessage,
-  diffPlaybackState,
+  diffPanelState,
   isEmptyDiff,
   nextReconnectDelayMs,
   parseClientMessage,
@@ -14,7 +14,7 @@ import {
 } from './playback-protocol.js';
 
 /** Shapes matching the normaliser's output for a playing track (P2-01). */
-const TRACK: NonNullable<PlaybackState['item']> = {
+const TRACK: NonNullable<PanelState['item']> = {
   kind: 'track',
   id: 'track-1',
   uri: 'spotify:track:track-1',
@@ -28,7 +28,7 @@ const TRACK: NonNullable<PlaybackState['item']> = {
   isLocal: false,
 };
 
-const DEVICE: NonNullable<PlaybackState['device']> = {
+const DEVICE: NonNullable<PanelState['device']> = {
   id: 'device-1',
   name: 'Kitchen',
   type: 'Speaker',
@@ -37,7 +37,8 @@ const DEVICE: NonNullable<PlaybackState['device']> = {
   supportsVolume: true,
 };
 
-const playing = (overrides: Partial<PlaybackState> = {}): PlaybackState => ({
+const playing = (overrides: Partial<PanelState> = {}): PanelState => ({
+  ...IDLE_PANEL,
   isPlaying: true,
   progressMs: 12_000,
   shuffle: false,
@@ -47,20 +48,20 @@ const playing = (overrides: Partial<PlaybackState> = {}): PlaybackState => ({
   ...overrides,
 });
 
-describe('diffPlaybackState', () => {
+describe('diffPanelState', () => {
   it('finds nothing to send when a paused player is polled again', () => {
     // The idle cadence polls a paused player for hours. Every one of those
     // ticks parses a fresh, structurally identical state object, and a diff
     // that reported those objects as changed would push the full track and
     // device payload down the socket forever for no reason.
-    expect(isEmptyDiff(diffPlaybackState(playing(), playing()))).toBe(true);
+    expect(isEmptyDiff(diffPanelState(playing(), playing()))).toBe(true);
   });
 
   it('sends only progressMs on an ordinary mid-track tick', () => {
     // The case that justifies diffing at all: several times a second the only
     // thing that moved is the progress bar, and the album art URL, the device
     // list and the track metadata must not ride along with it.
-    const changes = diffPlaybackState(playing(), playing({ progressMs: 15_000 }));
+    const changes = diffPanelState(playing(), playing({ progressMs: 15_000 }));
     expect(changes).toEqual({ progressMs: 15_000 });
   });
 
@@ -69,7 +70,7 @@ describe('diffPlaybackState', () => {
       item: { ...TRACK, id: 'track-2', title: 'Nannou' },
       progressMs: 0,
     });
-    const changes = diffPlaybackState(playing(), next);
+    const changes = diffPanelState(playing(), next);
     expect(changes.item?.title).toBe('Nannou');
     expect(changes.progressMs).toBe(0);
     expect(changes.device).toBeUndefined();
@@ -84,12 +85,12 @@ describe('diffPlaybackState', () => {
         images: [{ url: 'https://i.example/new.jpg', width: 640, height: 640 }],
       },
     });
-    expect(diffPlaybackState(playing(), next).item).toBeDefined();
+    expect(diffPanelState(playing(), next).item).toBeDefined();
   });
 
   it('notices an image list that grew without its first entry changing', () => {
     const next = playing({ item: { ...TRACK, images: TRACK.images.slice(0, 1) } });
-    expect(diffPlaybackState(playing(), next).item).toBeDefined();
+    expect(diffPanelState(playing(), next).item).toBeDefined();
   });
 
   it('sees through a fresh copy of an identical image list', () => {
@@ -97,12 +98,12 @@ describe('diffPlaybackState', () => {
     // reference would call each of those a change and push the whole track
     // payload down the socket several times a second.
     const next = playing({ item: { ...TRACK, images: [...TRACK.images] } });
-    expect(isEmptyDiff(diffPlaybackState(playing(), next))).toBe(true);
+    expect(isEmptyDiff(diffPanelState(playing(), next))).toBe(true);
   });
 
   it('notices an image list of the same length whose entries moved', () => {
     const next = playing({ item: { ...TRACK, images: [...TRACK.images].reverse() } });
-    expect(diffPlaybackState(playing(), next).item).toBeDefined();
+    expect(diffPanelState(playing(), next).item).toBeDefined();
   });
 
   it('reports a volume change as a new device rather than a nested patch', () => {
@@ -110,21 +111,21 @@ describe('diffPlaybackState', () => {
     // whole device back, because a nested merge is the one place it could get
     // the state subtly wrong.
     const next = playing({ device: { ...DEVICE, volumePercent: 55 } });
-    expect(diffPlaybackState(playing(), next)).toEqual({ device: next.device });
+    expect(diffPanelState(playing(), next)).toEqual({ device: next.device });
   });
 
   it('distinguishes an absent device from a device with fewer fields', () => {
     const trimmed: Record<string, unknown> = { ...DEVICE };
     delete trimmed['supportsVolume'];
-    const next = playing({ device: trimmed as unknown as PlaybackState['device'] });
-    expect(diffPlaybackState(playing(), next).device).toBeDefined();
+    const next = playing({ device: trimmed as unknown as PanelState['device'] });
+    expect(diffPanelState(playing(), next).device).toBeDefined();
   });
 
   it('carries null when the last device disappears', () => {
     // Spotify answers 204 once every device goes idle. `null` here has to mean
     // "nothing is playing", never "no news", or the screen keeps showing a
     // track that stopped ten minutes ago.
-    const changes = diffPlaybackState(playing(), IDLE_PLAYBACK);
+    const changes = diffPanelState(playing(), IDLE_PANEL);
     expect(changes.item).toBeNull();
     expect(changes.device).toBeNull();
     expect(changes.isPlaying).toBe(false);
@@ -132,7 +133,7 @@ describe('diffPlaybackState', () => {
 
   it('reports every flag that moved when playback resumes elsewhere', () => {
     const next = playing({ isPlaying: false, shuffle: true, repeat: 'track' });
-    expect(diffPlaybackState(playing(), next)).toEqual({
+    expect(diffPanelState(playing(), next)).toEqual({
       isPlaying: false,
       shuffle: true,
       repeat: 'track',
@@ -141,14 +142,12 @@ describe('diffPlaybackState', () => {
 
   it('treats a device that gained a null-valued field as changed', () => {
     const next = playing({ device: { ...DEVICE, volumePercent: null } });
-    expect(diffPlaybackState(playing(), next).device).toBeDefined();
+    expect(diffPanelState(playing(), next).device).toBeDefined();
   });
 
   it('round-trips: applying a diff reproduces the state it was taken from', () => {
     const next = playing({ progressMs: 90_000, repeat: 'context', item: null });
-    expect(applyPlaybackDiff(playing(), diffPlaybackState(playing(), next))).toEqual(
-      next,
-    );
+    expect(applyPanelDiff(playing(), diffPanelState(playing(), next))).toEqual(next);
   });
 });
 
@@ -225,9 +224,9 @@ describe('parseServerMessage', () => {
     });
     expect(
       parseServerMessage(
-        JSON.stringify({ type: 'snapshot', version: 1, state: IDLE_PLAYBACK }),
+        JSON.stringify({ type: 'snapshot', version: 1, state: IDLE_PANEL }),
       ),
-    ).toEqual({ type: 'snapshot', version: 1, state: IDLE_PLAYBACK });
+    ).toEqual({ type: 'snapshot', version: 1, state: IDLE_PANEL });
     expect(
       parseServerMessage(
         '{"type":"diff","version":2,"from":1,"changes":{"shuffle":true}}',

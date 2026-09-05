@@ -14,16 +14,32 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import {
-  IDLE_PLAYBACK,
+  IDLE_PANEL,
   type JoshifyError,
+  type PanelState,
   type PlaybackDevice,
-  type PlaybackState,
   type PlayingItem,
 } from '@joshify/core';
 import App from './App.svelte';
+import { DEFAULT_THEME } from '@joshify/core';
 import type { Command, CommandClient, CommandTarget } from './lib/commands.js';
 import type { Connection, ConnectionState, LinkStatus } from './lib/connection.js';
 import type { DeviceSource, DeviceSourceState } from './lib/device-source.js';
+import type { StyleTarget } from './lib/theme.js';
+
+/** Collects the custom properties App writes, without a real document. */
+const fakeThemeTarget = () => {
+  const properties = new Map<string, string>();
+  const target: StyleTarget = {
+    style: {
+      setProperty: (property, value) => properties.set(property, value),
+      removeProperty: (property) => {
+        properties.delete(property);
+      },
+    },
+  };
+  return { target, properties };
+};
 
 const track: PlayingItem = {
   kind: 'track',
@@ -52,8 +68,8 @@ const study: PlaybackDevice = {
   isActive: false,
 };
 
-const playing = (over: Partial<PlaybackState> = {}): PlaybackState => ({
-  ...IDLE_PLAYBACK,
+const playing = (over: Partial<PanelState> = {}): PanelState => ({
+  ...IDLE_PANEL,
   isPlaying: true,
   progressMs: 64_000,
   item: track,
@@ -138,21 +154,22 @@ interface Harness {
   connection?: ReturnType<typeof fakeConnection>;
   devices?: ReturnType<typeof fakeDevices>;
   client?: ReturnType<typeof fakeClient>;
-  isPremium?: boolean;
+  theme?: ReturnType<typeof fakeThemeTarget>;
 }
 
 const mountApp = (harness: Harness = {}) => {
   const conn = harness.connection ?? fakeConnection({ state: playing() });
   const devs = harness.devices ?? fakeDevices();
   const cmd = harness.client ?? fakeClient();
+  const theme = harness.theme ?? fakeThemeTarget();
   const rendered = render(App, {
     connection: conn.connection,
     client: cmd.client,
     devices: devs.source,
+    themeTarget: theme.target,
     now: at(21, 47),
-    ...(harness.isPremium === undefined ? {} : { isPremium: harness.isPremium }),
   });
-  return { ...rendered, conn, devs, cmd };
+  return { ...rendered, conn, devs, cmd, theme };
 };
 
 afterEach(cleanup);
@@ -208,14 +225,14 @@ describe('the notices', () => {
   // one with an action attached — so the idle notice needs a speaker present.
   it('says nothing is playing rather than showing an empty plate', () => {
     mountApp({
-      connection: fakeConnection({ state: { ...IDLE_PLAYBACK, device: kitchen } }),
+      connection: fakeConnection({ state: { ...IDLE_PANEL, device: kitchen } }),
     });
 
     expect(screen.getByText('Nothing playing')).toBeDefined();
   });
 
   it('offers a device rather than reporting an error when there is none', () => {
-    mountApp({ connection: fakeConnection({ state: IDLE_PLAYBACK }) });
+    mountApp({ connection: fakeConnection({ state: IDLE_PANEL }) });
 
     expect(screen.getByRole('button', { name: /choose a device/i })).toBeDefined();
   });
@@ -229,7 +246,9 @@ describe('the notices', () => {
   });
 
   it('explains a free account plainly and switches the controls off', () => {
-    const { container } = mountApp({ isPremium: false });
+    const { container } = mountApp({
+      connection: fakeConnection({ state: playing({ isPremium: false }) }),
+    });
 
     expect(screen.getByText('Premium required')).toBeDefined();
     expect(container.textContent).not.toMatch(/error|failed/i);
@@ -238,7 +257,7 @@ describe('the notices', () => {
 
 describe('the plate, grown', () => {
   it('opens the device list from the notice action and polls only while it is open', async () => {
-    const { devs } = mountApp({ connection: fakeConnection({ state: IDLE_PLAYBACK }) });
+    const { devs } = mountApp({ connection: fakeConnection({ state: IDLE_PANEL }) });
     expect(devs.calls.opened).toBe(0);
 
     screen.getByRole('button', { name: /choose a device/i }).click();
@@ -336,5 +355,68 @@ describe('the link lamp', () => {
     });
 
     expect(container.textContent).not.toMatch(/error|loading|failed/i);
+  });
+});
+
+/**
+ * P3-13's visible half: the album's colour has to actually land on the
+ * document, and it has to survive the gap between a track change and its
+ * extraction.
+ */
+describe('the album colour', () => {
+  const BLUE = {
+    surface: '#0d1418',
+    foreground: '#eef4f6',
+    accent: '#4fa8ff',
+    onAccent: '#04121f',
+    controlTint: '#7d94a0',
+  };
+
+  it('starts neutral rather than unstyled', () => {
+    const { theme } = mountApp({
+      connection: fakeConnection({ state: playing() }),
+    });
+
+    expect(theme.properties.get('--joshify-accent')).toBe(DEFAULT_THEME.accent);
+  });
+
+  it('writes the album colour when it arrives', async () => {
+    const conn = fakeConnection({ state: playing() });
+    const { theme } = mountApp({ connection: conn });
+
+    conn.set({ state: playing({ theme: BLUE, themeFor: 'track-1' }) });
+    await vi.waitFor(() => {
+      expect(theme.properties.get('--joshify-accent')).toBe('#4fa8ff');
+    });
+
+    expect(theme.properties.get('--joshify-surface')).toBe('#0d1418');
+  });
+
+  // The gap between a track change and its extraction is a few hundred
+  // milliseconds. Snapping to grey and back across it is a visible flicker on
+  // every track change, so the previous album's colour is held instead.
+  it('holds the previous colour across a track change', async () => {
+    const conn = fakeConnection({
+      state: playing({ theme: BLUE, themeFor: 'track-1' }),
+    });
+    const { theme } = mountApp({ connection: conn });
+    await vi.waitFor(() => {
+      expect(theme.properties.get('--joshify-accent')).toBe('#4fa8ff');
+    });
+
+    // A new track, whose own theme has not been extracted yet: the server
+    // sends the old tokens with the old `themeFor`.
+    conn.set({
+      state: playing({
+        item: { ...track, id: 'track-2', title: 'Coolant' },
+        theme: BLUE,
+        themeFor: 'track-1',
+      }),
+    });
+    await vi.waitFor(() => {
+      expect(screen.getByText('Coolant')).toBeDefined();
+    });
+
+    expect(theme.properties.get('--joshify-accent')).toBe('#4fa8ff');
   });
 });

@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { IDLE_PLAYBACK, type PlaybackState } from '@joshify/core';
+import { IDLE_PANEL, type PanelState } from '@joshify/core';
 import { createBroadcaster, type Subscriber } from './broadcast.js';
 import { parseServerMessage, type ServerMessage } from '@joshify/core';
 
-const PLAYING: PlaybackState = {
+const PLAYING: PanelState = {
+  ...IDLE_PANEL,
   isPlaying: true,
   progressMs: 1_000,
   shuffle: false,
@@ -61,7 +62,7 @@ describe('subscribing', () => {
     expect(client.frames[0]).toEqual({
       type: 'snapshot',
       version: 1,
-      state: IDLE_PLAYBACK,
+      state: IDLE_PANEL,
     });
   });
 

@@ -2,7 +2,7 @@ import { request as httpRequest } from 'node:http';
 import { createConnection } from 'node:net';
 import { networkInterfaces } from 'node:os';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { IDLE_PLAYBACK, isOk, ok, type PlaybackState } from '@joshify/core';
+import { IDLE_PANEL, isOk, ok, type PanelState } from '@joshify/core';
 import { createSpotifyClient } from '../spotify/client.js';
 import { createSpotifyCommands } from '../spotify/commands.js';
 import { startFakeSpotify, type FakeSpotify } from '../testing/fake-spotify.js';
@@ -21,7 +21,8 @@ import {
   type RunningServer,
 } from './server.js';
 
-const PLAYING: PlaybackState = {
+const PLAYING: PanelState = {
+  ...IDLE_PANEL,
   isPlaying: true,
   progressMs: 1_000,
   shuffle: false,
@@ -299,7 +300,7 @@ describe('read routes', () => {
   it('serves an idle state before the first poll returns', async () => {
     const server = await start();
     const response = await fetch(`${server.origin}/api/state`);
-    expect(await response.json()).toEqual({ version: 1, state: IDLE_PLAYBACK });
+    expect(await response.json()).toEqual({ version: 1, state: IDLE_PANEL });
   });
 
   it('404s an unknown path', async () => {

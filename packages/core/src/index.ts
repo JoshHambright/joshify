@@ -73,9 +73,9 @@ export {
 } from './playback/optimistic.js';
 export { playingItemKey } from './playback/item-key.js';
 export {
-  applyPlaybackDiff,
+  applyPanelDiff,
   applyServerMessage,
-  diffPlaybackState,
+  diffPanelState,
   isEmptyDiff,
   parseClientMessage,
   parseServerMessage,
@@ -83,7 +83,7 @@ export {
   type ClientState,
   type DiffMessage,
   type HeartbeatMessage,
-  type PlaybackDiff,
+  type PanelDiff,
   type ProtocolGap,
   type ResyncMessage,
   type ServerMessage,
@@ -96,3 +96,4 @@ export {
   normaliseQueue,
   type PlaybackQueue,
 } from './playback/state.js';
+export { IDLE_PANEL, themeMatchesItem, type PanelState } from './panel/state.js';

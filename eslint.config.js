@@ -8,6 +8,7 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/dist-web/**',
+      '**/dist-demo/**',
       '**/coverage/**',
       'site/**',
       'spikes/**',

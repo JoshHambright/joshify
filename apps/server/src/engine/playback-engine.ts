@@ -11,13 +11,17 @@
  */
 import {
   createOptimisticPlayback,
+  DEFAULT_THEME,
   IDLE_PLAYBACK,
   nextPollDelayMs,
+  playingItemKey,
   type Clock,
   type JoshifyError,
   type OptimisticChange,
-  type PlaybackState,
+  type PanelState,
+  type PlayingItem,
   type Result,
+  type ThemeTokens,
 } from '@joshify/core';
 import { normalisePlaybackState } from '@joshify/core';
 import type { Broadcaster } from '../http/broadcast.js';
@@ -37,6 +41,17 @@ export const realScheduler: Scheduler = (delayMs, run) => {
   };
 };
 
+/**
+ * Where the album's colour comes from.
+ *
+ * Injected rather than constructed here because extraction needs a disk cache
+ * and an image decoder, and the engine should stay testable without either.
+ * It is deliberately allowed to be slow: nothing in the poll path awaits it.
+ */
+export interface Presenter {
+  readonly themeFor: (item: PlayingItem) => Promise<ThemeTokens>;
+}
+
 export interface PlaybackEngineConfig {
   readonly client: Pick<SpotifyClient, 'getPlaybackState'>;
   readonly commands: SpotifyCommands;
@@ -45,13 +60,21 @@ export interface PlaybackEngineConfig {
   readonly scheduler?: Scheduler | undefined;
   /** Reported so the UI can show that something is wrong without guessing. */
   readonly onProblem?: ((error: JoshifyError) => void) | undefined;
+  /** Absent means the panel stays on the neutral default theme. */
+  readonly presenter?: Presenter | undefined;
+  /**
+   * Read once at start. `null` — the default — means "we have not asked",
+   * which the UI must not render as "this account is free" (D-022).
+   */
+  readonly readProfile?:
+    (() => Promise<Result<{ isPremium: boolean }, JoshifyError>>) | undefined;
 }
 
 export interface PlaybackEngine {
   readonly start: () => void;
   readonly stop: () => void;
   /** What the UI should be drawing: polled truth with pending changes over it. */
-  readonly state: () => PlaybackState;
+  readonly state: () => PanelState;
   /** Apply optimistically, send, and reconcile or roll back. */
   readonly command: (change: EngineCommand) => Promise<Result<void, JoshifyError>>;
   /** Force a poll now. Exposed for tests and for the reconnect path. */
@@ -75,8 +98,72 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
   let running = false;
   let cancelNext: CancelScheduled | null = null;
 
+  // Presentation, held alongside playback rather than inside it. The theme
+  // legitimately lags the track it belongs to — extraction needs the image,
+  // and the image needs a fetch and a decode — so `themeFor` records which
+  // item the colour on screen actually belongs to (D-050).
+  let theme: ThemeTokens = DEFAULT_THEME;
+  let themeFor: string | null = null;
+  let isPremium: boolean | null = null;
+  /** Which extraction is current. A track change invalidates the one in flight. */
+  let themeGeneration = 0;
+
+  const panelState = (): PanelState => ({
+    ...optimistic.state,
+    theme,
+    themeFor,
+    isPremium,
+  });
+
   const publish = (): void => {
-    config.broadcaster.publish(optimistic.state);
+    config.broadcaster.publish(panelState());
+  };
+
+  /**
+   * Kick off extraction for a newly playing item, and publish again when it
+   * lands.
+   *
+   * Deliberately not awaited by `poll`. Making the poll wait would delay the
+   * title and the progress bar behind a disk read and a decode, to deliver a
+   * colour — exactly backwards. The panel gets the track immediately and the
+   * colour a moment later, holding the *previous* album's colour in between
+   * rather than flashing to neutral grey.
+   */
+  const refreshTheme = (item: PlayingItem | null): void => {
+    const presenter = config.presenter;
+    if (presenter === undefined) return;
+    const key = item === null ? null : playingItemKey(item);
+    if (key === themeFor) return;
+
+    themeGeneration += 1;
+    const generation = themeGeneration;
+
+    if (item === null) {
+      // Nothing playing keeps the last album's colour rather than snapping to
+      // grey: the artwork is still on screen, dimmed (SCREENS.md).
+      return;
+    }
+
+    void presenter.themeFor(item).then(
+      (next) => {
+        // Fenced after the await: a track that changed while the image was
+        // decoding must not be repainted in the previous album's colour
+        // (D-032's rule, in a different place).
+        if (generation !== themeGeneration) return;
+        theme = next;
+        themeFor = key;
+        publish();
+      },
+      (error: unknown) => {
+        // A theme we could not derive is not worth a fault on screen. The
+        // panel keeps whatever colour it has.
+        config.onProblem?.({
+          kind: 'unexpected',
+          message: `theme extraction failed: ${String(error)}`,
+          retryable: true,
+        });
+      },
+    );
   };
 
   const armNextPoll = (): void => {
@@ -109,6 +196,7 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
       return;
     }
     optimistic.reconcile(normalised.value, config.clock.monotonic());
+    refreshTheme(optimistic.state.item);
     publish();
     armNextPoll();
   };
@@ -158,6 +246,22 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
     start: () => {
       if (running) return;
       running = true;
+      const readProfile = config.readProfile;
+      if (readProfile !== undefined) {
+        void readProfile().then(
+          (result) => {
+            // Only a definite answer moves it off null. A failed read leaves
+            // the account unclassified, which is the honest state.
+            if (!result.ok) {
+              config.onProblem?.(result.error);
+              return;
+            }
+            isPremium = result.value.isPremium;
+            publish();
+          },
+          () => undefined,
+        );
+      }
       void poll();
     },
     stop: () => {
@@ -165,7 +269,7 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
       cancelNext?.();
       cancelNext = null;
     },
-    state: () => optimistic.state,
+    state: panelState,
     command,
     poll,
   };

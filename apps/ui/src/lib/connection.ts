@@ -17,7 +17,7 @@ import {
   applyServerMessage,
   parseServerMessage,
   type ClientState,
-  type PlaybackState,
+  type PanelState,
   type ProtocolGap,
 } from '@joshify/core';
 
@@ -28,7 +28,7 @@ export interface ConnectionState {
   readonly link: LinkStatus;
   /** The last state we hold. Never null after the first snapshot — and never
    *  cleared on a drop, because the screen keeps showing the last truth. */
-  readonly state: PlaybackState | null;
+  readonly state: PanelState | null;
   /** The version stamp `state` carries, or null before the first snapshot. */
   readonly version: number | null;
   /**

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { IDLE_PLAYBACK, type PlaybackState, type ServerMessage } from '@joshify/core';
+import { IDLE_PANEL, type PanelState, type ServerMessage } from '@joshify/core';
 import {
   createConnection,
   reconnectDelayMs,
@@ -59,8 +59,8 @@ const manualScheduler = () => {
   };
 };
 
-const playing = (over: Partial<PlaybackState> = {}): PlaybackState => ({
-  ...IDLE_PLAYBACK,
+const playing = (over: Partial<PanelState> = {}): PanelState => ({
+  ...IDLE_PANEL,
   isPlaying: true,
   progressMs: 30_000,
   ...over,

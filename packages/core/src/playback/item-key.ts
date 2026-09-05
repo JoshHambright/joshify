@@ -13,7 +13,12 @@ import type { PlayingItem } from './state.js';
  * The fallback exists because **local files have neither an id nor a uri**.
  * Without it, every poll of one would look like a different track.
  */
-export const playingItemKey = (item: PlayingItem | null): string | null => {
+// Overloaded so a caller holding a real item gets a `string` rather than a
+// `string | null` it has to re-narrow. The null case is genuinely null, and
+// the non-null case genuinely never is.
+export function playingItemKey(item: PlayingItem): string;
+export function playingItemKey(item: PlayingItem | null): string | null;
+export function playingItemKey(item: PlayingItem | null): string | null {
   if (item === null) return null;
   return item.id ?? item.uri ?? `local:${item.title}:${String(item.durationMs)}`;
-};
+}

@@ -5,6 +5,11 @@
  * — the socket connection, the command client, and the device source —
  * because each is a singleton, and a component that reached for a global
  * version of any of them would be untestable for it.
+ *
+ * The theme is not among them any more: it arrives on the wire per track
+ * (P3-13), so `App` owns applying it and defaults its target to the document
+ * root. Writing it here as well would mean two writers for one set of
+ * properties.
  */
 import { mount } from 'svelte';
 import App from './App.svelte';
@@ -12,7 +17,6 @@ import { browserSocket } from './lib/browser-socket.js';
 import { createCommandClient } from './lib/commands.js';
 import { createConnection } from './lib/connection.js';
 import { createDeviceSource } from './lib/device-source.js';
-import { createThemeApplier } from './lib/theme.js';
 import './styles/tokens.css';
 
 const socketUrl = (): string => {
@@ -22,11 +26,6 @@ const socketUrl = (): string => {
 
 const target = document.querySelector('#panel');
 if (target === null) throw new Error('#panel is missing from index.html');
-
-// Applied to the document root rather than the app root: the plate's
-// `backdrop-filter` and the body background both read these, and the body is
-// outside the app's subtree.
-createThemeApplier(document.documentElement);
 
 const connection = createConnection({
   url: socketUrl(),

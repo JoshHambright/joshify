@@ -900,3 +900,38 @@ plugs it in is fine. A request per second for three rows is not.
 it has. Emptying a list somebody is looking at, to report that we could not
 confirm it, is the same mistake as blanking the album on a dropped packet.
 **Status:** ✅ Accepted.
+
+---
+
+### D-050 · The theme rides on the state, and is allowed to lag the track
+**Chose:** a new `PanelState` in core — `PlaybackState` plus `theme`,
+`themeFor` and `isPremium` — is what the socket carries. The engine publishes
+the track immediately and publishes again when extraction lands, a few hundred
+milliseconds later. The UI holds the *previous* album's colour across that gap.
+**Why a separate type:** `PlaybackState` is our model of Spotify's player, and
+a field in it should mean "Spotify reported this". The album's colour is
+computed here, from an image, after the fact. Folding it in would make the
+normaliser's output depend on a disk cache and an image decoder.
+**Why flat, not nested:** `{ playback, presentation }` reads better and costs
+more. The diff protocol replaces whole keys, so a nested shape would resend the
+entire playback object on every one-second progress tick to change one number.
+Flat keeps each field its own key. It also means `PanelState` structurally *is*
+a `PlaybackState`, so every component that only wants playback keeps its
+existing type and never learns presentation exists.
+**Why the poll does not await it:** making the title and the progress bar wait
+behind a disk read and a decode, in order to deliver a colour, is exactly
+backwards. Nothing in the poll path awaits extraction.
+**Why `themeFor`:** it records which item the colour belongs to. That is what
+lets the UI keep showing the last album's accent for the few hundred
+milliseconds before the new one is ready, instead of snapping to neutral grey
+and back — a visible flicker on every single track change. Same family of
+decision as holding the outgoing artwork until the incoming one has decoded
+(D-045).
+**And the fence:** an extraction that finishes after the track has moved on is
+discarded. Without it, a slow decode repaints whatever is playing *now* in the
+colour of whatever prompted the request — D-032's rule, in a different place.
+**`isPremium` is three-valued.** `null` means we have not asked. Only a
+definite answer moves it off null; a failed profile read leaves the account
+unclassified, because accusing an account of being free before we know is the
+confident lie D-022 exists to prevent.
+**Status:** ✅ Accepted.
