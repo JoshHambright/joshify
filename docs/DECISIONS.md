@@ -658,3 +658,44 @@ token-store pattern, so a dropped connection cannot leave a truncated image.
 Eviction is true LRU (400 entries / 32MB, pruned on write), because this runs
 for months on a device with a finite SD card.
 **Status:** ✅ Accepted.
+
+---
+
+### D-038 · The device is an instrument, not a picture frame
+**Chose:** Visible, characterful, always-present chrome. The album art sits
+*inside* the instrument rather than behind floating controls.
+**Why:** We had written down two opposed philosophies and never noticed.
+PRODUCT.md §5.3 said *"The art is the interface. Chrome recedes."* while
+THEMES.md and PS1_MODE.md described bevelled chrome, persistent readouts, and
+the PS1 BIOS CD player as a reference. Every styling decision downstream depends
+on which we meant.
+The instrument reading is the one consistent with everything else already
+decided — the 1997–2001 idiom, the Plus!-style whole-interface theming (D-017),
+the visualiser as a *mode* rather than the resting state. A picture frame that
+hides its controls would make all of that decoration on something that wants to
+be plain.
+It also suits the object. This is a dedicated appliance on a shelf, not a phone
+app: it has one job, it is always on, and equipment that shows its state is more
+useful at a glance than equipment that hides it until touched.
+**Consequence:** §5.3's first principle has been rewritten rather than quietly
+ignored. Anything that assumed receding chrome needs re-reading.
+**Status:** ✅ Accepted.
+
+---
+
+### D-039 · Design to a fixed fullscreen panel, with no scrolling on Now Playing
+**Chose:** Treat the display as a fixed, edge-to-edge viewport. No window chrome,
+no scrollbars, nothing that reads as "a web page in a browser". Now Playing must
+fit the panel exactly at every state.
+**Why:** It is a kiosk. There is no address bar to scroll away from and no
+second screenful to reach — a layout that overflows is simply broken, not merely
+inconvenient. Designing to a known viewport also removes a whole class of
+responsive guesswork, which is worth the loss of flexibility on a device whose
+screen never changes.
+**The panel:** the Raspberry Pi Touch Display 2 is **720 × 1280 — natively
+portrait**, 7 inches, five-point capacitive touch. Orientation is therefore a
+real decision rather than an assumption: landscape needs a rotation in config,
+while portrait gives a full-width square album cover with the controls stacked
+beneath it, which is close to a record sleeve standing up. Being settled by
+prototype rather than argument.
+**Status:** ✅ Accepted (orientation pending review).

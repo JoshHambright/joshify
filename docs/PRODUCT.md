@@ -98,7 +98,9 @@ Full design: [VISUALIZER.md](./VISUALIZER.md).
 
 ### 5.3 Design principles
 
-1. **The art is the interface.** Chrome recedes; the album is the hero.
+1. **The device is an instrument.** Chrome is visible, characterful and always
+   present — the album sits *inside* it rather than behind it. (This replaces an
+   earlier principle that said the opposite; see D-038.)
 2. **Glanceable from across the room.** Readable at 2 metres, operable at 0.3.
 3. **Touch targets ≥ 48px.** No hover states. No right-click. No tiny close buttons.
 4. **Never show a spinner where you can show the last known truth.** Optimistic
