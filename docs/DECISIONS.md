@@ -1070,3 +1070,49 @@ meets a refresh token Spotify has already rotated away. If the write fails the
 token in memory is still good, so the device keeps working — but that is said
 out loud rather than discovered days later.
 **Status:** ✅ Accepted.
+
+---
+
+### D-057 · A flick dismisses the grown plate, and the button stays
+**Chose:** the grown surface's header is a drag handle. A downward drag past
+96px dismisses, and so does a fast flick that travels only 24px. Upward drag is
+rubber-banded at a quarter. The `Done` button is unchanged.
+**Why a gesture at all:** SCREENS.md asks for "gesture + tap, no chrome", and
+on a touchscreen a button is the slowest way to say "close this". Every phone
+has dismissed a sheet with a downward flick for a decade; a panel that ignores
+it feels like a web page in a frame.
+**Why the button stays anyway:** a control reachable only by knowing a gesture
+is one most people never find. The gesture is an addition, not a replacement.
+**Why two ways to qualify:** the two natural gestures are different. A slow
+deliberate drag has to go far enough to not be a stray touch; a quick flick is
+over before it has travelled far. Requiring distance alone makes flicking feel
+broken; requiring speed alone makes a careful drag feel broken.
+**Why upward is resisted rather than followed or ignored:** the plate has
+nowhere to go up. Following the finger there promises a gesture that does
+nothing; ignoring it entirely reads as frozen. A quarter of the movement says
+"I felt that, and no".
+**One thing worth remembering:** velocity is distance over elapsed time, and an
+instantaneous sample divides by zero. `Infinity` passes every `>` comparison,
+so without a guard *every tap* reads as a maximum-speed flick and dismisses the
+screen under the finger. There is a test for exactly that.
+**Status:** ✅ Accepted.
+
+---
+
+### D-058 · The server serves the panel
+**Chose:** `joshify serve` serves the built UI at `/`, from the same origin as
+the API and the socket.
+**Why it is not optional:** the panel derives its WebSocket URL from
+`window.location.host` and calls the API with no base. Opened from `file://` it
+reaches nothing and shows an empty screen forever — which looks exactly like a
+server that failed to start, from across a room, with no way to tell the
+difference. Serving it here is what makes `127.0.0.1:4770` the whole
+application rather than half of it.
+**A path that is not a file is still the panel.** A 404 nobody can read from
+across a room is worse than the app. But `/api/*` keeps its honest 404:
+answering an API typo with an HTML page turns a client bug into a JSON parse
+error somewhere far from the cause.
+**Missing is a state, not a failure.** A checkout that has not built the UI
+still serves the API, and the CLI says so on startup — much easier to diagnose
+there than from a black screen on a wall.
+**Status:** ✅ Accepted.

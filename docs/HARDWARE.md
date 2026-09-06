@@ -199,3 +199,19 @@ Nothing is wasted — the architecture stays. It just gets easier, and gets bett
 
 Remaining hardware question: **V4 — which USB DAC**, blocking P5-20. A ~$10
 decision, deferrable until just before Phase 5.
+
+---
+
+## Where to go next
+
+This document is the *decision* — which board, and why. Two others follow from it:
+
+| For | Read |
+|---|---|
+| Buying the parts and assembling them | [`docs/INSTALL.md`](./INSTALL.md) |
+| What runs on it once it boots | [`docs/APPLIANCE.md`](./APPLIANCE.md) |
+
+The two parts most often got wrong are both in the buy list: the Pi 5 uses a
+**22-pin DSI connector**, so the Touch Display 2 needs the 22→15-way adapter
+cable rather than the one in the display's box, and it needs a **5V/5A (27W)**
+supply — a 15W phone charger boots it and then browns out under load.

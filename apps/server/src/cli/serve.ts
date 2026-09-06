@@ -10,7 +10,8 @@
  * Read top to bottom it is the whole architecture in about a hundred lines:
  * disk → tokens → Spotify → engine → broadcaster → HTTP.
  */
-import { mkdir } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import {
   createError,
@@ -56,6 +57,11 @@ export interface ServeOptions {
    * the real Spotify. Production never sets it. Every other module here takes
    * the same override for the same reason.
    */
+  /**
+   * Where the built UI is. Defaults to the bundle this package ships beside
+   * itself, so a systemd unit does not have to know the layout.
+   */
+  readonly uiDir?: string | undefined;
   readonly spotify?:
     | {
         readonly baseUrl?: string | undefined;
@@ -66,8 +72,38 @@ export interface ServeOptions {
 
 export interface RunningJoshify {
   readonly server: RunningServer;
+  /** Null when no built UI was found; the API still serves without one. */
+  readonly uiDir: string | null;
   readonly stop: () => Promise<void>;
 }
+
+/**
+ * The built panel, if it is there.
+ *
+ * Looked up rather than assumed because the layout differs between a checkout
+ * (`apps/ui/dist-web`) and an installed tree, and a unit file should not have
+ * to know which it is looking at.
+ */
+const resolveUiDir = async (configured: string | undefined): Promise<string | null> => {
+  const candidates =
+    configured === undefined
+      ? [
+          // Installed beside the server's own build output.
+          fileURLToPath(new URL('../../ui', import.meta.url)),
+          // A workspace checkout.
+          fileURLToPath(new URL('../../../ui/dist-web', import.meta.url)),
+        ]
+      : [configured];
+  for (const candidate of candidates) {
+    try {
+      const entry = await stat(join(candidate, 'index.html'));
+      if (entry.isFile()) return candidate;
+    } catch {
+      /* try the next one */
+    }
+  }
+  return null;
+};
 
 export const serve = async (
   options: ServeOptions,
@@ -132,6 +168,11 @@ export const serve = async (
     playlistTracks: (id, page) => browser.playlistTracks(id, page),
   };
 
+  // Absent in a checkout that has not built the UI, and in the API-only
+  // tests. Missing is a state, not a failure: the API still serves, and
+  // `joshify serve` says so rather than refusing to start.
+  const uiDir = await resolveUiDir(options.uiDir);
+
   const broadcaster = createBroadcaster();
   const engine = createPlaybackEngine({
     client,
@@ -160,6 +201,7 @@ export const serve = async (
       read: (key) => cache.readDerived(key, SOURCE_KIND),
       readDerived: (key, kind) => cache.readDerived(key, kind),
     },
+    ...(uiDir === null ? {} : { uiDir }),
     ...(options.host === undefined ? {} : { host: options.host }),
     port: options.port ?? DEFAULT_SERVE_PORT,
   });
@@ -167,6 +209,7 @@ export const serve = async (
   engine.start();
 
   return ok({
+    uiDir,
     server,
     stop: async () => {
       engine.stop();

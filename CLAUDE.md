@@ -102,6 +102,10 @@ comes back through chat.
 | `docs/THEMES.md` | Theme roster — the 90s references, as separate named themes |
 | `spikes/` | Working prototypes. Each has a README on what it proved |
 | `docs/HARDWARE.md` | Board decision + buy list |
+| `docs/INSTALL.md` | **Blank SD card → working Joshify.** Written for a stranger |
+| `docs/APPLIANCE.md` | systemd units, kiosk config, boot handoff, diagnosis |
+| `docs/RELEASING.md` | Tagging, changelog, published artefacts |
+| `deploy/` | systemd units and the kiosk launcher |
 | `docs/SPOTIFY_SETUP.md` | App registration, scopes, secrets |
 
 ## Scope discipline

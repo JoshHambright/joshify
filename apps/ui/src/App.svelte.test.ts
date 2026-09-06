@@ -651,3 +651,76 @@ describe('the search surface', () => {
     });
   });
 });
+
+/**
+ * P4-08. The plate grows and shrinks; a flick down is how every touchscreen has
+ * dismissed a sheet for a decade, and a panel that ignores it feels like a web
+ * page. The arithmetic is tested next door — these prove it is actually wired
+ * to something.
+ */
+describe('dismissing a grown surface by gesture', () => {
+  const openQueue = async () => {
+    const q = fakeQueue([{ ...track, id: 'q-1', title: 'Coolant' }]);
+    const rendered = mountApp({ queue: q });
+    screen.getByRole('button', { name: 'Queue' }).click();
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+    });
+    const head = rendered.container.querySelector('.grown-head');
+    if (head === null) throw new Error('the grown surface has no header to drag');
+    return { ...rendered, q, head };
+  };
+
+  const drag = (head: Element, from: number, to: number): void => {
+    head.dispatchEvent(
+      new PointerEvent('pointerdown', { clientY: from, isPrimary: true, bubbles: true }),
+    );
+    head.dispatchEvent(
+      new PointerEvent('pointermove', { clientY: to, isPrimary: true, bubbles: true }),
+    );
+    head.dispatchEvent(new PointerEvent('pointerup', { isPrimary: true, bubbles: true }));
+  };
+
+  it('closes the surface on a downward drag', async () => {
+    const { head, q } = await openQueue();
+
+    drag(head, 100, 400);
+
+    await vi.waitFor(() => {
+      expect(screen.getByText('Velocity Division')).toBeDefined();
+    });
+    expect(q.calls.closed).toBeGreaterThanOrEqual(1);
+  });
+
+  // A tap on the header is not a dismissal, and a short drag is someone
+  // changing their mind.
+  it('stays open for a tap or a short drag', async () => {
+    const { head } = await openQueue();
+
+    drag(head, 100, 100);
+    drag(head, 100, 130);
+
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+  });
+
+  it('stays open for an upward drag', async () => {
+    const { head } = await openQueue();
+
+    drag(head, 400, 100);
+
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDefined();
+  });
+
+  // The button is still there. The gesture is an addition, not a replacement:
+  // a control you can only reach by knowing a gesture is a control most people
+  // never find.
+  it('still closes from the Done button', async () => {
+    await openQueue();
+
+    screen.getByRole('button', { name: 'Done' }).click();
+
+    await vi.waitFor(() => {
+      expect(screen.getByText('Velocity Division')).toBeDefined();
+    });
+  });
+});

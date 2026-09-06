@@ -8,7 +8,7 @@
  * fast and precise — and also what makes it possible for all of them to pass
  * while nothing actually runs.
  */
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,6 +62,9 @@ const start = async () => {
     dataDir,
     clientId: 'client-id',
     port: 0,
+    // Pointed at a directory with no `index.html`, so the API-only tests do
+    // not accidentally pick up a real build from the checkout.
+    uiDir: join(dataDir, 'no-ui'),
     spotify: { baseUrl: spotify.origin, tokenEndpoint: spotify.tokenEndpoint },
     onProblem: (problem) => problems.push(problem),
   });
@@ -206,6 +209,92 @@ describe('running', () => {
       };
       expect(body.state.isPremium).toBe(true);
     });
+  });
+});
+
+/**
+ * The panel must come from this origin: it derives its socket URL from
+ * `window.location.host` and calls the API with no base, so a UI opened from
+ * `file://` reaches nothing and shows an empty screen forever.
+ */
+describe('serving the panel itself', () => {
+  const withUi = async () => {
+    const uiDir = join(dataDir, 'ui');
+    await mkdir(uiDir, { recursive: true });
+    await writeFile(join(uiDir, 'index.html'), '<!doctype html><title>Joshify</title>');
+    await writeFile(join(uiDir, 'app.js'), 'export default 1;');
+    return uiDir;
+  };
+
+  it('serves the panel at the root', async () => {
+    const uiDir = await withUi();
+    await connect();
+    const result = await serve({
+      dataDir,
+      clientId: 'client-id',
+      port: 0,
+      uiDir,
+      spotify: { baseUrl: spotify.origin, tokenEndpoint: spotify.tokenEndpoint },
+    });
+    if (!isOk(result)) throw new Error('serve failed');
+    running.push(result.value);
+
+    const response = await fetch(`${result.value.server.origin}/`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('Joshify');
+  });
+
+  // A stray path is still the panel: a 404 nobody can read from across a room
+  // is worse than the app.
+  it('falls back to the panel for a path that is not a file', async () => {
+    const uiDir = await withUi();
+    await connect();
+    const result = await serve({
+      dataDir,
+      clientId: 'client-id',
+      port: 0,
+      uiDir,
+      spotify: { baseUrl: spotify.origin, tokenEndpoint: spotify.tokenEndpoint },
+    });
+    if (!isOk(result)) throw new Error('serve failed');
+    running.push(result.value);
+
+    const response = await fetch(`${result.value.server.origin}/devices`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('Joshify');
+  });
+
+  // An API typo answering with an HTML page turns a client bug into a JSON
+  // parse error somewhere far away from the cause.
+  it('keeps an honest 404 for API paths', async () => {
+    const uiDir = await withUi();
+    await connect();
+    const result = await serve({
+      dataDir,
+      clientId: 'client-id',
+      port: 0,
+      uiDir,
+      spotify: { baseUrl: spotify.origin, tokenEndpoint: spotify.tokenEndpoint },
+    });
+    if (!isOk(result)) throw new Error('serve failed');
+    running.push(result.value);
+
+    const response = await fetch(`${result.value.server.origin}/api/nonsense`);
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toContain('json');
+  });
+
+  // Missing is a state, not a failure: the API still serves, and the CLI says
+  // so rather than refusing to start.
+  it('runs without a built UI and reports that it found none', async () => {
+    await connect();
+    const started = await start();
+
+    expect(started.uiDir).toBeNull();
+    expect((await fetch(`${started.server.origin}/health`)).status).toBe(200);
   });
 });
 

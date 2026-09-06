@@ -18,6 +18,14 @@
 #
 # Multi-stage on purpose: pnpm, the TypeScript compiler, Vite, svelte-check and
 # every devDependency exist in `build` and reach the final image never.
+#
+# EXPECTED SIZE — roughly 285MB uncompressed, ~105MB to pull:
+#   ~230MB  node:22-bookworm-slim (arm64), most of it Node itself
+#   ~51MB   production node_modules (measured: fastify, @fastify/*, jimp and
+#           their transitive deps, with devDependencies dropped)
+#   ~3MB    compiled server, core and panel bundle
+# The dependency tree is four-fifths of everything we add, so the lever that
+# would actually matter is dropping a dependency, not shaving the base image.
 
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=10.33.0

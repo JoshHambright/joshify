@@ -116,12 +116,19 @@ jobs:
           cp package.json pnpm-lock.yaml pnpm-workspace.yaml LICENSE "${stage}/"
           echo "${version}" > "${stage}/VERSION"
 
-          # -a preserves the workspace symlinks pnpm leaves in a hoisted tree.
           cp -a node_modules "${stage}/node_modules"
 
           for pkg in packages/core apps/server apps/ui; do
             mkdir -p "${stage}/${pkg}"
             cp "${pkg}/package.json" "${stage}/${pkg}/"
+            # Even a hoisted install keeps a per-project node_modules holding the
+            # workspace links (apps/server/node_modules/@joshify/core is a
+            # relative symlink to ../../../../packages/core). Miss these and the
+            # bundle installs cleanly and then dies at startup on
+            # ERR_MODULE_NOT_FOUND. -a keeps them symlinks rather than copies.
+            if [ -d "${pkg}/node_modules" ]; then
+              cp -a "${pkg}/node_modules" "${stage}/${pkg}/node_modules"
+            fi
           done
           cp -a packages/core/dist "${stage}/packages/core/dist"
           cp -a apps/server/dist "${stage}/apps/server/dist"
@@ -140,6 +147,18 @@ jobs:
             exit 1
           fi
           cp -a deploy "${stage}/deploy"
+
+          # Prove the assembled bundle can resolve its own imports before
+          # publishing it. Loading the CLI module pulls in @joshify/core, fastify
+          # and jimp transitively, so a missing workspace link or a dependency
+          # that did not survive the copy fails here rather than at 1am on
+          # somebody's Pi. An absolute file: URL, because module resolution walks
+          # up from the importing file — which is the thing under test.
+          if ! node -e "import('file://${stage}/apps/server/dist/cli/joshify.js')"; then
+            echo "::error::the assembled bundle cannot resolve its own imports"
+            exit 1
+          fi
+          echo 'bundle imports resolve'
 
           mkdir -p dist-release
           tarball="dist-release/joshify-${version}.tar.gz"

@@ -200,7 +200,7 @@ progress bar — leaving the GPU free for the visualizer's shader chain (Phase 5
 | Server | Node + Fastify | Small, fast, good TS story. |
 | UI framework | **Svelte** | Compiles away — no runtime VDOM, less RAM and GC pressure than React. Less critical on a Pi 5, but it keeps headroom for the visualizer. |
 | Bundler | Vite | Fast dev loop, tiny production output. |
-| Kiosk runtime | **Chromium** in kiosk mode, `cog`/WPE as a fallback | On a Pi 5, Chromium's WebGL2 support and dev/prod parity outweigh WPE's smaller footprint. Confirmed at the P3-01 spike. |
+| Kiosk runtime | **Chromium** in kiosk mode, `cog`/WPE as a fallback | On a Pi 5, Chromium's WebGL2 support and dev/prod parity are expected to outweigh WPE's smaller footprint. **Not yet confirmed** — P3-01 is the measurement, and it needs hardware nobody has. `deploy/kiosk/joshify-kiosk` ships all three modes behind one environment line so the answer changes a setting, not a design. |
 | Unit tests | Vitest | |
 | E2E | Playwright against a **fake Spotify server** | CI never needs real credentials. |
 | CI/CD | GitHub Actions | Lint, typecheck, test, multi-arch build. |

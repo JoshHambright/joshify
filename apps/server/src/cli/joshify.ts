@@ -106,6 +106,12 @@ export const main = async (
     }
 
     io.out(`Serving on ${running.value.server.origin}`);
+    if (running.value.uiDir === null) {
+      // Not fatal — the API is up and useful — but the kiosk will show
+      // nothing, and that is far easier to diagnose here than from a black
+      // screen on a wall.
+      io.err('No built UI found. Run `pnpm build`; the panel will be blank until then.');
+    }
 
     // Stop cleanly on the signals systemd actually sends, so a restart does
     // not leave the port held by a process that is already going away.

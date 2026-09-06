@@ -3,7 +3,7 @@
 **This is the live source of truth for build progress.** Update it in the same
 commit as the work it describes.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ---
 
@@ -39,12 +39,12 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
-| 4 | Control surfaces | 10 | 7 | 🟨 In progress |
+| 4 | Control surfaces | 10 | 8 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
-| 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
-| 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **58** | |
+| 7 | Appliance & hardening | 12 | 6 | 🟨 In progress |
+| 8 | Packaging, CI/CD & audio module | 11 | 4 | 🟨 In progress |
+| | **Total** | **122** | **69** | |
 
 ---
 
@@ -144,7 +144,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P4-05 | Document queue-reorder impossibility in the UI | ✅ | Rows are inert — no button, no `:active`. Building the screen found the *third* missing endpoint: no jump-to-position either. Walking there with repeated `next` was considered and rejected (D-051). **Corrected `SCREENS.md`**, which had specified tap-to-jump |
 | P4-06 | Volume slider + device volume support detection | ✅ | Reachable and composed into the panel. `volumePercent: null` draws **no slider at all** (D-022). Commits once on release, not per drag frame — one command per gesture, not fifty |
 | P4-07 | Touch scrubbing on the progress bar | ✅ | Reachable and composed into the panel. On release the tracker re-anchors at the chosen position so the bar runs on through the round trip instead of snapping back. A track change under a held finger drops the drag — the fraction was chosen against the old duration |
-| P4-08 | Navigation model between surfaces | ⬜ | Gesture + tap, no chrome |
+| P4-08 | Navigation model between surfaces | ✅ | The plate grows, and a flick down shrinks it — the idiom every touchscreen has used for a decade. Two ways to qualify: a slow drag that goes far enough, or a fast flick that does not. Upward drag is rubber-banded, because the plate has nowhere to go up (D-057). The Done button stays: a control reachable only by a known gesture is one most people never find |
 | P4-09 | Shuffle / repeat toggles wired to real state | ✅ | Reachable and composed into the panel. Repeat cycles off → context → track, matching Spotify's own clients; `aria-pressed` cannot express three states, so the mode rides on `data-repeat` |
 | P4-10 | Component + interaction tests for all control surfaces | ⬜ | |
 
@@ -226,12 +226,12 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P7-01 | 64-bit Raspberry Pi OS Lite base image documented | ⬜ | Pi 5 needs **Bookworm 64-bit or later**; Bullseye does not support it |
-| P7-02 | Kiosk browser on DRM/KMS, no desktop environment | ⬜ | Chromium or `cog`, per the P3-01 measurement |
-| P7-03 | systemd unit for `joshify-server` | ⬜ | Restart-on-failure, journald logging |
-| P7-04 | systemd unit for the kiosk UI | ⬜ | Ordered after server readiness |
-| P7-05 | Boot splash → app handoff with no flicker or console text | ⬜ | |
-| P7-06 | Display config: resolution, rotation, blanking policy | ⬜ | Touch Display 2 via the 22→15-way DSI adapter cable |
+| P7-01 | 64-bit Raspberry Pi OS Lite base image documented | ✅ | Bookworm 64-bit, Lite (no desktop). [`docs/APPLIANCE.md`](./APPLIANCE.md) |
+| P7-02 | Kiosk browser on DRM/KMS, no desktop environment | ✅ | `deploy/kiosk/joshify-kiosk` ships **three modes** behind one `Environment=` line — Chromium on DRM (recommended), Chromium under `cage`, and `cog`. P3-01 changes a setting, not a design; the three thresholds that would flip the recommendation are tabled in APPLIANCE.md |
+| P7-03 | systemd unit for `joshify-server` | ✅ | Deliberately **not** `Wants=network-online.target`: waiting for NetworkManager can eat 30s of the 60s cold-boot budget for a wait the server does not need (D-048). `systemd-analyze verify` caught `StartLimitIntervalSec` sitting in `[Service]`, where systemd ignores it silently |
+| P7-04 | systemd unit for the kiosk UI | ✅ | `After=` only proves the server was *exec'd*. Readiness is a bounded `/health` poll in the launcher — the same endpoint the UI's own reconnect loop uses. `Type=notify` was rejected because nothing calls `sd_notify`, and declaring it would make systemd wait for a signal that never comes |
+| P7-05 | Boot splash → app handoff with no flicker or console text | ✅ | 20 things that would otherwise appear, each with the setting that suppresses it. The one most often missed: `--default-background-color=ff101114`, or the browser paints white before first paint. The plymouth theme must be the same `#101114`, or three stages each shift shade and read as flicker |
+| P7-06 | Display config: resolution, rotation, blanking policy | ✅ | 720×1280 native portrait, **no rotation** (D-039). `consoleblank=0` and no DE screensaver. Traded away: backlight hours and ~2–3W; the mitigation is the design itself, and the future lever is scheduled dimming via sysfs rather than blanking |
 | P7-07 | Network-loss resilience + offline state | ⬜ | Shows last known truth, recovers silently |
 | P7-08 | Spotify outage / 5xx resilience | ⬜ | Backoff, no error spam |
 | P7-09 | Unattended token refresh over multi-day runtime | ⬜ | Success criterion #5 |
@@ -247,14 +247,14 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P8-01 | Multi-arch container build (`linux/arm64`) via buildx + QEMU | ⬜ | |
-| P8-02 | Container image published from CI on tag | ⬜ | |
-| P8-03 | `docker-compose.yml` for the container path | ⬜ | |
-| P8-04 | One-line install script (non-container path) | ⬜ | Installs systemd units + first-run auth |
-| P8-05 | Release pipeline: versioning, changelog, tagged artefacts | ⬜ | |
+| P8-01 | Multi-arch container build (`linux/arm64`) via buildx + QEMU | 🟨 | Multi-stage, non-root, ~285MB. **Unbuilt** — there is no Docker daemon in the dev container, so this is checked structurally and not yet run |
+| P8-02 | Container image published from CI on tag | 🟨 | Workflow written; never run |
+| P8-03 | `docker-compose.yml` for the container path | ✅ | `network_mode: host` is required, not lazy: under bridge networking the browser's `127.0.0.1` during PKCE is the *host* while the listener is in the container, so the callback lands nowhere |
+| P8-04 | One-line install script (non-container path) | ✅ | Run end to end as root against a synthetic bundle: first install, re-run, permissions, uninstall, double-uninstall and the loud-failure paths. Found a real bug — `--skip-systemd` reported success and did nothing |
+| P8-05 | Release pipeline: versioning, changelog, tagged artefacts | 🟨 | Changelog grouped by the `P<phase>-<task>` prefix this repo already uses, so notes and tracker share a vocabulary. Never run against a real tag. Caught a genuine bug in testing: `pnpm install --prod` leaves workspace links in per-project `node_modules`, so a root-only copy produces a bundle that installs and then dies on `ERR_MODULE_NOT_FOUND` — the workflow now proves the bundle resolves its own imports before publishing |
 | P8-06 | E2E smoke test in CI against the fake Spotify server | ⬜ | Playwright |
-| P8-07 | Installation documentation | ⬜ | Written for a stranger, not for us |
-| P8-08 | Hardware guide: screen, case, wiring, OS flashing | ⬜ | Must call out the 22→15-way DSI cable and the 27W supply |
+| P8-07 | Installation documentation | ✅ | [`docs/INSTALL.md`](./INSTALL.md) |
+| P8-08 | Hardware guide: screen, case, wiring, OS flashing | ✅ | In `INSTALL.md`, cross-linked from `HARDWARE.md`. Both traps called out: the 22→15-way DSI cable and the 27W supply |
 | P8-09 | Optional `librespot` module: install + systemd unit | ⬜ | Opt-in; must not break core install |
 | P8-10 | librespot device appears in Devices screen | ⬜ | |
 | P8-11 | Audio output guide (Zero 2 W has no analogue out — DAC/HAT options) | ⬜ | |

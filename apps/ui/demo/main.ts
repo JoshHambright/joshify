@@ -162,6 +162,8 @@ const stateNow = (): PanelState => {
       device: hasDevice ? { ...device, volumePercent: volume, isActive: true } : null,
       // The artwork is still on screen, dimmed, so the colour stays with it.
       theme,
+      heroUrl: null,
+      backdropUrl: null,
       presentationFor,
       isPremium: premium,
     };

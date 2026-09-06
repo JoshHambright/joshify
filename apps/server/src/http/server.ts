@@ -15,6 +15,7 @@
  */
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import websocketPlugin from '@fastify/websocket';
+import fastifyStatic from '@fastify/static';
 import {
   createError,
   err,
@@ -83,6 +84,18 @@ export interface HttpServerConfig {
    * empty one.
    */
   readonly artwork?: ArtworkSource | undefined;
+  /**
+   * Directory holding the built UI, served at `/`.
+   *
+   * The panel *must* come from this origin. It derives its WebSocket URL from
+   * `window.location.host` and calls the API with no base, so a UI opened from
+   * `file://` reaches nothing and shows an empty panel forever. Serving it
+   * here is what makes `127.0.0.1:4770` the whole application rather than
+   * half of it.
+   *
+   * Optional so a test can run the API without a built bundle on disk.
+   */
+  readonly uiDir?: string | undefined;
 }
 
 /**
@@ -529,6 +542,27 @@ export const createHttpServer = async (
     version: broadcaster.getVersion(),
     state: broadcaster.getState(),
   }));
+
+  if (config.uiDir !== undefined) {
+    await app.register(fastifyStatic, {
+      root: config.uiDir,
+      // The panel is a single page; anything that is not a real file is still
+      // the panel, so a stray path shows the app rather than a 404 nobody can
+      // read from across a room.
+      wildcard: false,
+    });
+    app.setNotFoundHandler(async (request, reply) => {
+      // API paths keep their honest 404. Only navigation falls through to the
+      // app — answering `/api/typo` with an HTML page would turn a client bug
+      // into a JSON parse error somewhere far away from the cause.
+      if (request.url.startsWith('/api/')) {
+        return await reply
+          .code(404)
+          .send({ error: { kind: 'not-found', message: 'no such route' } });
+      }
+      return await reply.sendFile('index.html');
+    });
+  }
 
   const artwork = config.artwork;
   if (artwork !== undefined) {

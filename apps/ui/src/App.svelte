@@ -28,6 +28,7 @@
   import Transport from './components/Transport.svelte';
   import { resolvedArtwork } from './lib/artwork.js';
   import { controlsDisabled, noticeFor } from './lib/notices.js';
+  import { dismissible } from './lib/dismissible.js';
   import {
     createThemeApplier,
     type StyleTarget,
@@ -70,6 +71,8 @@
 
   /** The plate at rest, or the plate grown. That is the whole of navigation. */
   let surface = $state<'now-playing' | 'devices' | 'queue' | 'search'>('now-playing');
+  /** How far a dismiss gesture has dragged the grown surface. */
+  let dragOffset = $state(0);
   let clock = $state('--:--');
 
   const playback = $derived($connection.state);
@@ -137,6 +140,7 @@
 
   const showNowPlaying = (): void => {
     surface = 'now-playing';
+    dragOffset = 0;
     devices.close();
     queue.close();
   };
@@ -151,6 +155,10 @@
    */
   // Named rather than inline: a callback written in the template loses its
   // parameter types to `any`, which `strictTypeChecked` then refuses.
+  const setDrag = (offset: number): void => {
+    dragOffset = offset;
+  };
+
   const runQuery = (text: string): void => {
     void search.query(text);
   };
@@ -214,8 +222,12 @@
   {#snippet plate()}
     <Plate>
       {#if surface === 'devices'}
-        <div class="grown">
-          <div class="grown-head">
+        <div class="grown" style="--drag: {dragOffset}px">
+          <div
+            class="grown-head"
+            use:dismissible={{ onDismiss: showNowPlaying, onOffset: setDrag }}
+          >
+            <span class="grip" aria-hidden="true"></span>
             <h2 class="jf-label heading">Devices</h2>
             <button class="close" type="button" onclick={showNowPlaying}>Done</button>
           </div>
@@ -227,8 +239,12 @@
           />
         </div>
       {:else if surface === 'queue'}
-        <div class="grown">
-          <div class="grown-head">
+        <div class="grown" style="--drag: {dragOffset}px">
+          <div
+            class="grown-head"
+            use:dismissible={{ onDismiss: showNowPlaying, onOffset: setDrag }}
+          >
+            <span class="grip" aria-hidden="true"></span>
             <h2 class="jf-label heading">Queue</h2>
             <button class="close" type="button" onclick={showNowPlaying}>Done</button>
           </div>
@@ -239,8 +255,12 @@
           />
         </div>
       {:else if surface === 'search'}
-        <div class="grown">
-          <div class="grown-head">
+        <div class="grown" style="--drag: {dragOffset}px">
+          <div
+            class="grown-head"
+            use:dismissible={{ onDismiss: showNowPlaying, onOffset: setDrag }}
+          >
+            <span class="grip" aria-hidden="true"></span>
             <h2 class="jf-label heading">Search</h2>
             <button class="close" type="button" onclick={showNowPlaying}>Done</button>
           </div>
@@ -303,11 +323,37 @@
     text-overflow: ellipsis;
   }
 
+  /* The grown surface follows the dismiss gesture. `translate` only — it is a
+     compositor property, so a drag costs no layout and no repaint. */
+  .grown {
+    translate: 0 var(--drag, 0px);
+  }
+
   .grown-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--jf-gap);
     margin-bottom: var(--jf-gap);
+    /* The header is the drag handle, so the browser must not claim vertical
+       gestures here for its own scrolling. */
+    touch-action: none;
+  }
+
+  /* The only affordance the gesture gets: a grab bar, because a surface that
+     can be dragged has to look like it can. Everything else about the gesture
+     is invisible until a finger is on it (SCREENS.md: gesture + tap, no
+     chrome). */
+  .grip {
+    width: 44px;
+    height: 4px;
+    flex: none;
+    border-radius: 2px;
+    background: var(--jf-ink-faint);
+  }
+
+  .heading {
+    margin-right: auto;
   }
 
   .heading {
