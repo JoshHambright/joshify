@@ -1,0 +1,1416 @@
+<title>The Animaniacs Playbill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+
+<style>
+/* ============================================================
+   THE ANIMANIACS PLAYBILL
+   A committed single-theme design: the Warner backlot after dark.
+   Every colour is painted explicitly; nothing borrows the host ground.
+   ============================================================ */
+
+:root{
+  /* Palette — six named values, drawn from the show's own world */
+  --ink:        #130E1E;  /* studio night sky, near-black with a violet bias */
+  --ink-2:      #1B1430;  /* raised surface */
+  --ink-3:      #251C40;  /* hairlines, wells */
+  --cream:      #F7EEDE;  /* cel paint / film stock — the reading colour */
+  --tower:      #46C6C2;  /* water-tower aqua — the primary accent */
+  --marquee:    #FF3D5F;  /* title-card red — spent sparingly */
+  --bulb:       #FFC93D;  /* marquee bulb gold — numbers and highlights */
+  --mauve:      #9A8DB8;  /* violet-biased neutral, for meta and captions */
+
+  --rail: 74px;
+
+  --f-display: "Alfa Slab One", "Rockwell", Georgia, serif;
+  --f-body:    "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-script:  "Courier Prime", "Courier New", monospace;
+
+  /* Type scale — 1.28 ratio, clamped for the 320→1400 range */
+  --t-mega: clamp(2.6rem, 8.4vw, 7rem);
+  --t-xl:   clamp(2.1rem, 5.4vw, 3.8rem);
+  --t-lg:   clamp(1.5rem, 3vw, 2.1rem);
+  --t-md:   1.22rem;
+  --t-body: 1.0625rem;
+  --t-sm:   0.875rem;
+  --t-xs:   0.75rem;
+}
+
+*{ box-sizing: border-box; }
+
+html{ scroll-behavior: smooth; }
+
+body{
+  margin: 0;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--f-body);
+  font-size: var(--t-body);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Ben-Day halftone over the whole page — period print idiom, very faint */
+body::after{
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  background-image: radial-gradient(circle at 1px 1px, rgba(247,238,222,.055) 1px, transparent 1.4px);
+  background-size: 4px 4px;
+}
+
+::selection{ background: var(--marquee); color: #fff; }
+
+a{ color: var(--tower); }
+a:focus-visible, button:focus-visible{
+  outline: 3px solid var(--bulb);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------- shared type roles ---------- */
+
+.eyebrow{
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--mauve);
+  margin: 0;
+}
+.eyebrow b{ color: var(--tower); font-weight: 700; }
+
+h2.head{
+  font-family: var(--f-display);
+  font-size: var(--t-xl);
+  line-height: .98;
+  letter-spacing: -.005em;
+  margin: .3em 0 0;
+  text-wrap: balance;
+  color: var(--cream);
+}
+h3{
+  font-family: var(--f-display);
+  font-size: var(--t-lg);
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+p{ margin: 0; }
+.lede{
+  font-size: var(--t-md);
+  line-height: 1.55;
+  color: #E4D7C4;
+  max-width: 34ch;
+}
+.prose{ max-width: 62ch; }
+.prose p + p{ margin-top: 1.1em; }
+.dim{ color: var(--mauve); }
+
+/* ---------- layout ---------- */
+
+.wrap{
+  width: min(1180px, 100% - 3rem);
+  margin-inline: auto;
+}
+section{ position: relative; }
+.band{ padding-block: clamp(4.5rem, 9vw, 8rem); }
+.band-rule{ border-top: 1px solid var(--ink-3); }
+
+.sec-head{
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  margin-bottom: clamp(2rem, 4vw, 3.25rem);
+  max-width: 58ch;
+}
+
+/* ============================================================
+   MARQUEE BULB RAIL — the scroll indicator
+   A strip of theatre bulbs down the left edge that light as you read.
+   ============================================================ */
+
+.rail{
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: var(--rail);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding-block: 2rem;
+  background: linear-gradient(90deg, #0D0916 0%, rgba(13,9,22,.55) 70%, transparent 100%);
+  pointer-events: none;
+}
+.rail i{
+  display: block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #2E2450;
+  box-shadow: inset 0 0 0 1px #3A2E63;
+  transition: background .22s ease, box-shadow .22s ease;
+}
+.rail i.on{
+  background: var(--bulb);
+  box-shadow: 0 0 8px rgba(255,201,61,.85), 0 0 22px rgba(255,201,61,.32), inset 0 0 0 1px #FFE39A;
+}
+.rail i.tip{
+  background: #FFF3D2;
+  box-shadow: 0 0 12px rgba(255,201,61,1), 0 0 34px rgba(255,201,61,.45);
+}
+.rail-label{
+  position: absolute;
+  bottom: 1.6rem;
+  writing-mode: vertical-rl;
+  font-family: var(--f-script);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: #4E4076;
+}
+
+@media (max-width: 900px){
+  .rail{
+    left: 0; right: 0; top: 0; bottom: auto;
+    width: auto; height: 26px;
+    flex-direction: row;
+    gap: 9px;
+    padding: 0 10px;
+    background: linear-gradient(180deg, #0D0916 30%, rgba(13,9,22,0) 100%);
+  }
+  .rail i{ width: 6px; height: 6px; }
+  .rail-label{ display: none; }
+}
+
+/* ============================================================
+   HERO — the cold open
+   ============================================================ */
+
+.hero{
+  position: relative;
+  padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(3rem, 6vw, 4.5rem);
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 108%, rgba(70,198,194,.20) 0%, transparent 58%),
+    radial-gradient(90% 60% at 82% -10%, rgba(255,61,95,.16) 0%, transparent 62%),
+    linear-gradient(180deg, #16101F 0%, var(--ink) 82%);
+}
+
+/* Star field, drawn with pure CSS so nothing has to load */
+.hero::before{
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, rgba(247,238,222,.75), transparent),
+    radial-gradient(1.2px 1.2px at 27% 42%, rgba(247,238,222,.5), transparent),
+    radial-gradient(1.6px 1.6px at 43% 12%, rgba(255,201,61,.7), transparent),
+    radial-gradient(1.2px 1.2px at 61% 33%, rgba(247,238,222,.55), transparent),
+    radial-gradient(1.4px 1.4px at 78% 15%, rgba(247,238,222,.62), transparent),
+    radial-gradient(1.2px 1.2px at 88% 39%, rgba(70,198,194,.7), transparent),
+    radial-gradient(1.3px 1.3px at 7% 62%, rgba(247,238,222,.4), transparent),
+    radial-gradient(1.5px 1.5px at 55% 68%, rgba(247,238,222,.35), transparent),
+    radial-gradient(1.2px 1.2px at 34% 78%, rgba(255,201,61,.4), transparent),
+    radial-gradient(1.3px 1.3px at 94% 72%, rgba(247,238,222,.45), transparent);
+  animation: twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes twinkle{ from{ opacity:.55 } to{ opacity:1 } }
+
+.hero-grid{
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+}
+@media (max-width: 860px){
+  .hero-grid{ grid-template-columns: 1fr; align-items: start; }
+}
+
+.title-slam{
+  font-family: var(--f-display);
+  font-size: var(--t-mega);
+  line-height: .84;
+  letter-spacing: -.02em;
+  margin: .18em 0 0;
+  color: var(--cream);
+  text-shadow:
+     3px 3px 0 var(--marquee),
+     6px 6px 0 #7A1730,
+     0 18px 44px rgba(0,0,0,.6);
+  transform-origin: 8% 60%;
+  animation: slam .78s cubic-bezier(.2,1.5,.35,1) both;
+}
+@keyframes slam{
+  0%   { transform: scale(2.15) rotate(-7deg); opacity: 0; }
+  55%  { opacity: 1; }
+  70%  { transform: scale(.955) rotate(1.4deg); }
+  100% { transform: scale(1) rotate(-1.5deg); }
+}
+
+.hero-sub{
+  max-width: 46ch;
+  margin-top: 1.6rem;
+  font-size: var(--t-md);
+  color: #E7DBC8;
+  animation: rise .6s .5s ease-out both;
+}
+.hero-sub em{ color: var(--bulb); font-style: normal; font-weight: 600; }
+@keyframes rise{ from{ transform: translateY(14px); opacity:0 } to{ transform:none; opacity:1 } }
+
+.kicker{
+  font-family: var(--f-script);
+  font-size: var(--t-sm);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--tower);
+  animation: rise .5s .25s ease-out both;
+}
+
+/* --- the water tower, drawn as original geometry --- */
+.tower{
+  width: clamp(150px, 21vw, 236px);
+  height: auto;
+  filter: drop-shadow(0 22px 40px rgba(0,0,0,.55));
+  animation: rise .8s .15s ease-out both;
+}
+.tower .lamp{ animation: flick 3.6s steps(1) infinite; transform-origin: center; }
+@keyframes flick{
+  0%,86%,100%{ opacity: 1 } 88%{ opacity:.25 } 90%{ opacity:1 } 93%{ opacity:.4 } 95%{ opacity:1 }
+}
+
+/* --- the vital statistics strip --- */
+.vitals{
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin-top: clamp(2.5rem, 5vw, 3.75rem);
+  background: var(--ink-3);
+  border: 1px solid var(--ink-3);
+}
+.vitals div{
+  background: #16112A;
+  padding: 1.15rem 1.25rem 1.05rem;
+}
+.vitals dt{
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--mauve);
+  margin: 0 0 .35rem;
+}
+.vitals dd{
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: clamp(1.4rem, 3.1vw, 2rem);
+  line-height: 1;
+  color: var(--bulb);
+  font-variant-numeric: tabular-nums;
+}
+.vitals dd small{ font-size: .5em; color: var(--cream); letter-spacing: .02em; }
+@media (max-width: 700px){ .vitals{ grid-template-columns: repeat(2, 1fr); } }
+
+/* ============================================================
+   SCROLLING MARQUEE BANNER
+   ============================================================ */
+
+.banner{
+  border-block: 1px solid var(--ink-3);
+  background: linear-gradient(180deg, #1E1636, #150F27);
+  overflow: hidden;
+  padding-block: .9rem;
+}
+.banner-track{
+  display: flex;
+  width: max-content;
+  gap: 2.2rem;
+  animation: slide 34s linear infinite;
+}
+.banner span{
+  font-family: var(--f-display);
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  color: var(--cream);
+}
+.banner span:nth-child(even){ color: var(--marquee); }
+.banner span::after{ content: " ✦"; color: var(--bulb); }
+@keyframes slide{ from{ transform: translateX(0) } to{ transform: translateX(-50%) } }
+
+/* ============================================================
+   ORIGIN — two-column editorial
+   ============================================================ */
+
+.origin{
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+@media (max-width: 880px){ .origin{ grid-template-columns: 1fr; } }
+
+.pullquote{
+  border-left: 3px solid var(--marquee);
+  padding: .2rem 0 .2rem 1.4rem;
+  margin: 2rem 0 0;
+}
+.pullquote p{
+  font-family: var(--f-display);
+  font-size: clamp(1.25rem, 2.6vw, 1.75rem);
+  line-height: 1.2;
+  color: var(--cream);
+  text-wrap: balance;
+}
+.pullquote cite{
+  display: block;
+  margin-top: .75rem;
+  font-family: var(--f-script);
+  font-style: normal;
+  font-size: var(--t-xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--mauve);
+}
+
+/* the production slate — a real call-sheet detail */
+.slate{
+  border: 1px solid var(--ink-3);
+  background: #16112A;
+}
+.slate h4{
+  margin: 0;
+  padding: .8rem 1.1rem;
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--tower);
+}
+.slate dl{
+  margin: 0;
+  padding: .35rem 1.1rem 1.1rem;
+  display: grid;
+  grid-template-columns: 10.5ch 1fr;
+  gap: .1rem .9rem;
+  font-family: var(--f-script);
+  font-size: var(--t-sm);
+}
+.slate dt{
+  color: var(--mauve);
+  text-transform: uppercase;
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  padding-top: .5rem;
+}
+.slate dd{
+  margin: 0;
+  padding-top: .42rem;
+  color: var(--cream);
+  border-bottom: 1px dotted var(--ink-3);
+  padding-bottom: .42rem;
+}
+.slate dl > dt:last-of-type + dd{ border-bottom: 0; }
+
+/* ============================================================
+   THE RUN — chronology
+   ============================================================ */
+
+.chron{
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--ink-3);
+}
+.ev{
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.5rem, 3vw, 2.25rem) 0;
+  border-bottom: 1px solid var(--ink-3);
+  transform: translateY(16px);
+  transition: transform .55s cubic-bezier(.2,.7,.3,1);
+}
+.ev.settled{ transform: none; }
+.ev:hover .ev-year{ color: var(--marquee); }
+.ev-year{
+  font-family: var(--f-display);
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  line-height: .9;
+  color: var(--bulb);
+  font-variant-numeric: tabular-nums;
+  transition: color .2s ease;
+}
+.ev-date{
+  display: block;
+  margin-top: .5rem;
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--mauve);
+}
+.ev-body h3{ margin-bottom: .5rem; }
+.ev-body p{ max-width: 64ch; color: #DCD0BF; }
+.ev.pivot .ev-body h3{ color: var(--tower); }
+.ev.pivot::before{
+  content: "network change";
+  float: right;
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--tower);
+  padding: .15rem .5rem;
+}
+@media (max-width: 620px){
+  .ev{ grid-template-columns: 1fr; gap: .6rem; }
+  .ev-date{ display: inline; margin-left: .8rem; }
+}
+
+/* ============================================================
+   THE BILL — recurring acts, as playbill cards
+   Registration offset: the coloured "cel" sits misaligned behind
+   each card and snaps into register on hover.
+   ============================================================ */
+
+.bill{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 1.5rem 1.4rem;
+}
+.act{
+  position: relative;
+  background: #17122C;
+  border: 1px solid var(--ink-3);
+  padding: 1.4rem 1.35rem 1.5rem;
+  transform: translateY(16px);
+  box-shadow: 7px 7px 0 color-mix(in srgb, var(--cel, var(--tower)) 55%, #130E1E);
+  transition: transform .5s cubic-bezier(.2,.7,.3,1),
+              box-shadow .28s cubic-bezier(.2,.9,.3,1),
+              border-color .2s ease;
+}
+.act.settled{ transform: none; }
+.act:hover, .act:focus-within{ border-color: var(--cel, var(--tower)); }
+.act:hover, .act:focus-within{ box-shadow: 3px 3px 0 var(--cel, var(--tower)); }
+.act.settled:hover, .act.settled:focus-within{ transform: translateY(-3px); }
+
+.act-slug{
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--cel, var(--tower));
+  margin-bottom: .45rem;
+}
+.act h3{ font-size: 1.3rem; margin-bottom: .55rem; }
+.act p{ font-size: .95rem; color: #D6CBBB; }
+.act .voice{
+  display: block;
+  margin-top: .9rem;
+  padding-top: .8rem;
+  border-top: 1px dotted var(--ink-3);
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  color: var(--mauve);
+  letter-spacing: .04em;
+}
+.act .voice b{ color: var(--cream); font-weight: 400; }
+
+/* ============================================================
+   THE PIT — music
+   ============================================================ */
+
+.pit{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+@media (max-width: 880px){ .pit{ grid-template-columns: 1fr; } }
+
+.setlist{ display: grid; }
+.song{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: .85rem 0;
+  border-bottom: 1px solid var(--ink-3);
+}
+.song:first-child{ border-top: 1px solid var(--ink-3); }
+.song b{
+  font-family: var(--f-body);
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--cream);
+}
+.song i{
+  display: block;
+  font-style: normal;
+  font-size: .875rem;
+  color: var(--mauve);
+  margin-top: .12rem;
+}
+.song span{
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--bulb);
+  white-space: nowrap;
+}
+
+.staff{
+  background: #16112A;
+  border: 1px solid var(--ink-3);
+  padding: 1.5rem 1.4rem;
+  /* five-line staff, ruled in CSS */
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 22px,
+    rgba(154,141,184,.16) 22px 23px
+  );
+}
+.staff p + p{ margin-top: 1.05em; }
+
+/* nations ticker — Yakko's World, running past */
+.nations{
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  border-block: 1px solid var(--ink-3);
+  padding-block: 1rem;
+  overflow: hidden;
+  background: #14102A;
+}
+.nations-track{
+  display: flex;
+  width: max-content;
+  gap: 1.1rem;
+  animation: slide 48s linear infinite;
+  font-family: var(--f-script);
+  font-size: .9rem;
+  letter-spacing: .06em;
+  color: var(--mauve);
+  white-space: nowrap;
+}
+.nations-track b{ color: var(--tower); font-weight: 400; }
+
+/* ============================================================
+   THE TAKE — awards ledger
+   ============================================================ */
+
+.ledger{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  background: var(--ink-3);
+  border: 1px solid var(--ink-3);
+}
+.ledger div{ background: #16112A; padding: 1.4rem 1.3rem; }
+.ledger .n{
+  font-family: var(--f-display);
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  line-height: .9;
+  color: var(--marquee);
+  font-variant-numeric: tabular-nums;
+}
+.ledger .l{
+  margin-top: .55rem;
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--mauve);
+}
+.ledger .d{ margin-top: .7rem; font-size: .9rem; color: #D6CBBB; }
+
+/* ============================================================
+   THE LEXICON — glossary
+   ============================================================ */
+
+.lex{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.4rem 2.5rem;
+}
+.term{ border-top: 2px solid var(--ink-3); padding-top: .9rem; }
+.term dt{
+  font-family: var(--f-display);
+  font-size: 1.18rem;
+  color: var(--bulb);
+  margin-bottom: .35rem;
+}
+.term dd{ margin: 0; font-size: .95rem; color: #D6CBBB; }
+
+/* ============================================================
+   WHEEL OF MORALITY — the interactive payoff
+   ============================================================ */
+
+.wheelbox{
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: clamp(1.75rem, 5vw, 3.5rem);
+  align-items: center;
+  background: linear-gradient(140deg, #1E1638, #14102A);
+  border: 1px solid var(--ink-3);
+  padding: clamp(1.75rem, 4vw, 2.75rem);
+}
+@media (max-width: 720px){ .wheelbox{ grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+
+.wheel-stage{ position: relative; width: 220px; height: 220px; }
+.wheel{
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  border: 7px solid var(--bulb);
+  box-shadow: 0 0 0 3px #1E1638, 0 14px 40px rgba(0,0,0,.5);
+  background: conic-gradient(
+    var(--marquee) 0deg 45deg,
+    var(--tower)   45deg 90deg,
+    var(--bulb)    90deg 135deg,
+    #7B4FBF       135deg 180deg,
+    var(--marquee)180deg 225deg,
+    var(--tower)  225deg 270deg,
+    var(--bulb)   270deg 315deg,
+    #7B4FBF       315deg 360deg
+  );
+  transition: transform 3.4s cubic-bezier(.14,.72,.16,1);
+  will-change: transform;
+}
+.wheel-hub{
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%,-50%);
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--bulb);
+}
+.wheel-pin{
+  position: absolute;
+  top: -14px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 22px solid var(--cream);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+}
+.moral{
+  min-height: 2.4em;
+  font-family: var(--f-display);
+  font-size: clamp(1.3rem, 3.2vw, 2rem);
+  line-height: 1.12;
+  color: var(--cream);
+  text-wrap: balance;
+  margin: .8rem 0 1.4rem;
+}
+.spin{
+  font-family: var(--f-script);
+  font-weight: 700;
+  font-size: var(--t-sm);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--bulb);
+  border: 0;
+  padding: .85rem 1.6rem;
+  cursor: pointer;
+  transition: transform .14s ease, background .2s ease;
+}
+.spin:hover{ background: #FFD968; transform: translateY(-2px); }
+.spin:active{ transform: translateY(0); }
+.spin[disabled]{ opacity: .45; cursor: wait; transform: none; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+footer{
+  border-top: 1px solid var(--ink-3);
+  background: linear-gradient(180deg, var(--ink), #0D0916);
+  padding-block: clamp(3rem, 6vw, 5rem) 3rem;
+}
+.goodnight{
+  font-family: var(--f-display);
+  font-size: clamp(2rem, 7vw, 4.6rem);
+  line-height: .95;
+  color: var(--cream);
+  text-shadow: 2px 2px 0 var(--marquee);
+  text-wrap: balance;
+  margin-bottom: 1.5rem;
+}
+.colophon{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.75rem;
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--ink-3);
+  font-family: var(--f-script);
+  font-size: var(--t-xs);
+  line-height: 1.75;
+  color: var(--mauve);
+}
+.colophon strong{
+  display: block;
+  color: var(--tower);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  margin-bottom: .4rem;
+}
+.colophon a{ color: var(--mauve); text-decoration-color: var(--ink-3); }
+.colophon a:hover{ color: var(--cream); }
+
+/* ---------- content offset for the rail ---------- */
+.shell{ padding-left: var(--rail); }
+@media (max-width: 900px){ .shell{ padding-left: 0; padding-top: 26px; } }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .ev, .act{ transform: none !important; }
+}
+</style>
+
+<!-- ══════════════════════════ MARQUEE RAIL ══════════════════════════ -->
+<div class="rail" id="rail" aria-hidden="true">
+  <span class="rail-label">On the air</span>
+</div>
+
+<div class="shell">
+
+<!-- ══════════════════════════ COLD OPEN ══════════════════════════ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="kicker">Warner Bros. Animation &middot; 1993&ndash;1998 &middot; 2020&ndash;2023</p>
+        <h1 class="title-slam">ANIMANIACS</h1>
+        <p class="hero-sub">Three cartoon siblings, drawn in 1929 and sealed in the studio water tower for
+        sixty-odd years, were let out on <em>13 September 1993</em> and immediately began doing
+        Gilbert &amp; Sullivan, geopolitics and pigeon impressions at children. This is how that happened,
+        and why it kept happening.</p>
+      </div>
+
+      <!-- Original geometry: a water tower. No studio marks reproduced. -->
+      <svg class="tower" viewBox="0 0 200 260" role="img" aria-label="Illustration of a studio water tower at night, lights on inside">
+        <defs>
+          <linearGradient id="tank" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="#2E8A88"/>
+            <stop offset="42%"  stop-color="#46C6C2"/>
+            <stop offset="100%" stop-color="#1F5F5E"/>
+          </linearGradient>
+        </defs>
+        <!-- legs -->
+        <g stroke="#3A2E63" stroke-width="5" stroke-linecap="round" fill="none">
+          <path d="M62 150 L38 254"/>
+          <path d="M138 150 L162 254"/>
+          <path d="M84 152 L74 254"/>
+          <path d="M116 152 L126 254"/>
+          <path d="M52 196 L148 196" stroke-width="3.5"/>
+          <path d="M45 228 L155 228" stroke-width="3.5"/>
+          <path d="M52 196 L148 228" stroke-width="2.5"/>
+          <path d="M148 196 L52 228" stroke-width="2.5"/>
+        </g>
+        <!-- tank -->
+        <rect x="46" y="66" width="108" height="86" rx="7" fill="url(#tank)"/>
+        <path d="M40 68 L100 22 L160 68 Z" fill="#FF3D5F"/>
+        <rect x="36" y="62" width="128" height="10" rx="5" fill="#F7EEDE"/>
+        <circle cx="100" cy="20" r="6" fill="#FFC93D"/>
+        <!-- catwalk -->
+        <rect x="32" y="150" width="136" height="6" rx="3" fill="#3A2E63"/>
+        <!-- lit window with three silhouettes inside -->
+        <rect x="74" y="92" width="52" height="34" rx="4" fill="#FFC93D" class="lamp"/>
+        <g fill="#130E1E" class="lamp">
+          <circle cx="87"  cy="110" r="6.5"/>
+          <circle cx="100" cy="110" r="6.5"/>
+          <circle cx="113" cy="110" r="6.5"/>
+        </g>
+        <!-- padlock -->
+        <rect x="93" y="132" width="14" height="11" rx="2" fill="#F7EEDE"/>
+        <path d="M96 132 v-5 a4 4 0 0 1 8 0 v5" fill="none" stroke="#F7EEDE" stroke-width="2.4"/>
+      </svg>
+    </div>
+
+    <dl class="vitals">
+      <div><dt>Original run</dt><dd>99 <small>episodes</small></dd></div>
+      <div><dt>Segments produced</dt><dd>274 <small>shorts</small></dd></div>
+      <div><dt>Daytime Emmys</dt><dd>8 <small>of 16 nods</small></dd></div>
+      <div><dt>Peabody</dt><dd>1 <small>season one</small></dd></div>
+    </dl>
+  </div>
+</header>
+
+<!-- ══════════════════════════ MARQUEE BANNER ══════════════════════════ -->
+<div class="banner" aria-hidden="true">
+  <div class="banner-track">
+    <span>ZANY TO THE MAX</span><span>HELLOOOO NURSE</span><span>GOODNIGHT EVERYBODY</span>
+    <span>THE SAME THING WE DO EVERY NIGHT</span><span>FABOO</span><span>WHEEL OF MORALITY</span>
+    <span>ZANY TO THE MAX</span><span>HELLOOOO NURSE</span><span>GOODNIGHT EVERYBODY</span>
+    <span>THE SAME THING WE DO EVERY NIGHT</span><span>FABOO</span><span>WHEEL OF MORALITY</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════ THE SETUP ══════════════════════════ -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>I.</b> &nbsp;The setup</p>
+      <h2 class="head">A variety show that happened to be a cartoon</h2>
+    </div>
+
+    <div class="origin">
+      <div class="prose">
+        <p><strong>Animaniacs</strong> was created by <strong>Tom Ruegger</strong> and executive-produced by
+        <strong>Steven Spielberg</strong> — the second collaboration between Amblin Entertainment and Warner Bros.
+        Animation after <em>Tiny Toon Adventures</em> proved, in 1990, that a Saturday-morning show could be
+        made with genuine craft and still sell cereal.</p>
+
+        <p>The premise was a piece of studio mythology: Yakko, Wakko and Dot Warner were drawn in the 1930s,
+        found to be so uncontrollable that their cartoons were shelved, and locked in the water tower on the
+        Warner Bros. lot until they escaped in the present day. It is a joke about the studio told inside the
+        studio, and it gave the writers licence to send the Warners anywhere — a Hollywood commissary, the
+        French Revolution, a Beethoven rehearsal — without ever needing continuity.</p>
+
+        <p>Crucially, the format was not a sitcom. Each half-hour was a <strong>revue</strong>: two or three
+        short films, a song, a running gag, sometimes a one-minute blackout. That structure is why the show
+        could hold a Goodfellas parody performed by pigeons next to a segment teaching the state capitals, and
+        why nothing on it ever had to be consistent in tone. Different acts, same bill.</p>
+
+        <div class="pullquote">
+          <p>&ldquo;We&rsquo;re zany to the max.&rdquo;</p>
+          <cite>Theme lyric — Tom Ruegger, to music by Richard Stone</cite>
+        </div>
+      </div>
+
+      <aside class="slate">
+        <h4>Production slate</h4>
+        <dl>
+          <dt>Created by</dt><dd>Tom Ruegger</dd>
+          <dt>Exec. prod.</dt><dd>Steven Spielberg</dd>
+          <dt>Studio</dt><dd>Warner Bros. Animation / Amblin</dd>
+          <dt>Premiere</dt><dd>13 Sep 1993, Fox Kids</dd>
+          <dt>Moved</dt><dd>9 Sep 1995, Kids&rsquo; WB</dd>
+          <dt>Finale</dt><dd>14 Nov 1998</dd>
+          <dt>Seasons</dt><dd>5 (99 episodes)</dd>
+          <dt>Composer</dt><dd>Richard Stone</dd>
+          <dt>Ink &amp; paint</dt><dd>TMS, StarToons, Wang Film, AKOM, Freelance Animators NZ</dd>
+          <dt>Revival</dt><dd>Hulu, 2020&ndash;2023 (3 seasons)</dd>
+        </dl>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ THE RUN ══════════════════════════ -->
+<section class="band band-rule">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>II.</b> &nbsp;The run</p>
+      <h2 class="head">Thirty years, two networks and one very long hiatus</h2>
+      <p class="dim">The dates below are a genuine sequence — each one moved the show somewhere it had not been.</p>
+    </div>
+
+    <div class="chron">
+      <article class="ev">
+        <div><span class="ev-year">1990</span><span class="ev-date">the precedent</span></div>
+        <div class="ev-body">
+          <h3>Tiny Toon Adventures lands</h3>
+          <p>Spielberg&rsquo;s first pass at reviving the Warner cartoon tradition wins an Emmy and, more
+          usefully, establishes a working room of writers — Ruegger, Sherri Stoner, Paul Rugg, Peter
+          Hastings — who would carry straight over. Animaniacs is essentially that room given a bigger stage.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">1993</span><span class="ev-date">13 September</span></div>
+        <div class="ev-body">
+          <h3>Premiere on Fox Kids</h3>
+          <p>The show arrives as <em>Steven Spielberg Presents Animaniacs</em> with an opening title sequence
+          that names its own cast in rhyme and dares you to keep up. Sixty-five episodes are ordered for the
+          first season — a punishing volume that forces the revue format to work, because no single act could
+          carry that many half-hours.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">1994</span><span class="ev-date">the notice</span></div>
+        <div class="ev-body">
+          <h3>A Peabody Award for season one</h3>
+          <p>The Peabody is a journalism-and-broadcasting honour, not a children&rsquo;s-television one, and
+          giving it to a cartoon about a mouse trying to conquer the world was the establishment conceding the
+          point: the writing was the achievement. Eight Daytime Emmys followed across the run, several of them
+          for Richard Stone&rsquo;s music.</p>
+        </div>
+      </article>
+
+      <article class="ev pivot">
+        <div><span class="ev-year">1995</span><span class="ev-date">9 September</span></div>
+        <div class="ev-body">
+          <h3>Defection to Kids&rsquo; WB</h3>
+          <p>Warner Bros. launched its own network block and took its own show with it. In the same month,
+          <em>Pinky and the Brain</em> — until then a recurring segment — was spun off into a prime-time series
+          of its own, the only Animaniacs act to graduate to its own show.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">1998</span><span class="ev-date">14 November</span></div>
+        <div class="ev-body">
+          <h3>The finale, at 99 episodes</h3>
+          <p>Five seasons and 274 individual segments in, the series ends — expensive to make, with a
+          full orchestra on the payroll, and aimed at an audience the ratings system kept insisting was
+          smaller than it was. There is no grand send-off episode. The Warners simply stop.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">1999</span><span class="ev-date">21 December</span></div>
+        <div class="ev-body">
+          <h3>Wakko&rsquo;s Wish, direct to video</h3>
+          <p>A feature-length fairy tale in which the Warners, impoverished in the kingdom of Warnerstock, chase
+          a wishing star. It gathers essentially every recurring character into one story and functions as the
+          farewell the series never got. It reached television on Kids&rsquo; WB in February 2000.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">2020</span><span class="ev-date">20 November</span></div>
+        <div class="ev-body">
+          <h3>The tower opens again, on Hulu</h3>
+          <p>Streaming did what syndication never quite managed: it handed the original run to an audience that
+          had grown up and an audience that had not. Hulu ordered a revival, Spielberg returned as executive
+          producer, and — the decisive detail — Rob Paulsen, Jess Harnell, Tress MacNeille and Maurice LaMarche
+          all came back to their own parts.</p>
+        </div>
+      </article>
+
+      <article class="ev">
+        <div><span class="ev-year">2023</span><span class="ev-date">17 February</span></div>
+        <div class="ev-body">
+          <h3>Season three, and the curtain</h3>
+          <p>The revival closes after three seasons, having spent much of its running time openly discussing
+          the fact that it is a revival. Total across both eras: 129 episodes of a show whose central gag was
+          that it should never have been let out in the first place.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ THE BILL ══════════════════════════ -->
+<section class="band band-rule">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>III.</b> &nbsp;The bill</p>
+      <h2 class="head">The acts, as they were billed</h2>
+      <p class="dim">A rotating company of shorts. Hover a card to bring the cel into register.</p>
+    </div>
+
+    <div class="bill">
+      <article class="act" tabindex="0" style="--cel:#FF3D5F">
+        <p class="act-slug">Headline act</p>
+        <h3>The Warners</h3>
+        <p>Yakko talks, Wakko eats, Dot is cute — and all three exist to be dropped into someone else&rsquo;s
+        orderly life and wreck it with relentless politeness. Dot&rsquo;s full name runs to fourteen words and
+        she will recite all of them.</p>
+        <span class="voice">Voices <b>Rob Paulsen &middot; Jess Harnell &middot; Tress MacNeille</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#46C6C2">
+        <p class="act-slug">Spun off, 1995</p>
+        <h3>Pinky and the Brain</h3>
+        <p>Two lab mice, one megalomaniac and one idiot, attempt world domination nightly and fail on a
+        technicality. The best-constructed thing on the show: a rigid formula executed with enormous
+        variation, and the only act to earn its own series.</p>
+        <span class="voice">Voices <b>Rob Paulsen &middot; Maurice LaMarche</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#FFC93D">
+        <p class="act-slug">Old-school</p>
+        <h3>Slappy Squirrel</h3>
+        <p>A retired golden-age cartoon star, permanently annoyed, explaining the mechanics of anvil-based
+        comedy to her nephew Skippy while using them. The show&rsquo;s vehicle for jokes about cartoons
+        themselves — and about ageing out of your own industry.</p>
+        <span class="voice">Voices <b>Sherri Stoner &middot; Nathan Ruegger</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#7B4FBF">
+        <p class="act-slug">Film-buff act</p>
+        <h3>The Goodfeathers</h3>
+        <p>Three Scorsese pigeons — Squit, Bobby and Pesto — running mob-movie beats on a statue in a park.
+        Pesto&rsquo;s trigger is any perceived question about anything, which resolves in a beating. Aimed
+        squarely over the heads of children, and landing.</p>
+        <span class="voice">Voices <b>Maurice LaMarche &middot; John Mariano &middot; Chick Vennera</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#46C6C2">
+        <p class="act-slug">The sincere one</p>
+        <h3>Rita and Runt</h3>
+        <p>A stray cat who sings and a dog who cannot tell she is a cat, looking for a home. Bernadette Peters
+        sang the cat. These shorts are genuinely melancholy and were scored like short films, which on a show
+        this loud reads as a deliberate change of key.</p>
+        <span class="voice">Voices <b>Bernadette Peters &middot; Frank Welker</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#FF3D5F">
+        <p class="act-slug">Silent comedy</p>
+        <h3>Buttons and Mindy</h3>
+        <p>A toddler wanders obliviously into mortal danger; the family dog nearly dies preventing it; the dog
+        is punished. Almost wordless, mechanically perfect, and the same joke every single time — which is the
+        joke.</p>
+        <span class="voice">Voices <b>Frank Welker &middot; Nancy Cartwright</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#FFC93D">
+        <p class="act-slug">One-joke act</p>
+        <h3>Chicken Boo</h3>
+        <p>A six-foot chicken adopts a disguise, is universally accepted as a man, is unmasked, is chased out
+        of town. Every time. The refusal to develop it beyond that is the entire point, and the theme song
+        says so out loud.</p>
+        <span class="voice">Narration <b>Maurice LaMarche</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#7B4FBF">
+        <p class="act-slug">Interstitial</p>
+        <h3>Good Idea, Bad Idea</h3>
+        <p>Mr. Skullhead demonstrates a reasonable action, then its catastrophic inversion, in under sixty
+        seconds. A blackout gag used as connective tissue — the show&rsquo;s equivalent of a curtain between
+        acts.</p>
+        <span class="voice">Narration <b>Tom Bodett</b></span>
+      </article>
+
+      <article class="act" tabindex="0" style="--cel:#FF3D5F">
+        <p class="act-slug">On the lot</p>
+        <h3>The studio regulars</h3>
+        <p>Dr. Otto Scratchansniff, the studio psychiatrist assigned to calm the Warners; Hello Nurse, his
+        assistant and a running commentary on the trope she is; Ralph the security guard, permanently outrun;
+        and CEO Thaddeus Plotz, permanently furious.</p>
+        <span class="voice">Voices <b>Rob Paulsen &middot; Tress MacNeille &middot; Frank Welker</b></span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ THE PIT ══════════════════════════ -->
+<section class="band band-rule">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>IV.</b> &nbsp;The pit</p>
+      <h2 class="head">Somebody paid for a real orchestra</h2>
+    </div>
+
+    <div class="pit">
+      <div class="staff prose">
+        <p><strong>Richard Stone</strong> scored the series with a thirty-plus-piece orchestra recording for
+        every episode — a practice that had essentially died out in television animation after the 1960s, when
+        synthesisers and library cues took over. It is the single most expensive decision on the show and the
+        one you hear first.</p>
+        <p>The idiom is deliberately Carl Stalling: mickey-moused hits, quotations of public-domain classics
+        used as punchlines, a brass section doing pratfalls. Stone, with Steve and Julie Bernstein, won
+        multiple Emmys for it.</p>
+        <p>Then there are the songs. <strong>Randy Rogel</strong> wrote the two that outlived the show
+        entirely — both of them list-songs set to public-domain tunes, both of them genuinely used by teachers,
+        and both of them a dare aimed at Rob Paulsen&rsquo;s diction.</p>
+      </div>
+
+      <div class="setlist">
+        <div class="song">
+          <div><b>Yakko&rsquo;s World</b><i>Every nation on earth, in one breath, to &ldquo;Jarabe Tapat&iacute;o&rdquo;</i></div>
+          <span>1993</span>
+        </div>
+        <div class="song">
+          <div><b>Wakko&rsquo;s America</b><i>Fifty states and capitals, to &ldquo;Turkey in the Straw&rdquo;</i></div>
+          <span>1993</span>
+        </div>
+        <div class="song">
+          <div><b>The Presidents Song</b><i>Every U.S. president, in order, at speed</i></div>
+          <span>1994</span>
+        </div>
+        <div class="song">
+          <div><b>Yakko&rsquo;s Universe</b><i>A cosmological zoom-out that ends on how small you are</i></div>
+          <span>1993</span>
+        </div>
+        <div class="song">
+          <div><b>I Am the Very Model of a Cartoon Individual</b><i>Gilbert &amp; Sullivan, note for note, on a children&rsquo;s network</i></div>
+          <span>1994</span>
+        </div>
+        <div class="song">
+          <div><b>The Ballad of Magellan</b><i>Circumnavigation, sea-shanty, historically accurate ending</i></div>
+          <span>1994</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nations" aria-hidden="true">
+      <div class="nations-track">
+        <span>United States &middot; Canada &middot; Mexico &middot; Panama &middot; Haiti &middot; Jamaica &middot; Peru &middot; Republic Dominican &middot; Cuba &middot; Caribbean &middot; Greenland &middot; El Salvador too &middot; <b>Puerto Rico</b> &middot; Colombia &middot; Venezuela &middot; Honduras &middot; Guyana &middot; Guatemala &middot; Bolivia &middot; Argentina &middot; Ecuador &middot; Chile &middot; Brazil &middot; Costa Rica &middot; Belize &middot; Nicaragua &middot; Bermuda &middot; Bahamas &middot; Tobago &middot; San Juan &middot;&nbsp;</span>
+        <span>United States &middot; Canada &middot; Mexico &middot; Panama &middot; Haiti &middot; Jamaica &middot; Peru &middot; Republic Dominican &middot; Cuba &middot; Caribbean &middot; Greenland &middot; El Salvador too &middot; <b>Puerto Rico</b> &middot; Colombia &middot; Venezuela &middot; Honduras &middot; Guyana &middot; Guatemala &middot; Bolivia &middot; Argentina &middot; Ecuador &middot; Chile &middot; Brazil &middot; Costa Rica &middot; Belize &middot; Nicaragua &middot; Bermuda &middot; Bahamas &middot; Tobago &middot; San Juan &middot;&nbsp;</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ THE TAKE ══════════════════════════ -->
+<section class="band band-rule">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>V.</b> &nbsp;The take</p>
+      <h2 class="head">Two audiences, one script</h2>
+    </div>
+
+    <div class="ledger">
+      <div>
+        <div class="n">8</div>
+        <div class="l">Daytime Emmy Awards</div>
+        <div class="d">From sixteen nominations across the original run, including Outstanding Animated Program and repeated wins for the music.</div>
+      </div>
+      <div>
+        <div class="n">1</div>
+        <div class="l">Peabody Award</div>
+        <div class="d">For the first season — an honour normally reserved for broadcast journalism and serious drama.</div>
+      </div>
+      <div>
+        <div class="n">274</div>
+        <div class="l">Segments, original run</div>
+        <div class="d">Across 99 episodes. The volume is why the format had to be a revue rather than a series.</div>
+      </div>
+      <div>
+        <div class="n">129</div>
+        <div class="l">Episodes, both eras</div>
+        <div class="d">99 on Fox Kids and Kids&rsquo; WB, plus 30 on Hulu between 2020 and 2023.</div>
+      </div>
+    </div>
+
+    <div class="origin" style="margin-top:clamp(2.5rem,5vw,3.75rem)">
+      <div class="prose">
+        <h3>The thing it actually did</h3>
+        <p style="margin-top:.9rem">Animaniacs is usually credited with writing &ldquo;for adults too,&rdquo; which
+        undersells it. The show wrote <em>one</em> script and let it operate on two levels at once: a
+        seven-year-old gets a pigeon falling off a statue, and the person next to them gets a shot-for-shot
+        Scorsese parody. Neither joke is a bonus track for the other. Nothing is winked at.</p>
+        <p>That approach put the writers in a standing argument with the network&rsquo;s Standards and Practices
+        department, and a good deal of the show&rsquo;s reputation rests on lines that survived it — most
+        famously a fingerprint gag whose second reading nobody caught until the episode had aired. The
+        <strong>Wheel of Morality</strong> exists for the same reason: an educational-content requirement,
+        satisfied by a spinning wheel that dispenses a non-sequitur and moves on.</p>
+        <p>Its afterlife was built on repetition. Reruns, then home video, then streaming, put the original 99
+        episodes in front of people who were not born when they aired — and it was that audience, measurable
+        in a way 1998&rsquo;s was not, that got the tower opened again in 2020.</p>
+      </div>
+
+      <aside class="slate">
+        <h4>The writers&rsquo; room</h4>
+        <dl>
+          <dt>Show runner</dt><dd>Tom Ruegger</dd>
+          <dt>Writers</dt><dd>Paul Rugg</dd>
+          <dt></dt><dd>Sherri Stoner</dd>
+          <dt></dt><dd>Peter Hastings</dd>
+          <dt></dt><dd>Deanna Oliver</dd>
+          <dt></dt><dd>Nicholas Hollander</dd>
+          <dt></dt><dd>John P. McCann</dd>
+          <dt></dt><dd>Gordon Bressack</dd>
+          <dt>Songs</dt><dd>Randy Rogel</dd>
+          <dt>Music</dt><dd>Richard Stone</dd>
+          <dt></dt><dd>Steve &amp; Julie Bernstein</dd>
+        </dl>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ THE LEXICON ══════════════════════════ -->
+<section class="band band-rule">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><b>VI.</b> &nbsp;The lexicon</p>
+      <h2 class="head">Things people still say without knowing why</h2>
+    </div>
+
+    <dl class="lex">
+      <div class="term">
+        <dt>&ldquo;Helloooo, Nurse!&rdquo;</dt>
+        <dd>Yakko and Wakko&rsquo;s response to anything striking. Deployed at sunsets, sandwiches and once at a
+        particularly good chair — the joke being that the phrase escaped its own meaning almost immediately.</dd>
+      </div>
+      <div class="term">
+        <dt>&ldquo;Goodnight, everybody!&rdquo;</dt>
+        <dd>The vaudeville tag Yakko drops on any line that lands too close to an adult reading. It functions as
+        both a punchline and a confession.</dd>
+      </div>
+      <div class="term">
+        <dt>&ldquo;The same thing we do every night&hellip;&rdquo;</dt>
+        <dd>Pinky asks what they&rsquo;re doing tonight. Brain answers: try to take over the world. Said in
+        essentially every one of the ~65 Pinky and the Brain outings, and never once landing the same way.</dd>
+      </div>
+      <div class="term">
+        <dt>&ldquo;Faboo!&rdquo;</dt>
+        <dd>Wakko&rsquo;s all-purpose superlative, delivered in the Liverpudlian accent Jess Harnell built from
+        Ringo Starr — a Beatles joke sitting quietly inside a children&rsquo;s cartoon for five years.</dd>
+      </div>
+      <div class="term">
+        <dt>&ldquo;I&rsquo;m cute!&rdquo;</dt>
+        <dd>Dot&rsquo;s standing defence and her stated occupation. Full name: Princess Angelina Contessa Louisa
+        Francesca Banana Fanna Bo Besca III. She would like you to call her Dot.</dd>
+      </div>
+      <div class="term">
+        <dt>&ldquo;Wheel of Morality, turn, turn, turn&hellip;&rdquo;</dt>
+        <dd>The educational requirement, discharged in eleven seconds by a spinning wheel that produces advice
+        with no connection to anything that just happened. Try it below.</dd>
+      </div>
+    </dl>
+
+    <!-- ── interactive payoff ── -->
+    <div class="wheelbox" style="margin-top:clamp(2.5rem,5vw,3.5rem)">
+      <div class="wheel-stage">
+        <div class="wheel" id="wheel"></div>
+        <div class="wheel-hub"></div>
+        <div class="wheel-pin"></div>
+      </div>
+      <div>
+        <p class="eyebrow">Wheel of Morality &middot; turn, turn, turn</p>
+        <p class="moral" id="moral" role="status" aria-live="polite">Tell us the lesson that we should learn.</p>
+        <button class="spin" id="spin" type="button">Give it a spin</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ GOODNIGHT ══════════════════════════ -->
+<footer>
+  <div class="wrap">
+    <p class="eyebrow">And now, the end of the show</p>
+    <p class="goodnight">Goodnight, everybody!</p>
+    <p class="lede" style="max-width:52ch">The Warners were locked in the tower for sixty years, let out for five,
+    put back for twenty-two, and let out again for three. On current form, someone opens it again around 2045.</p>
+
+    <div class="colophon">
+      <div>
+        <strong>About this page</strong>
+        A written history of Animaniacs (1993&ndash;1998, 2020&ndash;2023). All illustration is original
+        geometry; no studio artwork, logos or character designs are reproduced here.
+      </div>
+      <div>
+        <strong>Sources</strong>
+        <a href="https://en.wikipedia.org/wiki/Animaniacs">Wikipedia: Animaniacs</a><br>
+        <a href="https://en.wikipedia.org/wiki/List_of_Animaniacs_episodes">Episode list</a><br>
+        <a href="https://en.wikipedia.org/wiki/Wakko%27s_Wish">Wakko&rsquo;s Wish</a><br>
+        <a href="https://variety.com/2020/tv/news/animaniacs-reboot-steven-spielberg-premiere-date-hulu-1234728702/">Variety: Hulu revival</a>
+      </div>
+      <div>
+        <strong>Type</strong>
+        Alfa Slab One for display, in the Clarendon idiom of a circus playbill. Archivo for text. Courier Prime
+        for production data, because that is what the room typed the scripts in.
+      </div>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /shell -->
+
+<script>
+(function(){
+  "use strict";
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ── marquee bulb rail ─────────────────────────────────────── */
+  var rail = document.getElementById("rail");
+  var wide = window.matchMedia("(min-width: 901px)");
+  var BULBS = wide.matches ? 26 : 30;
+  var bulbs = [];
+  for (var i = 0; i < BULBS; i++){
+    var b = document.createElement("i");
+    rail.insertBefore(b, rail.firstChild);
+    bulbs.push(b);
+  }
+
+  var ticking = false;
+  function paintRail(){
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    var lit = Math.round(p * BULBS);
+    for (var i = 0; i < BULBS; i++){
+      var on = i < lit;
+      bulbs[i].classList.toggle("on", on);
+      bulbs[i].classList.toggle("tip", on && i === lit - 1);
+    }
+    ticking = false;
+  }
+  function onScroll(){
+    if (!ticking){ ticking = true; requestAnimationFrame(paintRail); }
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
+  paintRail();
+
+  /* ── settle-in on scroll (transform only; content is never hidden) ── */
+  var settlers = document.querySelectorAll(".ev, .act");
+  if (reduced || !("IntersectionObserver" in window)){
+    settlers.forEach(function(el){ el.classList.add("settled"); });
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ e.target.classList.add("settled"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    settlers.forEach(function(el){ io.observe(el); });
+    /* anything already on screen settles immediately */
+    requestAnimationFrame(function(){
+      settlers.forEach(function(el){
+        var r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight) el.classList.add("settled");
+      });
+    });
+  }
+
+  /* ── Wheel of Morality ─────────────────────────────────────── */
+  var MORALS = [
+    "Never ask what hot dogs are made of.",
+    "Don't ask stupid questions.",
+    "Always change your underwear.",
+    "The candy-coated shell keeps the chocolate from melting in your hand.",
+    "If you keep making that face, it will freeze that way.",
+    "He who plants a seed today shall find a large plant tomorrow. Or a bill from the gardener.",
+    "There is no 'I' in team, but there is an 'M' and an 'E'.",
+    "A watched pot never boils, so stop watching and go do something useful."
+  ];
+  var wheel = document.getElementById("wheel");
+  var moral = document.getElementById("moral");
+  var spin  = document.getElementById("spin");
+  var turns = 0, last = -1;
+
+  spin.addEventListener("click", function(){
+    var idx;
+    do { idx = Math.floor(Math.random() * MORALS.length); } while (idx === last && MORALS.length > 1);
+    last = idx;
+
+    if (reduced){
+      moral.textContent = MORALS[idx];
+      return;
+    }
+    spin.disabled = true;
+    spin.textContent = "Turn, turn, turn…";
+    moral.textContent = "…";
+    turns += 4 + Math.floor(Math.random() * 3);
+    var deg = turns * 360 + idx * 45 + 22;
+    wheel.style.transform = "rotate(" + deg + "deg)";
+    window.setTimeout(function(){
+      moral.textContent = MORALS[idx];
+      spin.disabled = false;
+      spin.textContent = "Spin it again";
+    }, 3450);
+  });
+})();
+</script>
