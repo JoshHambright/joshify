@@ -80,6 +80,35 @@ guessed (several edges were removed during the build for exactly this reason).
 | Non-obvious links are the payoff | `Lead Belly → In the Pines → Kurt Cobain → Nirvana → Dave Grohl → Foo Fighters → Josh Freese → Nine Inch Nails → Trent Reznor` |
 | It can be a *tracker*, not just a viewer | Additions persist to the artifact `db` capability, shared across viewers |
 
+## Three layouts
+
+One simulation, three arrangements. The switch is in the left rail.
+
+| Mode | What it does | What it is good for |
+|---|---|---|
+| **Web** | Plain force layout | Honest about the topology, and a hairball. Query your way around it. |
+| **Clusters** | Each entity is pulled toward an anchor for its kind | Seeing what the corpus is *made of*, and which connections cross between kinds |
+| **Timeline** | Horizontal position is the year; springs sort out the vertical | Seeing the era — the gear tail running back to the fifties, the mass piling up in 1988–1995 |
+
+Two details make the timeline mean anything:
+
+**People sit at their first credit, not their birth.** A person's `year` is a
+birth year, which would strand them decades to the left of everything they made.
+On the timeline every person takes the earliest year on any edge touching them,
+so Johnny Cash enters this story in 1996 rather than 1932. Everything else keeps
+its own date, because an album's year *is* its release.
+
+**Crowding resolves vertically.** Repulsion and springs get their horizontal
+component scaled to 0.14 in timeline mode, and the pull toward the year is raised
+to 0.22, so entities form real year columns instead of drifting off their date.
+It is the beeswarm trick, and without it the "timeline" is just a blob with an
+axis drawn under it.
+
+The domain is the visible dated range with a 4th-percentile floor, recomputed
+whenever the filters change — so a couple of very old entries (a traditional song
+dated 1870, a label founded in 1889) clamp to the left edge instead of squashing
+seventy years of music into the right quarter of the screen.
+
 ## The query language
 
 Terms are ANDed; a leading `-` negates; a bare word matches names.
@@ -171,11 +200,18 @@ apart at the `k ≈ 0.36` a phone opens at, where every neighbour name lands in 
 same pile of plates. The same guard quietly improves the desktop hairball.
 
 **Slider extremes mean "unbounded".** The year filter spans the era the corpus
-lives in (1950–2010), not its literal min/max — a single 1870 traditional song
-would otherwise waste 60% of the slider's travel. At either end the bound is
-dropped entirely, so the outliers stay visible at rest. The first build got this
-wrong and silently hid nine entities, including both ends of the best path in
-the dataset.
+lives in, not its literal min/max — a single 1870 traditional song would
+otherwise waste 60% of the slider's travel. At either end the bound is dropped
+entirely, so the outliers stay visible at rest.
+
+This one has now been wrong twice, in opposite directions. First a hardcoded
+1954 floor silently hid nine entities, including both ends of the best path in
+the dataset. The fix computed the floor as `Math.min(1950, YMIN)` — which is
+`1870` whenever the data reaches back past 1950, so the slider went right back to
+spanning the full 153 years it was meant to avoid. It reads correctly and is
+backwards; it took building the timeline, which draws the same bounds as a visible
+axis, to notice. `Math.max` is the answer. A bound you cannot see is a bound you
+cannot check.
 
 **Overlay persistence, not seeded rows.** The corpus ships in the page as
 content. The `db` capability holds only an *overlay* — added, edited and
@@ -196,6 +232,11 @@ shared editing, and nothing races to seed a store on load.
 - **The phone still opens on a hairball**, just a legible one. Below about 0.4
   zoom the graph is a texture, and the query language is how you actually get
   anywhere.
-- **Force layout is still a hairball at rest.** The query language, not the
-  default view, is how you actually find anything. That is the honest finding,
-  and it is why the filters came before the prettiness.
+- **Web mode is still a hairball**, and always will be — that is what 233 nodes
+  and 376 edges look like without an opinion imposed on them. Clusters and
+  Timeline are that opinion. The query language is still how you find one
+  specific thing.
+- **The two reading layouts each hide something.** Clusters throws away the
+  topology's shape; Timeline throws away everything except the year. Neither
+  replaces Web, which is why the switch stays visible rather than picking a
+  default for you.
