@@ -1312,3 +1312,24 @@ stopped is motion nobody asked for.
 unknown id, and stepping forward from `-1` lands on the *last* preset — so the
 first tap after a preset is removed appears to go backwards.
 **Status:** ✅ Accepted.
+
+---
+
+### D-067 · The touch that wakes the panel is swallowed
+**Chose:** `touched()` returns whether the caller should deliver the event. In
+`full` mode entered by the idle timer, the first touch restores the chrome and
+is **not** delivered to whatever is underneath. Every touch after it is.
+**Why:** the visualiser takes the whole screen, and the controls are still
+there in layout terms. A tap meant to bring them back would also land on
+whichever control happened to be under the finger — so wanting to see what is
+playing skips a track. That is not a rare edge: the transport occupies the
+middle of the plate, which is where a hand lands.
+**Why only when the idle timer entered it:** somebody who opened the visualiser
+deliberately knows it is there, and the tap that closes it is an ordinary tap.
+Swallowing that one would be a different annoyance in the opposite direction.
+**Ambient keeps the chrome, and that is the whole difference between it and
+Full.** Getting that backwards makes one of the two modes pointless.
+**And intensity in `now-playing` is not zero.** "Renders quietly" is a
+different and more useful state than "nothing renders" — the drifting backdrop
+is already there, and the effect chain is what will eventually draw it.
+**Status:** ✅ Accepted.
