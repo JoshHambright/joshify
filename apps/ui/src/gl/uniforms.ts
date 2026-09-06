@@ -43,7 +43,16 @@ export const UNIT_TEXTURE = 0;
 export const UNIT_ART = 1;
 export const UNIT_PREV = 2;
 
-export type Rgb = readonly [number, number, number];
+/**
+ * A shader colour: three components in 0..1.
+ *
+ * Deliberately **not** core's `Rgb`, which is 8-bit `{ r, g, b }` — that is the
+ * form hex tokens and image pixels arrive in, and this is the form a `vec3`
+ * uniform takes. Two names for two genuinely different things; converting
+ * between them is `channel / 255`, and doing it in the wrong direction gives a
+ * white screen rather than an error.
+ */
+export type ShaderRgb = readonly [number, number, number];
 
 export interface Size {
   readonly width: number;
@@ -80,8 +89,8 @@ export interface Reactivity {
 
 export interface FrameContext {
   readonly reactivity: Reactivity;
-  readonly accent: Rgb;
-  readonly foreground: Rgb;
+  readonly accent: ShaderRgb;
+  readonly foreground: ShaderRgb;
   readonly intensity: number;
   /** The resolution *this stage* renders at — see `buildFrameUniforms`. */
   readonly resolution: Size;
@@ -114,7 +123,7 @@ export const clamp01 = (value: number): number => {
 export const normaliseBands = (bands: ArrayLike<number>): readonly number[] =>
   Array.from({ length: BAND_COUNT }, (_unused, index) => clamp01(bands[index] ?? 0));
 
-const rgb = (colour: Rgb): Rgb => [
+const rgb = (colour: ShaderRgb): ShaderRgb => [
   clamp01(colour[0]),
   clamp01(colour[1]),
   clamp01(colour[2]),

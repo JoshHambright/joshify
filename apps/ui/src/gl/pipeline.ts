@@ -34,7 +34,7 @@ import {
   UNIT_PREV,
   UNIT_TEXTURE,
   type Reactivity,
-  type Rgb,
+  type ShaderRgb,
   type Size,
   type UniformSet,
 } from './uniforms.js';
@@ -195,8 +195,8 @@ export const planFrame = (input: PlanInput): RenderPlan => {
 
 export interface RenderInputs {
   readonly reactivity: Reactivity;
-  readonly accent: Rgb;
-  readonly foreground: Rgb;
+  readonly accent: ShaderRgb;
+  readonly foreground: ShaderRgb;
   readonly intensity: number;
   /**
    * Milliseconds since the previous frame began. Omit and the budget observes

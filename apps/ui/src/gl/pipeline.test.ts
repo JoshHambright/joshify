@@ -758,6 +758,7 @@ const stubWebGl = (options: StubOptions = {}) => {
     'TEXTURE0',
     'COLOR_BUFFER_BIT',
     'DEPTH_BUFFER_BIT',
+    'UNPACK_FLIP_Y_WEBGL',
   ];
   const context: Record<string, unknown> = {};
   for (const [index, name] of constants.entries()) context[name] = index + 1;
@@ -789,6 +790,7 @@ const stubWebGl = (options: StubOptions = {}) => {
     'activeTexture',
     'texImage2D',
     'texParameteri',
+    'pixelStorei',
     'bindFramebuffer',
     'framebufferTexture2D',
     'viewport',
@@ -1045,6 +1047,28 @@ describe('the GL seam', () => {
     gl.uploadImage(texture, {} as unknown as TexImageSource);
 
     expect(stub.argsOf('texImage2D')).toHaveLength(2);
+  });
+
+  /**
+   * An image's first row is its top; a texture's first row is its bottom.
+   * Without the flip every album cover renders upside down — which no headless
+   * test can see, because nothing in one has an up. Found by looking at the
+   * page.
+   */
+  it('flips the cover, and puts the flag back afterwards', () => {
+    const stub = stubWebGl();
+    const gl = createGlContext(stub.context);
+    const texture = gl.createTexture({
+      width: 1,
+      height: 1,
+      filter: 'nearest',
+      wrap: 'repeat',
+    });
+
+    gl.uploadImage(texture, {} as unknown as TexImageSource);
+
+    const flips = stub.argsOf('pixelStorei').map((args) => args[1]);
+    expect(flips).toEqual([true, false]);
   });
 
   it('draws indexed geometry with drawElements and a plain mesh with drawArrays', () => {

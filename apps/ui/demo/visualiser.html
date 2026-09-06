@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Joshify — visualiser</title>
+    <style>
+      body {
+        margin: 0;
+        background: #08080b;
+        color: #b6b2c2;
+        font:
+          13px system-ui,
+          sans-serif;
+      }
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 12px 32px;
+      }
+      #stage {
+        display: block;
+        width: 360px;
+        height: 640px;
+        border: 1px solid #26262f;
+        border-radius: 14px;
+        background: #000;
+      }
+      #readout {
+        font-family: ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+        color: #74707f;
+      }
+      #looks,
+      #controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+        max-width: 520px;
+      }
+      button {
+        padding: 7px 12px;
+        border: 1px solid #2c2c36;
+        border-radius: 7px;
+        background: #17171d;
+        color: #cbc7d6;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #45454f;
+      }
+      button.on {
+        border-color: #8f8aa3;
+        color: #fff;
+        background: #23232c;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      input[type='range'] {
+        width: 96px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="stage"></canvas>
+      <div id="readout"></div>
+      <div id="looks"></div>
+      <div id="controls">
+        <button id="prev">◀</button>
+        <button id="next">▶</button>
+        <button id="cover">Cover</button>
+        <button id="tap">Tap</button>
+        <label
+          >Intensity<input id="intensity" type="range" min="0" max="100" value="100"
+        /></label>
+        <label
+          >Grain<input id="grain" type="range" min="25" max="100" value="100"
+        /></label>
+      </div>
+    </div>
+    <script type="module" src="./visualiser.ts"></script>
+  </body>
+</html>

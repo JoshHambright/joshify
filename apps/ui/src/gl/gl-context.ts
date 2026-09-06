@@ -295,7 +295,17 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
 
     uploadImage: (texture, source) => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
+      // An image's first row is its *top*; a GL texture's first row is its
+      // bottom. Without this every album cover renders upside down — which
+      // looks deliberate on an abstract sleeve and absurd on one with a face
+      // or a word on it, and is invisible to every headless test because
+      // nothing in them has an up.
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      // Restored, because the flag is global to the context and the render
+      // targets below are written by the GPU, which already agrees with GL
+      // about which way is up.
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     },
 
     deleteTexture: (texture) => {

@@ -15,6 +15,7 @@
     "demo/**/*.ts",
     "vite.config.ts",
     "vite.demo.config.ts",
+    "vite.visualiser.config.ts",
     "svelte.config.js"
   ]
 }

@@ -21,3 +21,4 @@ dist-web/
 dist-demo/
 test-results/
 playwright-report/
+dist-visualiser/

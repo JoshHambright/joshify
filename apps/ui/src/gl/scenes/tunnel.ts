@@ -196,10 +196,18 @@ precision highp float;
 layout(location = ${String(ATTRIBUTE_RING)}) in vec3 aRing;
 layout(location = ${String(ATTRIBUTE_UV)}) in vec2 aUv;
 
-uniform float uTime;
-uniform float uBeat;
-uniform float uIntensity;
-uniform vec2 uResolution;
+// Explicitly mediump, not the file's highp default.
+//
+// A uniform used in both stages must carry the *same* precision in both, or
+// the program fails to link — and the failure is a link error on real
+// hardware, invisible to any headless test. The fragment shader below is
+// mediump, so these are too; the file's highp default still governs the
+// vertex-local position maths, which is why it is declared at all (positions
+// run to ~420 units and V to 70 copies of the cover).
+uniform mediump float uTime;
+uniform mediump float uBeat;
+uniform mediump float uIntensity;
+uniform mediump vec2 uResolution;
 uniform float uSpeed;
 uniform float uRadius;
 uniform float uPulse;

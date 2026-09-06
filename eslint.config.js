@@ -9,6 +9,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/dist-web/**',
       '**/dist-demo/**',
+      '**/dist-visualiser/**',
       '**/coverage/**',
       'site/**',
       'spikes/**',
