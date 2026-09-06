@@ -96,4 +96,9 @@ export {
   normaliseQueue,
   type PlaybackQueue,
 } from './playback/state.js';
-export { IDLE_PANEL, themeMatchesItem, type PanelState } from './panel/state.js';
+export {
+  IDLE_PANEL,
+  presentationMatchesItem,
+  type PanelState,
+  type Presentation,
+} from './panel/state.js';

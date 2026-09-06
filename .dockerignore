@@ -1,0 +1,57 @@
+# Build context for the Joshify server image (P8-01).
+#
+# The rule here is "deny by omission is too easy to get wrong", so this file is
+# explicit: everything listed is either a secret, a build output that the image
+# rebuilds from source anyway, or weight nobody pays for twice.
+
+# Secrets. First, and non-negotiable — a .env swept into the context ends up in
+# an image layer even if the Dockerfile never COPYs it (D-034, docs/SPOTIFY_SETUP.md).
+.env
+.env.*
+!.env.example
+
+# Installed dependencies. The image installs its own from the lockfile; copying
+# a host tree in would mix architectures and defeat --frozen-lockfile.
+node_modules
+**/node_modules
+
+# Build output. Rebuilt inside the image; a stale host dist silently winning
+# over a fresh build is the worst kind of bug to chase.
+dist
+**/dist
+**/dist-web
+**/dist-demo
+**/*.tsbuildinfo
+coverage
+
+# Tests. They run in CI (pnpm verify) before anything is built or published, so
+# compiling them into the runtime image only adds bytes.
+**/*.test.ts
+**/*.test.svelte
+vitest.config.ts
+
+# Repository furniture with no bearing on the build.
+.git
+.gitignore
+.github
+docs
+site
+spikes
+coverage
+LICENSE
+README.md
+CLAUDE.md
+eslint.config.js
+.prettierrc.json
+.prettierignore
+.nvmrc
+Dockerfile
+.dockerignore
+docker-compose.yml
+scripts
+
+# Editor and OS noise.
+.DS_Store
+*.log
+.vscode
+.idea

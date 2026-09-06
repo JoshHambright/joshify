@@ -38,13 +38,13 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 0 | Foundation | 8 | **8** | ✅ **Complete** |
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
-| 3 | Now Playing | 14 | 13 | 🟨 In progress |
+| 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 7 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 0 | ⬜ Not started |
 | 8 | Packaging, CI/CD & audio module | 11 | 0 | ⬜ Not started |
-| | **Total** | **122** | **57** | |
+| | **Total** | **122** | **58** | |
 
 ---
 
@@ -118,7 +118,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-02 | Album art fetch + on-disk cache (640px hero, 64px source) | ✅ | Buffered then temp→fsync→rename, so a dropped connection cannot truncate. True LRU eviction for an appliance running for months (D-037) |
 | P3-03 | Server-side theme extraction → token set | ✅ | Accent is salience, not dominance — a small hot-pink logo beats the grey card it sits on (D-036) |
 | P3-04 | Contrast checking / correction on derived colours | ✅ | 4.5:1 for anything text can land on, 3:1 for chrome. AAA rejected as unreachable, so the guarantee is true (D-035). 121 hostile pairings tested |
-| P3-05 | Server-side blur pre-render, served as a static image | ⬜ | Avoids `backdrop-filter` on VC4 entirely |
+| P3-05 | Server-side blur pre-render, served as a static image | ✅ | The render already existed in the pipeline; what was missing was serving it. `GET /api/artwork/:key[/:kind]` answers from the device's own cache, content-addressed and marked `immutable`. Keys are validated as whole strings against lowercase hex — an allowlist cannot express a traversal, which a `..` check both would and could not (D-054) |
 | P3-06 | Svelte app shell + WebSocket client store | ✅ | Vite + Svelte 5. The panel is three slots — stage, rail, plate — which is the whole navigation model. The store implements the Svelte contract by hand so its reconnect logic is testable in Node against a fake socket (D-043). Desktop fit uses `zoom`, not `transform`: `transform` scales paint but not the layout box, which is what overflowed the first prototype |
 | P3-07 | Theme application via CSS custom properties | ✅ | Token *contract* moved to core so both ends share one definition; extraction stays server-side. Fixed chrome is `--jf-*`, the album's five are `--joshify-*`, so a rule says which half can change under you. Hex is validated before writing — a bad custom property is not an error, it is a silently unstyled panel |
 | P3-08 | Album art hero component + crossfade on track change | ✅ | The outgoing frame is held until the incoming one has *pixels* — `load` **and** `decode()` — because swapping on `load` alone flashes empty surface on every track change. Keyed on the image URL, not the track: two tracks from one album share a cover (D-045) |
@@ -127,7 +127,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P3-11 | Interpolated progress bar rendering | ✅ | Reachable and composed into the panel. Frame loop runs only when something moves — paused, none; dragging, none. Zero extra API calls. Transport and Scrubber run the *same* pure model rather than sharing a value, so they cannot disagree (D-046) |
 | P3-12 | Idle / nothing-playing / not-Premium states | ✅ | `PlaybackNotice` composed into the plate. Offline returns *no* notice when a last known state exists — the amber lamp does the talking, and a banner over a working screen is the spinner mistake in another costume |
 | P3-14 | **Put the account's Premium flag on the wire** | ✅ | Read once at engine start and published. Three-valued: `null` until asked, and a failed profile read leaves it null rather than guessing |
-| P3-13 | **Deliver the theme over the wire** | ✅ | `PanelState` (core) = playback + `theme` + `themeFor` + `isPremium`, flat so the diff stays granular. The engine publishes the track first and the colour when extraction lands; the UI holds the *previous* album's colour across the gap rather than flashing grey. Generation-fenced, so a slow decode cannot repaint the wrong track (D-050). **Prepared artwork URLs are not included** — that needs the static-serving route, which belongs with P3-05 |
+| P3-13 | **Deliver the theme over the wire** | ✅ | `PanelState` (core) = playback + `theme` + `themeFor` + `isPremium`, flat so the diff stays granular. The engine publishes the track first and the colour when extraction lands; the UI holds the *previous* album's colour across the gap rather than flashing grey. Generation-fenced, so a slow decode cannot repaint the wrong track (D-050). Prepared artwork URLs ride along too, now that P3-05 serves them. Artwork takes the *opposite* staleness rule from colour: it follows the item strictly, because a stale accent is invisible for 300ms and a stale album cover is not (D-053) |
 
 ---
 

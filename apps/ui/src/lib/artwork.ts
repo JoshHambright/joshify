@@ -56,6 +56,42 @@ export const artworkSources = (item: PlayingItem | null): ArtworkSources => {
   };
 };
 
+/**
+ * Where the panel should actually load artwork from.
+ *
+ * Prefers the device's own cache (P3-05) and falls back to Spotify's CDN — but
+ * **only when the cached copy belongs to the track on screen.**
+ *
+ * That condition is the whole function. The presentation lags the track it
+ * belongs to by a few hundred milliseconds (D-050), and the theme deliberately
+ * lags with it: a slightly-wrong accent for 300ms is invisible. A
+ * slightly-wrong *album cover* is not. So artwork takes the opposite rule from
+ * colour — it follows the item strictly, using the remote URL for the current
+ * track rather than the local one for the previous track.
+ *
+ * The fallback is worth having even though the server reports `null` when
+ * caching failed: on a cold cache the remote URL is the only thing that can
+ * show the album at all, and showing it is the entire point of the screen. The
+ * caching failure is a problem for the log, not something the viewer can act
+ * on.
+ */
+export const resolvedArtwork = (
+  item: PlayingItem | null,
+  cached: {
+    heroUrl: string | null;
+    backdropUrl: string | null;
+    presentationFor: string | null;
+  },
+): ArtworkSources => {
+  const remote = artworkSources(item);
+  if (item === null || cached.presentationFor !== remote.key) return remote;
+  return {
+    hero: cached.heroUrl ?? remote.hero,
+    backdrop: cached.backdropUrl ?? remote.backdrop,
+    key: remote.key,
+  };
+};
+
 /** One image on screen, or on its way there. */
 export interface ArtworkLayer {
   /** Supplied by the caller: a pure function must not own a counter. */

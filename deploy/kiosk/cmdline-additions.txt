@@ -1,0 +1,52 @@
+# Additions to /boot/firmware/cmdline.txt on Raspberry Pi OS Bookworm 64-bit.
+# P7-05 (nothing on screen during boot) and P7-06 (blanking policy).
+#
+# cmdline.txt is ONE LINE. These are tokens to merge into it, not a file to
+# copy over it. Keep a backup first:
+#     sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.bak
+#
+# Verify after reboot:  cat /proc/cmdline
+# If the Pi will not boot after an edit, put the SD card in another machine and
+# restore the backup — this file is on the FAT partition and is editable from
+# any OS. That is the escape hatch for every mistake below.
+
+# --- REPLACE this token, do not add it -------------------------------------
+# Pi OS ships console=tty1. Moving the kernel console to VT 3 keeps late boot
+# messages, driver warnings and OOM notices off the VT the panel is showing.
+# They are not lost: they are on Ctrl+Alt+F3 and in the journal.
+#   console=tty1   ->   console=tty3
+
+# --- ADD these tokens ------------------------------------------------------
+
+# Suppress the scrolling kernel log. loglevel=3 keeps errors and worse, so a
+# genuine failure still reaches the console we just moved to tty3.
+quiet
+loglevel=3
+
+# The four raspberry logos (one per core) drawn into the top-left of the
+# framebuffer before userspace exists.
+logo.nologo
+
+# The blinking underscore left on the VT. It is small, it is in the corner, and
+# it is the single most obvious tell that this is a computer and not a device.
+vt.global_cursor_default=0
+
+# Disable the kernel console blank timer (default 10 minutes). An always-on
+# wall panel must not blank. See docs/APPLIANCE.md for what this trades away.
+consoleblank=0
+
+# Hand the boot over to plymouth. NOT present on Pi OS Lite by default, because
+# Lite does not install plymouth at all — see deploy/README.md for the packages.
+splash
+plymouth.ignore-serial-consoles
+
+# --- OPTIONAL: only if the panel comes up at the wrong mode ----------------
+# The Touch Display 2 is auto-detected and reports 720x1280 natively. Pin the
+# mode only if `kmsprint` shows something else:
+#   video=DSI-1:720x1280@60
+#
+# The panel is portrait by design and MUST NOT be rotated to landscape (D-039).
+# The one legitimate rotation is a case that mounts the panel inverted, which is
+# 180 degrees and preserves the 720x1280 geometry:
+#   video=DSI-1:720x1280@60,rotate=180
+# Touch coordinates do not follow that automatically; see docs/APPLIANCE.md.

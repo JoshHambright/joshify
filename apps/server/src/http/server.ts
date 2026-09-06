@@ -75,6 +75,28 @@ export interface HttpServerConfig {
    * registered at all — a 404 is a truer answer than a 200 with nothing in it.
    */
   readonly reads?: PanelReads | undefined;
+  /**
+   * Serves the album art the device has already cached (P3-05).
+   *
+   * Optional for the same reason `reads` is: a transport-only server has no
+   * artwork to serve, and an unregistered route is a truer answer than an
+   * empty one.
+   */
+  readonly artwork?: ArtworkSource | undefined;
+}
+
+/**
+ * The two reads the artwork route makes.
+ *
+ * Narrower than `ArtworkCache` on purpose — this route must not be able to
+ * fetch, write or prune, only to answer with what is already on disk.
+ */
+export interface ArtworkSource {
+  readonly read: (key: string) => Promise<Result<Buffer | null, JoshifyError>>;
+  readonly readDerived: (
+    key: string,
+    kind: string,
+  ) => Promise<Result<Buffer | null, JoshifyError>>;
 }
 
 /**
@@ -390,6 +412,51 @@ const readPage = (query: unknown): PageRequest => {
 };
 
 /**
+ * A cache key, as `ArtworkCache.keyFor` produces them: 128 bits of SHA-256 in
+ * lowercase hex. Anchored, so nothing else is a key.
+ */
+const ARTWORK_KEY = /^[0-9a-f]{32}$/;
+
+export const isArtworkKey = (value: string): boolean => ARTWORK_KEY.test(value);
+
+/** A derived-image kind, e.g. `backdrop`. Letters only, for the same reason. */
+const DERIVED_KIND = /^[a-z]{1,32}$/;
+
+export const isDerivedKind = (value: string): boolean => DERIVED_KIND.test(value);
+
+/**
+ * The image type, from the bytes rather than from a filename.
+ *
+ * The cache stores whatever Spotify served under a hashed key, so there is no
+ * extension to trust and no `Content-Type` kept from the original response.
+ * Sniffing four magic numbers is both cheaper and harder to get wrong than
+ * threading the upstream header through the cache.
+ *
+ * Anything unrecognised is `application/octet-stream`, never a guess: a
+ * mislabelled image renders as nothing, while an honest download is at least
+ * diagnosable.
+ */
+export const sniffImageType = (bytes: Buffer): string => {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(PNG_MAGIC)) return 'image/png';
+  if (
+    bytes.length >= 12 &&
+    bytes.subarray(0, 4).toString('latin1') === 'RIFF' &&
+    bytes.subarray(8, 12).toString('latin1') === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  if (bytes.length >= 6 && bytes.subarray(0, 6).toString('latin1').startsWith('GIF8')) {
+    return 'image/gif';
+  }
+  return 'application/octet-stream';
+};
+
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/**
  * The part of a `ws` socket this route touches.
  *
  * `ws` ships no types of its own and `@types/ws` is not a dependency here, so
@@ -462,6 +529,67 @@ export const createHttpServer = async (
     version: broadcaster.getVersion(),
     state: broadcaster.getState(),
   }));
+
+  const artwork = config.artwork;
+  if (artwork !== undefined) {
+    /**
+     * Answer one cached image.
+     *
+     * The keys and kinds are validated as *whole strings* against a strict
+     * pattern before either reaches the cache. That is the only thing standing
+     * between a URL segment and a filesystem path: `..%2f..%2fetc%2fpasswd`
+     * arrives here already percent-decoded by the router, so a check for the
+     * literal `..` would be both too late and too narrow. An allowlist of
+     * lowercase hex (which is exactly what `keyFor` produces) and of lowercase
+     * letters cannot express a traversal at all.
+     */
+    const sendImage = async (
+      reply: FastifyReply,
+      read: () => Promise<Result<Buffer | null, JoshifyError>>,
+    ): Promise<unknown> => {
+      const result = await read();
+      if (!result.ok) {
+        return await reply.code(STATUS_BY_KIND[result.error.kind]).send({
+          error: { kind: result.error.kind, message: result.error.message },
+        });
+      }
+      if (result.value === null) {
+        // A miss is a 404, not a fault: the panel asked for art the cache has
+        // since evicted, and its own fallback is a flat surface (D-037).
+        return await reply.code(404).send({
+          error: { kind: 'not-found', message: 'no such artwork' },
+        });
+      }
+      return await reply
+        .header('content-type', sniffImageType(result.value))
+        // Content-addressed, so the bytes behind a key can never change. This
+        // is what stops the panel re-fetching the same album on every render.
+        .header('cache-control', 'public, max-age=31536000, immutable')
+        .send(result.value);
+    };
+
+    app.get<{ Params: { key: string } }>('/api/artwork/:key', async (request, reply) => {
+      if (!isArtworkKey(request.params.key)) {
+        return await reply
+          .code(400)
+          .send({ error: { kind: 'unexpected', message: 'malformed artwork key' } });
+      }
+      return await sendImage(reply, () => artwork.read(request.params.key));
+    });
+
+    app.get<{ Params: { key: string; kind: string } }>(
+      '/api/artwork/:key/:kind',
+      async (request, reply) => {
+        const { key, kind } = request.params;
+        if (!isArtworkKey(key) || !isDerivedKind(kind)) {
+          return await reply
+            .code(400)
+            .send({ error: { kind: 'unexpected', message: 'malformed artwork key' } });
+        }
+        return await sendImage(reply, () => artwork.readDerived(key, kind));
+      },
+    );
+  }
 
   const { reads } = config;
   if (reads !== undefined) {

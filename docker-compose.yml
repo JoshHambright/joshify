@@ -1,0 +1,112 @@
+# Joshify — the container path (P8-03).
+#
+# This runs the SERVER only. The kiosk browser runs natively on the Pi; see
+# docs/INSTALL.md, "Why the container is the server only".
+#
+# First run:
+#   docker compose run --rm server auth     # one-time, opens the PKCE flow
+#   docker compose up -d
+#
+# Requires Compose v2.24+ (for the optional env_file below). `docker compose
+# version` will tell you.
+
+name: joshify
+
+services:
+  server:
+    # Pinned by tag in real use: `:v1.4.0`, not `:latest`. An appliance that
+    # silently changes version when it is power-cycled is not an appliance.
+    image: ghcr.io/joshhambright/joshify:latest
+
+    # BUILD LOCALLY INSTEAD: uncomment, and comment out `image:` above.
+    # build:
+    #   context: .
+    #   platforms: [linux/arm64]
+
+    container_name: joshify-server
+    restart: unless-stopped
+
+    # Reaps zombies and forwards SIGTERM, without baking tini into the image.
+    init: true
+
+    # HOST NETWORKING IS LOAD-BEARING, not a shortcut.
+    #
+    # Spotify rejects every redirect URI that is not HTTPS or a *literal*
+    # loopback address, so the registered one is http://127.0.0.1:8080/callback
+    # (docs/SPOTIFY_SETUP.md). During `joshify auth` the CLI listens on
+    # 127.0.0.1:8080 and the Pi's own browser is redirected there. Under bridge
+    # networking the browser's 127.0.0.1 is the *host*, the container's listener
+    # is somewhere else, and the callback lands nowhere. Host networking makes
+    # the two the same loopback, which is the assumption the whole flow rests on.
+    #
+    # It also means `ports:` is not used and would be rejected — the server binds
+    # the host's loopback directly, on 4770.
+    network_mode: host
+
+    environment:
+      # Loopback only. This process can start music on a real account and sits
+      # on a home LAN with whatever else is on it (D-034).
+      JOSHIFY_HOST: 127.0.0.1
+      # The panel's server. `joshify serve` reads this one.
+      JOSHIFY_SERVE_PORT: '4770'
+      # A different listener: the callback `joshify auth` opens for the length
+      # of the PKCE exchange. It has to be the port in the redirect URI you
+      # registered, because Spotify matches redirect URIs exactly, port included.
+      JOSHIFY_PORT: '8080'
+      JOSHIFY_DATA_DIR: /data
+      # Your ISO country code. Without it Spotify will list tracks that are not
+      # licensed where the Pi is, and tapping one fails at play time instead of
+      # simply not being offered.
+      # JOSHIFY_MARKET: GB
+
+    # The Client ID goes here. It is not a secret — it travels in the authorize
+    # URL in plain sight — but it is per-install, so it lives in a gitignored
+    # .env rather than in this file. There is no client secret to configure:
+    # Joshify uses PKCE, which completes without one.
+    env_file:
+      - path: .env
+        required: false
+
+    volumes:
+      # The encrypted refresh token and its key (D-021). Losing this volume
+      # costs you one `joshify auth`, and nothing else.
+      - joshify-data:/data
+
+    # Hardening. Each line is cheap; the point is that the container has nothing
+    # interesting to offer something that gets inside it.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+    # A Pi 5 with 4GB has room, but an appliance should not be able to take the
+    # board down by itself. Sized against the P7-10 budget (700MB combined RSS
+    # for server + kiosk), leaving the kiosk the larger share.
+    mem_limit: 512m
+
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4770/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+    logging:
+      # Without this a long-running appliance writes an unbounded JSON log to
+      # the SD card, which is the slowest and most wear-sensitive part of it.
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+
+volumes:
+  joshify-data:

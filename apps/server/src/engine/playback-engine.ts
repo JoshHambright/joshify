@@ -20,13 +20,13 @@ import {
   type OptimisticChange,
   type PanelState,
   type PlayingItem,
+  type Presentation,
   type Result,
-  type ThemeTokens,
 } from '@joshify/core';
 import { normalisePlaybackState } from '@joshify/core';
 import type { Broadcaster } from '../http/broadcast.js';
 import type { SpotifyClient } from '../spotify/client.js';
-import type { CommandTarget, SpotifyCommands } from '../spotify/commands.js';
+import type { CommandTarget, PlayOptions, SpotifyCommands } from '../spotify/commands.js';
 
 /** Cancels a pending scheduled call. */
 export type CancelScheduled = () => void;
@@ -42,14 +42,14 @@ export const realScheduler: Scheduler = (delayMs, run) => {
 };
 
 /**
- * Where the album's colour comes from.
+ * Where the album's colour and its cached artwork come from.
  *
- * Injected rather than constructed here because extraction needs a disk cache
- * and an image decoder, and the engine should stay testable without either.
- * It is deliberately allowed to be slow: nothing in the poll path awaits it.
+ * Injected rather than constructed here because it needs a disk cache and an
+ * image decoder, and the engine should stay testable without either. It is
+ * deliberately allowed to be slow: nothing in the poll path awaits it.
  */
 export interface Presenter {
-  readonly themeFor: (item: PlayingItem) => Promise<ThemeTokens>;
+  readonly presentationFor: (item: PlayingItem) => Promise<Presentation>;
 }
 
 export interface PlaybackEngineConfig {
@@ -77,6 +77,16 @@ export interface PlaybackEngine {
   readonly state: () => PanelState;
   /** Apply optimistically, send, and reconcile or roll back. */
   readonly command: (change: EngineCommand) => Promise<Result<void, JoshifyError>>;
+  /**
+   * The same thing wearing `SpotifyCommands`' shape, so the HTTP routes can
+   * take it without knowing the engine exists.
+   *
+   * This is what should be handed to the server. Passing the raw
+   * `SpotifyCommands` instead compiles, serves, and quietly skips the entire
+   * optimistic layer — every tap then waits a full poll to show any effect,
+   * which is the difference between an instrument and a web page.
+   */
+  readonly commands: SpotifyCommands;
   /** Force a poll now. Exposed for tests and for the reconnect path. */
   readonly poll: () => Promise<void>;
 }
@@ -91,6 +101,10 @@ export interface EngineCommand {
   readonly target?: CommandTarget | undefined;
 }
 
+/** A play call's device, if it named one. */
+const targetOf = (options: PlayOptions): CommandTarget | undefined =>
+  options.deviceId === undefined ? undefined : { deviceId: options.deviceId };
+
 export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngine => {
   const schedule = config.scheduler ?? realScheduler;
   const optimistic = createOptimisticPlayback(IDLE_PLAYBACK, {});
@@ -98,20 +112,24 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
   let running = false;
   let cancelNext: CancelScheduled | null = null;
 
-  // Presentation, held alongside playback rather than inside it. The theme
+  // Presentation, held alongside playback rather than inside it. It
   // legitimately lags the track it belongs to — extraction needs the image,
-  // and the image needs a fetch and a decode — so `themeFor` records which
-  // item the colour on screen actually belongs to (D-050).
-  let theme: ThemeTokens = DEFAULT_THEME;
-  let themeFor: string | null = null;
+  // and the image needs a fetch and a decode — so `presentationFor` records
+  // which item what is on screen actually belongs to (D-050).
+  let presentation: Presentation = {
+    theme: DEFAULT_THEME,
+    heroUrl: null,
+    backdropUrl: null,
+  };
+  let presentationFor: string | null = null;
   let isPremium: boolean | null = null;
   /** Which extraction is current. A track change invalidates the one in flight. */
-  let themeGeneration = 0;
+  let presentationGeneration = 0;
 
   const panelState = (): PanelState => ({
     ...optimistic.state,
-    theme,
-    themeFor,
+    ...presentation,
+    presentationFor,
     isPremium,
   });
 
@@ -129,29 +147,29 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
    * colour a moment later, holding the *previous* album's colour in between
    * rather than flashing to neutral grey.
    */
-  const refreshTheme = (item: PlayingItem | null): void => {
+  const refreshPresentation = (item: PlayingItem | null): void => {
     const presenter = config.presenter;
     if (presenter === undefined) return;
     const key = item === null ? null : playingItemKey(item);
-    if (key === themeFor) return;
+    if (key === presentationFor) return;
 
-    themeGeneration += 1;
-    const generation = themeGeneration;
+    presentationGeneration += 1;
+    const generation = presentationGeneration;
 
     if (item === null) {
-      // Nothing playing keeps the last album's colour rather than snapping to
-      // grey: the artwork is still on screen, dimmed (SCREENS.md).
+      // Nothing playing keeps the last album's colour and artwork rather than
+      // snapping to grey: the art is still on screen, dimmed (SCREENS.md).
       return;
     }
 
-    void presenter.themeFor(item).then(
+    void presenter.presentationFor(item).then(
       (next) => {
         // Fenced after the await: a track that changed while the image was
         // decoding must not be repainted in the previous album's colour
         // (D-032's rule, in a different place).
-        if (generation !== themeGeneration) return;
-        theme = next;
-        themeFor = key;
+        if (generation !== presentationGeneration) return;
+        presentation = next;
+        presentationFor = key;
         publish();
       },
       (error: unknown) => {
@@ -159,7 +177,7 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
         // panel keeps whatever colour it has.
         config.onProblem?.({
           kind: 'unexpected',
-          message: `theme extraction failed: ${String(error)}`,
+          message: `artwork preparation failed: ${String(error)}`,
           retryable: true,
         });
       },
@@ -196,7 +214,7 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
       return;
     }
     optimistic.reconcile(normalised.value, config.clock.monotonic());
-    refreshTheme(optimistic.state.item);
+    refreshPresentation(optimistic.state.item);
     publish();
     armNextPoll();
   };
@@ -242,6 +260,43 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
     return result;
   };
 
+  /**
+   * `SpotifyCommands`, but every call goes through the optimistic layer first.
+   *
+   * Deliberately the same interface rather than a new one: the routes already
+   * speak it, and a second command vocabulary would be a second place for the
+   * mapping from HTTP body to Spotify call to drift.
+   */
+  const optimisticCommands: SpotifyCommands = {
+    play: async (options = {}) => {
+      // Only a bare resume is optimistic. Starting a *different* context or
+      // track changes what is playing, and guessing the new item's title,
+      // artist and artwork would put a fabrication on screen — far worse than
+      // a beat of lag before the truth arrives.
+      const isResume = options.contextUri === undefined && options.uris === undefined;
+      const target = targetOf(options);
+      if (!isResume) return await config.commands.play(options);
+      return await command({
+        change: { kind: 'play' },
+        ...(target === undefined ? {} : { target }),
+      });
+    },
+    pause: (target) => command({ change: { kind: 'pause' }, target }),
+    next: (target) => command({ change: { kind: 'next' }, target }),
+    previous: (target) => command({ change: { kind: 'previous' }, target }),
+    seek: (positionMs, target) =>
+      command({ change: { kind: 'seek', positionMs }, target }),
+    setVolume: (volumePercent, target) =>
+      command({ change: { kind: 'volume', volumePercent }, target }),
+    setShuffle: (enabled, target) =>
+      command({ change: { kind: 'shuffle', enabled }, target }),
+    setRepeat: (mode, target) => command({ change: { kind: 'repeat', mode }, target }),
+    // Transfer is not optimistic either: which device is active is the one
+    // thing the panel cannot predict, because Spotify may refuse the move.
+    transferPlayback: (deviceId, options) =>
+      config.commands.transferPlayback(deviceId, options),
+  };
+
   return {
     start: () => {
       if (running) return;
@@ -270,6 +325,7 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
       cancelNext = null;
     },
     state: panelState,
+    commands: optimisticCommands,
     command,
     poll,
   };

@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { isExpired, needsRefresh } from '@joshify/core';
 import { runAuthFlow } from '../auth/auth-flow.js';
 import { createTokenStore } from '../auth/token-store.js';
+import { serve } from './serve.js';
 
 export const DEFAULT_PORT = 8080;
 
@@ -47,6 +48,7 @@ export const defaultDataDir = (env: NodeJS.ProcessEnv = process.env): string =>
 const USAGE = `joshify — Spotify control surface
 
   joshify auth     Connect a Spotify account (run once)
+  joshify serve    Run the panel's server (what systemd starts)
   joshify status   Show whether an account is connected
   joshify logout   Forget the stored account`;
 
@@ -73,6 +75,51 @@ export const main = async (
     io.out(`  Access token ${isExpired(stored.value, now) ? 'expired' : 'valid'}`);
     io.out(`  Refresh ${needsRefresh(stored.value, now) ? 'due now' : 'not yet due'}`);
     io.out(`  Scopes: ${stored.value.scopes.join(', ')}`);
+    return 0;
+  }
+
+  if (command === 'serve') {
+    const clientId = env['SPOTIFY_CLIENT_ID'];
+    if (clientId === undefined || clientId === '') {
+      io.err('SPOTIFY_CLIENT_ID is not set. Copy .env.example to .env and fill it in.');
+      return 1;
+    }
+    const running = await serve({
+      dataDir: defaultDataDir(env),
+      clientId,
+      ...(env['JOSHIFY_HOST'] === undefined ? {} : { host: env['JOSHIFY_HOST'] }),
+      ...(env['JOSHIFY_SERVE_PORT'] === undefined
+        ? {}
+        : { port: Number(env['JOSHIFY_SERVE_PORT']) }),
+      ...(env['JOSHIFY_MARKET'] === undefined ? {} : { market: env['JOSHIFY_MARKET'] }),
+      // Straight to stderr, which is journald under systemd. Not silenced:
+      // a device that hides its problems is one nobody can diagnose from a
+      // black screen at 1am.
+      onProblem: (problem) => {
+        io.err(`[${problem.kind}] ${problem.message}`);
+      },
+    });
+
+    if (!running.ok) {
+      io.err(running.error.message);
+      return 1;
+    }
+
+    io.out(`Serving on ${running.value.server.origin}`);
+
+    // Stop cleanly on the signals systemd actually sends, so a restart does
+    // not leave the port held by a process that is already going away.
+    const shutdown = (): void => {
+      void running.value.stop().then(() => {
+        process.exit(0);
+      });
+    };
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+
+    // Resolve only when the server closes. `main` returning here would end the
+    // process while it is still listening.
+    await new Promise<void>(() => undefined);
     return 0;
   }
 

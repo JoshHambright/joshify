@@ -1,0 +1,308 @@
+# Release — P8-02 / P8-05.
+#
+# Fires on a version tag and does four things in order, each gated on the last:
+#
+#   1. runs `pnpm verify` — the exact command CI runs on every push, so a tag
+#      can never ship something a branch would have failed on;
+#   2. packages a self-contained, architecture-independent bundle for the
+#      native install path (scripts/install.sh consumes exactly this);
+#   3. builds and pushes a linux/amd64 + linux/arm64 image to GHCR;
+#   4. creates the GitHub Release with generated notes and the bundle attached.
+#
+# CREDENTIALS: none beyond the automatic GITHUB_TOKEN. There is no Spotify
+# secret here and there must never be one — the test suite runs against the fake
+# Spotify server (P1-10), and Joshify uses PKCE, so no client secret exists to
+# leak in the first place (docs/SPOTIFY_SETUP.md).
+#
+# Cutting a release, and why the tag is the version, is documented in
+# docs/RELEASING.md.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  # Builds everything and publishes nothing. For proving a change to this
+  # workflow without burning a version number.
+  workflow_dispatch:
+
+# Read-only by default; each job asks for exactly the one extra scope it needs.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  # Never cancel a release mid-push: a half-published multi-arch manifest is
+  # worse than a duplicated run.
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify and package
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Release notes are generated from the range since the previous tag,
+          # which a shallow clone cannot see.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Resolve version
+        id: resolve
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" = 'tag' ]; then
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#v}"
+            publish=true
+          else
+            # A dispatch has no tag. Build under a version that could never be
+            # mistaken for a real one, and publish nothing.
+            tag=''
+            version="0.0.0-dev.$(git rev-parse --short HEAD)"
+            publish=false
+          fi
+          {
+            echo "tag=${tag}"
+            echo "version=${version}"
+            echo "publish=${publish}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Building version ${version} (publish=${publish})"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The same gate as CI. No real Spotify credentials are involved; the tests
+      # use the fake Spotify server (P1-10).
+      - name: Verify
+        run: pnpm verify
+
+      # Replaces the dev tree with a flat, production-only one. Flat because the
+      # bundle is extracted onto a Pi that has no pnpm, so node's own resolution
+      # has to be able to walk it unaided.
+      - name: Install production dependencies
+        run: |
+          pnpm install --frozen-lockfile --prod --ignore-scripts \
+            --config.node-linker=hoisted
+
+      # Everything a Pi needs and nothing it does not: manifests, the flat
+      # dependency tree, compiled output, the deploy units and the installer.
+      #
+      # No compiler runs on the device. That is what keeps the install inside
+      # the phase's 30-minute exit criterion, and it is only sound because every
+      # runtime dependency (fastify, @fastify/websocket, jimp) is pure
+      # JavaScript. See docs/RELEASING.md — adding a native dependency turns
+      # this single bundle into a per-architecture one.
+      - name: Assemble release bundle
+        id: bundle
+        run: |
+          set -euo pipefail
+          version='${{ steps.resolve.outputs.version }}'
+          stage="$(mktemp -d)/joshify-${version}"
+          mkdir -p "${stage}"
+
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml LICENSE "${stage}/"
+          echo "${version}" > "${stage}/VERSION"
+
+          # -a preserves the workspace symlinks pnpm leaves in a hoisted tree.
+          cp -a node_modules "${stage}/node_modules"
+
+          for pkg in packages/core apps/server apps/ui; do
+            mkdir -p "${stage}/${pkg}"
+            cp "${pkg}/package.json" "${stage}/${pkg}/"
+          done
+          cp -a packages/core/dist "${stage}/packages/core/dist"
+          cp -a apps/server/dist "${stage}/apps/server/dist"
+          cp -a apps/ui/dist-web "${stage}/apps/ui/dist-web"
+
+          mkdir -p "${stage}/scripts" "${stage}/docs"
+          cp scripts/install.sh "${stage}/scripts/"
+          cp docs/INSTALL.md "${stage}/docs/"
+
+          # The systemd units and kiosk configuration (P7-03/P7-04). The
+          # installer refuses to run without them rather than leaving a machine
+          # with the code installed and no service, so a bundle missing them is
+          # a broken bundle and should fail here, loudly, not there, quietly.
+          if [ ! -f deploy/systemd/joshify-server.service ]; then
+            echo "::error::deploy/systemd/joshify-server.service is missing — the bundle would not install"
+            exit 1
+          fi
+          cp -a deploy "${stage}/deploy"
+
+          mkdir -p dist-release
+          tarball="dist-release/joshify-${version}.tar.gz"
+          # Sorted, fixed ownership and fixed mtime: two builds of one tag
+          # produce byte-identical tarballs, so the checksum means something.
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+              --mtime='@0' -czf "${tarball}" \
+              -C "$(dirname "${stage}")" "joshify-${version}"
+
+          ( cd dist-release && sha256sum ./*.tar.gz > SHA256SUMS )
+          cat dist-release/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joshify-bundle
+          path: dist-release/
+          if-no-files-found: error
+          retention-days: 7
+
+  image:
+    name: Build and push image
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The only elevated scope in this workflow, and only in this job: push to
+      # GHCR as the automatic GITHUB_TOKEN. No registry PAT is stored anywhere.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # arm64 is the target (D-008: Raspberry Pi 5, Bookworm 64-bit). The
+      # ubuntu-latest runner is amd64, so arm64 is emulated. It is slow — expect
+      # the arm64 leg to dominate the job. docs/RELEASING.md records the native
+      # arm64 runner as the upgrade path when it is worth the change.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: needs.verify.outputs.publish == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # metadata-action lowercases this; the repository owner is not.
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.verify.outputs.publish == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.verify.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: Publish GitHub Release
+    needs: [verify, image]
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      # Creating the release is the only write this job does.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: joshify-bundle
+          path: dist-release
+
+      # Grouped by task ID, because that is the unit of work this repo actually
+      # uses: commit subjects are `P8-02: <what changed>` and the IDs come from
+      # docs/TRACKING.md. Conventional-Commits tooling would demand a commit
+      # convention the repo does not follow. Rationale in docs/RELEASING.md.
+      - name: Generate release notes
+        id: notes
+        env:
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: |
+          set -euo pipefail
+          previous="$(git tag --list 'v*' --sort=-version:refname \
+            | grep -v -x -F "${TAG}" | head -n 1 || true)"
+          if [ -n "${previous}" ]; then
+            range="${previous}..${TAG}"
+            echo "Notes from ${range}"
+          else
+            range="${TAG}"
+            echo "No previous tag; notes cover all history"
+          fi
+
+          {
+            if [ -n "${previous}" ]; then
+              echo "Changes since \`${previous}\`."
+            else
+              echo 'First tagged release.'
+            fi
+            echo
+            git log --no-merges --pretty=format:'%s|%h' "${range}" \
+              | LC_ALL=C sort -t '|' -k1,1 \
+              | awk -F '|' '
+                  {
+                    group = "Other"
+                    if ($1 ~ /^P[0-9]+-[0-9]+:/) {
+                      split($1, parts, "-")
+                      group = "Phase " substr(parts[1], 2)
+                    }
+                    if (group != current) {
+                      if (current != "") print ""
+                      print "### " group
+                      print ""
+                      current = group
+                    }
+                    print "- " $1 " (`" $2 "`)"
+                  }
+                '
+            echo
+          } > NOTES.md
+          cat NOTES.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.verify.outputs.tag }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          prerelease=''
+          case "${VERSION}" in
+            *-*) prerelease='--prerelease' ;;
+          esac
+          # --generate-notes appends GitHub's own contributor and pull-request
+          # summary underneath the grouped list above; the two answer different
+          # questions and it is cheap to have both.
+          # shellcheck disable=SC2086
+          gh release create "${TAG}" \
+            --verify-tag \
+            --title "Joshify ${VERSION}" \
+            --notes-file NOTES.md \
+            --generate-notes \
+            ${prerelease} \
+            dist-release/joshify-"${VERSION}".tar.gz \
+            dist-release/SHA256SUMS

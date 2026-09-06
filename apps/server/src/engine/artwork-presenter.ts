@@ -12,13 +12,32 @@
  * and the engine asks on every item change — including the change back from a
  * podcast to the track that was playing before it.
  */
-import { playingItemKey, type PlayingItem, type ThemeTokens } from '@joshify/core';
-import { prepareArtwork, type PrepareArtworkOptions } from '../artwork/pipeline.js';
+import { playingItemKey, type PlayingItem, type Presentation } from '@joshify/core';
+import {
+  BACKDROP_KIND,
+  prepareArtwork,
+  type PrepareArtworkOptions,
+} from '../artwork/pipeline.js';
 import type { Presenter } from './playback-engine.js';
+
+/**
+ * Where the device serves its own cached artwork from.
+ *
+ * Content-addressed, so these URLs are immutable and the browser may cache
+ * them forever — which is the point. The panel re-renders artwork on every
+ * track change and lives on domestic wifi; going back to Spotify's CDN each
+ * time means the album is missing exactly when the connection is worst.
+ */
+export const ARTWORK_ROUTE = '/api/artwork';
+
+export const heroUrlFor = (key: string): string => `${ARTWORK_ROUTE}/${key}`;
+
+export const derivedUrlFor = (key: string, kind: string): string =>
+  `${ARTWORK_ROUTE}/${key}/${kind}`;
 
 export interface ArtworkPresenterOptions extends PrepareArtworkOptions {
   /**
-   * How many extracted themes to remember.
+   * How many prepared presentations to remember.
    *
    * An album is a dozen tracks that mostly share one cover, and someone
    * flicking back and forth through a playlist revisits the same handful for
@@ -32,11 +51,11 @@ const DEFAULT_MEMO_LIMIT = 32;
 
 export const createArtworkPresenter = (options: ArtworkPresenterOptions): Presenter => {
   const limit = options.memoLimit ?? DEFAULT_MEMO_LIMIT;
-  const memo = new Map<string, ThemeTokens>();
+  const memo = new Map<string, Presentation>();
 
-  const remember = (key: string, theme: ThemeTokens): void => {
+  const remember = (key: string, presentation: Presentation): void => {
     memo.delete(key);
-    memo.set(key, theme);
+    memo.set(key, presentation);
     // Insertion order is iteration order, so the first key is the oldest.
     while (memo.size > limit) {
       const oldest = memo.keys().next();
@@ -46,7 +65,7 @@ export const createArtworkPresenter = (options: ArtworkPresenterOptions): Presen
   };
 
   return {
-    themeFor: async (item: PlayingItem): Promise<ThemeTokens> => {
+    presentationFor: async (item: PlayingItem): Promise<Presentation> => {
       // Keyed on the item rather than the image URL because a local file has
       // no artwork at all and no id — `playingItemKey` is the one identity
       // that works for every kind of item (D-024).
@@ -60,11 +79,20 @@ export const createArtworkPresenter = (options: ArtworkPresenterOptions): Presen
 
       // `prepareArtwork` already answers `DEFAULT_THEME` when there is no
       // usable source and records the reason in `problems`, so there is no
-      // failure to translate here — a colour is the least important thing on
+      // failure to translate here — artwork is the least important thing on
       // the panel, and never worth failing a poll over.
-      const { theme } = await prepareArtwork(item.images, options);
-      remember(key, theme);
-      return theme;
+      const { theme, hero, backdrop } = await prepareArtwork(item.images, options);
+      const presentation: Presentation = {
+        theme,
+        // Null rather than a Spotify URL when the fetch failed: falling back to
+        // the CDN would work in the office and fail on the wall, which is the
+        // worst possible place to discover it.
+        heroUrl: hero === null ? null : heroUrlFor(hero.key),
+        backdropUrl:
+          backdrop === null ? null : derivedUrlFor(backdrop.key, BACKDROP_KIND),
+      };
+      remember(key, presentation);
+      return presentation;
     },
   };
 };

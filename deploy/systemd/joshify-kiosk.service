@@ -1,0 +1,106 @@
+# joshify-kiosk — P7-04
+#
+# Runs the browser straight on DRM/KMS with no desktop environment, no window
+# manager and no login session (P7-02). It holds no secrets — the UI is a pure
+# renderer and never sees a Spotify token (D-003) — which is why it is hardened
+# far more loosely than joshify-server, and why that is the correct call rather
+# than an oversight.
+#
+# Install to /etc/systemd/system/joshify-kiosk.service.
+# Verify:  systemd-analyze verify /etc/systemd/system/joshify-kiosk.service
+#          systemd-analyze critical-chain joshify-kiosk.service   # 60s budget
+#          journalctl -u joshify-kiosk -b
+
+[Unit]
+Description=Joshify kiosk UI (browser on DRM/KMS, no desktop)
+Documentation=file:///opt/joshify/docs/APPLIANCE.md
+
+# Requires, not Wants. A kiosk with no server behind it cannot show anything —
+# the UI is served *by* the server and is same-origin with it — so a browser
+# started anyway would paint a connection-error page. Keeping the boot splash
+# on screen is strictly better than that (P7-05).
+Requires=joshify-server.service
+After=joshify-server.service
+# systemd only guarantees the server was *executed* by this point, not that it
+# is listening. The actual readiness gate is a /health poll inside
+# /usr/local/bin/joshify-kiosk; see APPLIANCE.md "Readiness".
+
+# The browser takes DRM master on the active VT. A getty writing a login prompt
+# to the same console fights it for the screen.
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+# Never give up restarting; same reasoning as joshify-server, and note that
+# this key is only honoured in [Unit].
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=joshify
+Group=joshify
+# video + render: /dev/dri/card* and renderD* for the V3D GPU.
+# input:          /dev/input/* so libinput sees the five-point touch panel.
+# tty:            /dev/tty1, which we own below.
+SupplementaryGroups=video render input tty
+
+ExecStart=/usr/local/bin/joshify-kiosk
+
+# Where the panel lives and what runtime draws it. Both are read by the launch
+# script; changing the runtime is a one-line change here, which is the point —
+# P3-01 has not been measured yet (see APPLIANCE.md "Chromium vs cog").
+Environment=JOSHIFY_URL=http://127.0.0.1:4770/
+Environment=JOSHIFY_KIOSK_RUNTIME=chromium-drm
+EnvironmentFile=-/etc/joshify/joshify.env
+
+# Own tty1 outright: reset it on entry, hang up anything already attached, and
+# deallocate it on exit so a stale text console is never left underneath.
+TTYPath=/dev/tty1
+StandardInput=tty
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+# Browser profile and shader cache. Persistent on purpose: a cold GPU shader
+# cache every boot costs seconds of first paint against the 60s budget. The
+# cost of persistence — a "restore pages?" bubble after a power cut — is paid
+# with a flag in the launch script instead.
+StateDirectory=joshify-kiosk
+CacheDirectory=joshify-kiosk
+
+# always, not on-failure: a browser that exits *cleanly* still leaves a black
+# screen, and a black screen is the one state this device must never sit in.
+Restart=always
+# 5s rather than 2s: if it really is crash looping, a slower cycle is a
+# readable diagnostic rather than a strobing panel.
+RestartSec=5
+
+SyslogIdentifier=joshify-kiosk
+
+# Under memory pressure the browser should be killed before the server. It
+# restarts into the same picture within seconds, whereas the server holds the
+# poller, the token and the artwork cache. Relevant to PRODUCT.md §9 #6.
+OOMScoreAdjust=200
+
+# --- Hardening (light, and deliberately so) --------------------------------
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+# Deliberately NOT set, each for a concrete reason:
+#   PrivateDevices=yes    hides /dev/dri and /dev/input — no GPU, no touch.
+#   RestrictNamespaces=   Chromium's own sandbox needs user + PID namespaces;
+#                         blocking them forces --no-sandbox, which is a worse
+#                         trade than the directive buys.
+#   SystemCallFilter=     same reason: the zygote's clone() surface is wide,
+#                         and a filter here breaks the sandbox we do want.
+#   MemoryDenyWriteExecute=yes   V8 again.
+#   ProtectSystem=strict  the browser writes only StateDirectory and
+#                         CacheDirectory, so "full" is enough and strict adds
+#                         a way to lose the profile at 1am for no gain.
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

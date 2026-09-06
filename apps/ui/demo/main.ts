@@ -144,7 +144,7 @@ let link: ConnectionState['link'] = 'live';
  */
 const THEME_LAG_MS = 320;
 let theme: PanelState['theme'] = TRACKS[0].theme;
-let themeFor: string | null = 'track-0';
+let presentationFor: string | null = 'track-0';
 let premium = true;
 let nothingPlaying = false;
 let hasDevice = true;
@@ -162,7 +162,7 @@ const stateNow = (): PanelState => {
       device: hasDevice ? { ...device, volumePercent: volume, isActive: true } : null,
       // The artwork is still on screen, dimmed, so the colour stays with it.
       theme,
-      themeFor,
+      presentationFor,
       isPremium: premium,
     };
   }
@@ -172,7 +172,12 @@ const stateNow = (): PanelState => {
     shuffle,
     repeat,
     theme,
-    themeFor,
+    // The demo serves art inline as data URIs, so there is no cached URL to
+    // report — the panel falls back to the item's own images, which is exactly
+    // the cold-cache path.
+    heroUrl: null,
+    backdropUrl: null,
+    presentationFor,
     isPremium: premium,
     item: {
       kind: 'track',
@@ -197,7 +202,7 @@ const scheduleTheme = (): void => {
   setTimeout(() => {
     if (forIndex !== index) return; // fenced, as the engine fences it
     theme = (TRACKS[forIndex] ?? TRACKS[0]).theme;
-    themeFor = `track-${String(forIndex)}`;
+    presentationFor = `track-${String(forIndex)}`;
     publish();
   }, THEME_LAG_MS);
 };

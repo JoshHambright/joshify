@@ -1,0 +1,153 @@
+#!/bin/sh
+# joshify-kiosk — the launch script joshify-kiosk.service runs. P7-02 + P7-04 + P7-05.
+#
+# Three jobs, in this order and no other:
+#   1. wait until joshify-server is actually *ready*, not merely started;
+#   2. hand the screen over from the boot splash without a black frame;
+#   3. exec a browser straight onto DRM/KMS, with no desktop underneath it.
+#
+# Install to /usr/local/bin/joshify-kiosk, mode 0755.
+# Verify:  sh -n /usr/local/bin/joshify-kiosk        # syntax
+#          run shellcheck over it too, if that is installed
+#          sudo -u joshify JOSHIFY_KIOSK_RUNTIME=chromium-drm /usr/local/bin/joshify-kiosk
+
+set -eu
+
+URL=${JOSHIFY_URL:-http://127.0.0.1:4770/}
+HEALTH=${JOSHIFY_HEALTH_URL:-http://127.0.0.1:4770/health}
+RUNTIME=${JOSHIFY_KIOSK_RUNTIME:-chromium-drm}
+
+# systemd sets these from StateDirectory=/CacheDirectory= in the unit. The
+# fallbacks exist only so the script can be run by hand for diagnosis.
+PROFILE_DIR=${STATE_DIRECTORY:-/var/lib/joshify-kiosk}
+CACHE_DIR=${CACHE_DIRECTORY:-/var/cache/joshify-kiosk}
+
+# The panel's own background (--joshify-surface in apps/ui/src/styles/tokens.css).
+# Every runtime below is told to paint this before the page has a first frame,
+# so the handoff is splash -> dark -> UI rather than splash -> white -> UI.
+SURFACE=101114
+
+# 90s at 0.5s intervals. Generous because the budget it has to fit inside is
+# 60s of *cold boot* (PRODUCT.md §9 #1) and this wait starts well after power
+# on; a wait that expires early would replace a slow boot with a failed one.
+HEALTH_ATTEMPTS=${JOSHIFY_HEALTH_ATTEMPTS:-180}
+HEALTH_INTERVAL=${JOSHIFY_HEALTH_INTERVAL:-0.5}
+
+log() { echo "joshify-kiosk: $*" >&2; }
+
+# --- 1. Readiness ----------------------------------------------------------
+# systemd's After= only proves the server process was exec'd. /health is the
+# server answering on the socket the UI is about to load from, which is the
+# thing we actually need to be true. Polling it here keeps readiness in one
+# place; when apps/server grows sd_notify support the unit becomes Type=notify
+# and this loop demotes to a safety net rather than disappearing.
+attempt=0
+until curl -fsS -o /dev/null --max-time 2 "$HEALTH"; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge "$HEALTH_ATTEMPTS" ]; then
+    # Exit without touching plymouth. The splash stays up, which reads as
+    # "still starting" rather than a black screen or a browser error page, and
+    # systemd restarts us. Diagnose with: journalctl -u joshify-server -b
+    log "server never became healthy at $HEALTH; leaving the splash up"
+    exit 1
+  fi
+  sleep "$HEALTH_INTERVAL"
+done
+log "server healthy after $attempt attempt(s)"
+
+# --- 2. The handoff --------------------------------------------------------
+# plymouth holds DRM master, so it must let go before any browser can take it.
+# --retain-splash leaves the last splash frame in the scanout buffer, so the
+# gap between plymouth exiting and the browser's first paint shows the splash
+# instead of black. Best effort: on a box without plymouth there is nothing to
+# quit, and that is not an error.
+if command -v plymouth >/dev/null 2>&1; then
+  plymouth quit --retain-splash || log "plymouth quit failed; continuing"
+fi
+
+# --- 3. The browser --------------------------------------------------------
+find_chromium() {
+  for candidate in chromium-browser chromium; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  log "no chromium binary found (tried chromium-browser, chromium)"
+  return 1
+}
+
+# Flags common to both Chromium modes. Grouped by what each group prevents.
+chromium_flags() {
+  # No browser UI, no exit affordance, nothing that reads as a web page (D-039).
+  echo "--kiosk"
+  echo "--hide-scrollbars"
+  echo "--disable-pinch"
+  echo "--overscroll-history-navigation=0"
+  # The panel is a known 720x1280 and SCREENS.md measures in CSS pixels, so the
+  # device scale factor must not be inferred.
+  echo "--force-device-scale-factor=1"
+  # AARRGGBB. This is what is on screen between DRM master and first paint; the
+  # white default is the flash P7-05 exists to remove.
+  echo "--default-background-color=ff$SURFACE"
+  # Every dialog, bubble and bar that can appear over an unattended kiosk. The
+  # crashed-session bubble is the one that actually bites: it appears after any
+  # power cut, on top of the UI, with no pointer to dismiss it.
+  echo "--noerrdialogs"
+  echo "--disable-infobars"
+  echo "--disable-session-crashed-bubble"
+  echo "--disable-notifications"
+  echo "--no-first-run"
+  echo "--no-default-browser-check"
+  echo "--disable-features=Translate"
+  # Pi OS Lite has no keyring daemon; without this Chromium waits on one.
+  echo "--password-store=basic"
+  # An appliance must not rewrite itself between songs.
+  echo "--disable-component-update"
+  # GLES via Mesa V3D rather than a SwiftShader software fallback. Confirm on
+  # hardware at P3-01: a silent fall back to software is the difference between
+  # holding the frame budget and not.
+  echo "--use-gl=egl"
+  echo "--ignore-gpu-blocklist"
+  echo "--enable-gpu-rasterization"
+  # Phase 5's PCM tap wants an AudioContext that can start with no gesture, and
+  # there is no gesture to be had before someone touches the panel.
+  echo "--autoplay-policy=no-user-gesture-required"
+  echo "--user-data-dir=$PROFILE_DIR"
+  echo "--disk-cache-dir=$CACHE_DIR"
+  # Off unless asked for. This is how P3-01 and P7-10 read frame timings and
+  # RSS out of a headless kiosk; it is loopback-only, but an always-open
+  # debugger on an appliance is surface with no user.
+  if [ -n "${JOSHIFY_KIOSK_DEBUG_PORT:-}" ]; then
+    echo "--remote-debugging-address=127.0.0.1"
+    echo "--remote-debugging-port=$JOSHIFY_KIOSK_DEBUG_PORT"
+  fi
+}
+
+case "$RUNTIME" in
+  chromium-drm)
+    # The recommended path: Chromium's Ozone DRM backend draws directly to KMS.
+    # No X, no Wayland, no compositor, no desktop environment.
+    CHROMIUM=$(find_chromium)
+    # shellcheck disable=SC2046  # word splitting is how the flag list is passed
+    exec "$CHROMIUM" --ozone-platform=drm $(chromium_flags) "$URL"
+    ;;
+  chromium-cage)
+    # Fallback if this build of Chromium has no usable DRM Ozone backend. cage
+    # is a single-window Wayland compositor on KMS — still no desktop, one more
+    # process. Costs a compositor's worth of RSS and one buffer copy.
+    CHROMIUM=$(find_chromium)
+    # shellcheck disable=SC2046
+    exec cage -- "$CHROMIUM" --ozone-platform=wayland $(chromium_flags) "$URL"
+    ;;
+  cog)
+    # The other side of the P3-01 measurement: WPE WebKit, DRM-native, roughly
+    # a third of Chromium's RSS. Untested against this UI until someone runs
+    # P3-01 on hardware; treat these flags as a starting point, not a spec.
+    exec cog --platform=drm --bg-color="#${SURFACE}ff" "$URL"
+    ;;
+  *)
+    log "unknown JOSHIFY_KIOSK_RUNTIME '$RUNTIME' (chromium-drm|chromium-cage|cog)"
+    exit 2
+    ;;
+esac

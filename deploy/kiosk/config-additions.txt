@@ -1,0 +1,48 @@
+# Additions to /boot/firmware/config.txt on Raspberry Pi OS Bookworm 64-bit.
+# P7-05 (firmware splash) and P7-06 (display).
+#
+# Append to the [all] section. Back up first:
+#     sudo cp /boot/firmware/config.txt /boot/firmware/config.txt.bak
+#
+# Verify after reboot:
+#     vcgencmd get_config int | grep -E 'disable_splash|boot_delay'
+#     kmsprint                      # expect DSI-1, 720x1280
+#     ls /sys/class/drm/            # expect card1-DSI-1 (or card0-DSI-1)
+
+[all]
+
+# The rainbow colour-test square the GPU firmware draws at power-on, before the
+# kernel exists. Nothing later in the boot can suppress it; this is the only
+# lever (P7-05).
+disable_splash=1
+
+# The firmware's deliberate pause before loading the kernel. Two seconds of the
+# 60s cold-boot budget (PRODUCT.md §9 #1) for a wait we have no use for.
+boot_delay=0
+
+# The full KMS driver. Chromium's Ozone DRM backend and cog's DRM platform both
+# require it, and it is what gives V3D the GLES 3.1 the visualiser needs (D-008).
+# Bookworm already sets this in its stock config.txt — listed here so that a
+# config that has lost it is diagnosable rather than mysterious.
+dtoverlay=vc4-kms-v3d
+
+# DSI has no overscan. Off explicitly so a stray border is never blamed on it.
+disable_overscan=1
+
+# --- Touch Display 2 -------------------------------------------------------
+# On current firmware the panel is auto-detected over the 22-way -> 15-way DSI
+# adapter cable and needs no overlay at all. If /sys/class/drm/ shows no DSI
+# connector, update the firmware first (`sudo rpi-update` is a last resort;
+# `sudo apt full-upgrade` is the right first move), and only then force it:
+#   dtoverlay=vc4-kms-dsi-ili9881-7inch
+#
+# Rotation is deliberately absent. The panel is natively 720x1280 portrait and
+# the whole interface is designed to it (D-039, D-040). Do not add
+# display_lcd_rotate or display_rotate — they are legacy non-KMS settings and
+# do nothing under vc4-kms-v3d, which is a confusing way to lose an evening.
+
+# --- Optional --------------------------------------------------------------
+# The core product produces no audio (PRODUCT.md §3). Turning the onboard audio
+# off saves a little memory and one more thing to go wrong. Leave it ON if the
+# optional librespot module (P8-09) is going to be installed.
+# dtparam=audio=off

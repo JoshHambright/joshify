@@ -453,7 +453,7 @@ describe('the album colour', () => {
     const conn = fakeConnection({ state: playing() });
     const { theme } = mountApp({ connection: conn });
 
-    conn.set({ state: playing({ theme: BLUE, themeFor: 'track-1' }) });
+    conn.set({ state: playing({ theme: BLUE, presentationFor: 'track-1' }) });
     await vi.waitFor(() => {
       expect(theme.properties.get('--joshify-accent')).toBe('#4fa8ff');
     });
@@ -466,7 +466,7 @@ describe('the album colour', () => {
   // every track change, so the previous album's colour is held instead.
   it('holds the previous colour across a track change', async () => {
     const conn = fakeConnection({
-      state: playing({ theme: BLUE, themeFor: 'track-1' }),
+      state: playing({ theme: BLUE, presentationFor: 'track-1' }),
     });
     const { theme } = mountApp({ connection: conn });
     await vi.waitFor(() => {
@@ -474,12 +474,12 @@ describe('the album colour', () => {
     });
 
     // A new track, whose own theme has not been extracted yet: the server
-    // sends the old tokens with the old `themeFor`.
+    // sends the old tokens with the old `presentationFor`.
     conn.set({
       state: playing({
         item: { ...track, id: 'track-2', title: 'Coolant' },
         theme: BLUE,
-        themeFor: 'track-1',
+        presentationFor: 'track-1',
       }),
     });
     await vi.waitFor(() => {

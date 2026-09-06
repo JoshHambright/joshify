@@ -41,14 +41,34 @@ describe('the artwork presenter', () => {
     const { cache } = emptyCache();
     const presenter = createArtworkPresenter({ cache });
 
-    expect(await presenter.themeFor(track())).toEqual(DEFAULT_THEME);
+    expect(await presenter.presentationFor(track())).toEqual({
+      theme: DEFAULT_THEME,
+      heroUrl: null,
+      backdropUrl: null,
+    });
+  });
+
+  // Null rather than a Spotify URL: falling back to the CDN would work in the
+  // office and fail on the wall, which is the worst place to find out.
+  it('offers no artwork URL when the fetch failed', async () => {
+    const { cache } = emptyCache();
+    const presenter = createArtworkPresenter({ cache });
+
+    const presentation = await presenter.presentationFor(track());
+
+    expect(presentation.heroUrl).toBeNull();
+    expect(presentation.backdropUrl).toBeNull();
   });
 
   it('answers without fetching at all for a track that has no artwork', async () => {
     const { cache, loads } = emptyCache();
     const presenter = createArtworkPresenter({ cache });
 
-    expect(await presenter.themeFor(track({ images: [] }))).toEqual(DEFAULT_THEME);
+    expect(await presenter.presentationFor(track({ images: [] }))).toEqual({
+      theme: DEFAULT_THEME,
+      heroUrl: null,
+      backdropUrl: null,
+    });
     expect(loads()).toBe(0);
   });
 
@@ -58,9 +78,9 @@ describe('the artwork presenter', () => {
     const { cache, loads } = emptyCache();
     const presenter = createArtworkPresenter({ cache });
 
-    await presenter.themeFor(track());
+    await presenter.presentationFor(track());
     const after = loads();
-    await presenter.themeFor(track());
+    await presenter.presentationFor(track());
 
     expect(loads()).toBe(after);
   });
@@ -70,9 +90,9 @@ describe('the artwork presenter', () => {
     const presenter = createArtworkPresenter({ cache });
     const local = track({ id: null, uri: null, isLocal: true });
 
-    await presenter.themeFor(local);
+    await presenter.presentationFor(local);
     const after = loads();
-    await presenter.themeFor(local);
+    await presenter.presentationFor(local);
 
     expect(loads()).toBe(after);
   });
@@ -81,9 +101,11 @@ describe('the artwork presenter', () => {
     const { cache, loads } = emptyCache();
     const presenter = createArtworkPresenter({ cache });
 
-    await presenter.themeFor(track());
+    await presenter.presentationFor(track());
     const afterFirst = loads();
-    await presenter.themeFor(track({ id: 'track-2', uri: 'spotify:track:track-2' }));
+    await presenter.presentationFor(
+      track({ id: 'track-2', uri: 'spotify:track:track-2' }),
+    );
 
     expect(afterFirst).toBeGreaterThan(0);
     expect(loads()).toBeGreaterThan(afterFirst);
@@ -95,17 +117,17 @@ describe('the artwork presenter', () => {
     const { cache, loads } = emptyCache();
     const presenter = createArtworkPresenter({ cache, memoLimit: 2 });
 
-    await presenter.themeFor(track({ id: 'a', uri: 'spotify:track:a' }));
-    await presenter.themeFor(track({ id: 'b', uri: 'spotify:track:b' }));
+    await presenter.presentationFor(track({ id: 'a', uri: 'spotify:track:a' }));
+    await presenter.presentationFor(track({ id: 'b', uri: 'spotify:track:b' }));
     // Touching `a` makes `b` the oldest.
-    await presenter.themeFor(track({ id: 'a', uri: 'spotify:track:a' }));
-    await presenter.themeFor(track({ id: 'c', uri: 'spotify:track:c' }));
+    await presenter.presentationFor(track({ id: 'a', uri: 'spotify:track:a' }));
+    await presenter.presentationFor(track({ id: 'c', uri: 'spotify:track:c' }));
 
     const before = loads();
-    await presenter.themeFor(track({ id: 'a', uri: 'spotify:track:a' }));
+    await presenter.presentationFor(track({ id: 'a', uri: 'spotify:track:a' }));
     expect(loads()).toBe(before); // still remembered
 
-    await presenter.themeFor(track({ id: 'b', uri: 'spotify:track:b' }));
+    await presenter.presentationFor(track({ id: 'b', uri: 'spotify:track:b' }));
     expect(loads()).toBeGreaterThan(before); // evicted, so re-extracted
   });
 });

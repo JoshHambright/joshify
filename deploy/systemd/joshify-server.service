@@ -1,0 +1,111 @@
+# joshify-server — P7-03
+#
+# Owns every Spotify call, the encrypted token, theme extraction and the blur
+# pre-render (D-003). It binds loopback only (D-034) and keeps an AES-256-GCM
+# token plus its key at 0600 in its state directory (D-021). Nothing below may
+# undo either of those.
+#
+# Install to /etc/systemd/system/joshify-server.service.
+# Verify:  systemd-analyze verify /etc/systemd/system/joshify-server.service
+#          systemctl status joshify-server
+#          ss -lntp | grep 4770      # must show 127.0.0.1:4770 and nothing else
+#
+# Two ports, do not confuse them: the panel is served on 4770
+# (JOSHIFY_SERVE_PORT, apps/server/src/cli/serve.ts). 8080 is JOSHIFY_PORT, the
+# loopback OAuth redirect, and it only exists while `joshify auth` is running.
+
+[Unit]
+Description=Joshify server (Spotify I/O, local API, theme + artwork pipeline)
+Documentation=file:///opt/joshify/docs/APPLIANCE.md
+
+# Ordering only, deliberately no Wants=network-online.target. Pulling that in
+# makes NetworkManager-wait-online a boot dependency, which can stall 30s+ on a
+# slow DHCP lease and spend half the 60s cold-boot budget (PRODUCT.md §9 #1) on
+# a wait we do not need: the server starts fine with no network and the UI shows
+# last known truth until one arrives (D-048, P7-07).
+After=network.target
+
+# Also ordering only. If timesyncd is going to correct the clock, do it before
+# we start: token expiry is judged against the wall clock, and a Pi with no RTC
+# battery boots in 1970. We do not *wait* for it, for the same reason as above.
+After=time-sync.target
+
+# No start rate limiting. The default (5 starts / 10s, then permanent failure)
+# turns a transient fault into a dead appliance that nobody is present to
+# reset. A genuine crash loop is instead bounded by journald's own rate limit
+# and SystemMaxUse. This lives in [Unit], not [Service], despite governing
+# Restart= — systemd moved it and silently ignores it in the wrong section.
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+# Type=exec means "the binary was executed", not "the server is listening".
+# There is no honest Type=notify yet because nothing in apps/server calls
+# sd_notify. The kiosk therefore gates on /health itself; see joshify-kiosk.
+
+User=joshify
+Group=joshify
+WorkingDirectory=/opt/joshify
+
+# NodeSource Node 22 at a system path. Never nvm: a version manager puts the
+# runtime under someone's home directory, which ProtectHome= below removes.
+ExecStart=/usr/bin/node /opt/joshify/apps/server/dist/cli/bin.js serve
+
+# Creates /var/lib/joshify owned by joshify:joshify at 0700 before the first
+# start, which is precisely the container D-021's 0600 key file needs.
+StateDirectory=joshify
+Environment=JOSHIFY_DATA_DIR=/var/lib/joshify
+Environment=NODE_ENV=production
+# Anything this process creates is 0600/0700 by default, so a future writer
+# cannot accidentally widen the token store.
+UMask=0077
+
+# SPOTIFY_CLIENT_ID and any JOSHIFY_HOST/JOSHIFY_SERVE_PORT override. Leading "-":
+# a missing file is not a failure, because `joshify auth` has not run yet on a
+# fresh image and the error we want then is the CLI's, not systemd's.
+EnvironmentFile=-/etc/joshify/joshify.env
+
+Restart=on-failure
+RestartSec=2
+
+# journalctl -u joshify-server, or journalctl -t joshify-server across both
+# units. stdout/stderr already default to the journal, so they are not repeated
+# here.
+SyslogIdentifier=joshify-server
+
+# --- Hardening -------------------------------------------------------------
+# The whole job is: read and write /var/lib/joshify, and talk to Spotify over
+# TCP. Everything else is closed.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+# Read-only /usr, /boot and /etc; StateDirectory is the one writable path.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectProc=invisible
+ProcSubset=pid
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# AF_UNIX is not optional: it is how the process reaches systemd-resolved and
+# the journal. AF_INET/AF_INET6 are Spotify.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+# Deliberately NOT set: MemoryDenyWriteExecute=yes. V8 maps JIT pages
+# writable-then-executable; enabling it makes Node fail to start at all. This
+# is a real hole, not a stylistic omission, and it is the reason the other
+# directives above are drawn as tight as they are.
+
+[Install]
+WantedBy=multi-user.target

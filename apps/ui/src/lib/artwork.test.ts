@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PlayingItem } from '@joshify/core';
 import {
   artworkSources,
+  resolvedArtwork,
   BACKDROP_MIN_WIDTH,
   decodeImage,
   failLayer,
@@ -211,5 +212,59 @@ describe('decodeImage', () => {
     const decode = (): Promise<void> => Promise.reject(new Error('undecodable'));
 
     await expect(decodeImage({ decode })).rejects.toThrow('undecodable');
+  });
+});
+
+/**
+ * P3-05's client half. The rule here is deliberately the opposite of the
+ * theme's: colour lags gracefully, artwork must not.
+ */
+describe('resolvedArtwork', () => {
+  const TRACK = track();
+
+  const cached = (over: Partial<Parameters<typeof resolvedArtwork>[1]> = {}) => ({
+    heroUrl: '/api/artwork/abc',
+    backdropUrl: '/api/artwork/abc/backdrop',
+    presentationFor: 'track-1',
+    ...over,
+  });
+
+  it('prefers the device’s own cache for the track on screen', () => {
+    const resolved = resolvedArtwork(TRACK, cached());
+
+    expect(resolved.hero).toBe('/api/artwork/abc');
+    expect(resolved.backdrop).toBe('/api/artwork/abc/backdrop');
+  });
+
+  // The presentation lags the track by a few hundred milliseconds. A
+  // slightly-wrong accent across that gap is invisible; a slightly-wrong album
+  // cover is not, so artwork follows the item strictly.
+  it('uses the remote URL rather than the previous track’s cached one', () => {
+    const resolved = resolvedArtwork(TRACK, cached({ presentationFor: 'track-0' }));
+
+    expect(resolved.hero).toBe(TRACK.images[0]?.url);
+    expect(resolved.hero).not.toContain('/api/artwork');
+  });
+
+  // A cold cache is the one time the remote URL is the only thing that can
+  // show the album at all, and showing it is the point of the screen.
+  it('falls back to the remote URL when nothing is cached yet', () => {
+    const resolved = resolvedArtwork(TRACK, cached({ heroUrl: null, backdropUrl: null }));
+
+    expect(resolved.hero).toBe(TRACK.images[0]?.url);
+  });
+
+  it('stays empty for a track that has no artwork anywhere', () => {
+    const resolved = resolvedArtwork(
+      { ...TRACK, images: [] },
+      cached({ heroUrl: null, backdropUrl: null }),
+    );
+
+    expect(resolved.hero).toBeNull();
+    expect(resolved.backdrop).toBeNull();
+  });
+
+  it('is empty when nothing is playing', () => {
+    expect(resolvedArtwork(null, cached()).hero).toBeNull();
   });
 });

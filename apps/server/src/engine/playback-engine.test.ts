@@ -7,6 +7,7 @@ import {
   ok,
   type JoshifyError,
   type PanelState,
+  type Presentation,
   type ThemeTokens,
 } from '@joshify/core';
 import { startFakeSpotify, type FakeSpotify } from '../testing/fake-spotify.js';
@@ -417,19 +418,25 @@ describe('the theme', () => {
   };
   const PINK: ThemeTokens = { ...BLUE, accent: '#ff5c8a' };
 
+  const presentationOf = (theme: ThemeTokens, key: string): Presentation => ({
+    theme,
+    heroUrl: `/api/artwork/${key}`,
+    backdropUrl: `/api/artwork/${key}/backdrop`,
+  });
+
   /** A presenter the test resolves by hand, so "in flight" is a real state. */
   const heldPresenter = () => {
-    const pending: { key: string; resolve: (theme: ThemeTokens) => void }[] = [];
+    const pending: { key: string; resolve: (value: Presentation) => void }[] = [];
     return {
       presenter: {
-        themeFor: (item: { id: string | null }) =>
-          new Promise<ThemeTokens>((resolve) => {
+        presentationFor: (item: { id: string | null }) =>
+          new Promise<Presentation>((resolve) => {
             pending.push({ key: item.id ?? '', resolve });
           }),
       },
       pending,
-      settle: async (index: number, theme: ThemeTokens) => {
-        pending[index]?.resolve(theme);
+      settle: async (index: number, theme: ThemeTokens, key = 'art') => {
+        pending[index]?.resolve(presentationOf(theme, key));
         await vi.waitFor(() => {
           expect(true).toBe(true);
         });
@@ -437,13 +444,13 @@ describe('the theme', () => {
     };
   };
 
-  it('starts neutral, and says so with a null themeFor', async () => {
+  it('starts neutral, and says so with a null presentationFor', async () => {
     spotify.playbackState = trackPayload();
     const { engine } = build();
     await engine.poll();
 
     expect(engine.state().theme).toEqual(DEFAULT_THEME);
-    expect(engine.state().themeFor).toBeNull();
+    expect(engine.state().presentationFor).toBeNull();
   });
 
   it('publishes the track first and the colour after', async () => {
@@ -459,10 +466,13 @@ describe('the theme', () => {
     expect(broadcaster.getState().theme).toEqual(DEFAULT_THEME);
     expect(held.pending).toHaveLength(1);
 
-    await held.settle(0, BLUE);
+    await held.settle(0, BLUE, 'art-1');
 
     expect(broadcaster.getState().theme).toEqual(BLUE);
-    expect(broadcaster.getState().themeFor).toBe('track-1');
+    expect(broadcaster.getState().presentationFor).toBe('track-1');
+    // Served from the device's own cache, not Spotify's CDN (P3-05).
+    expect(broadcaster.getState().heroUrl).toBe('/api/artwork/art-1');
+    expect(broadcaster.getState().backdropUrl).toBe('/api/artwork/art-1/backdrop');
   });
 
   it('does not re-extract for a track that has not changed', async () => {
@@ -497,7 +507,7 @@ describe('the theme', () => {
     await held.settle(0, BLUE);
 
     expect(broadcaster.getState().theme).toEqual(PINK);
-    expect(broadcaster.getState().themeFor).toBe('track-2');
+    expect(broadcaster.getState().presentationFor).toBe('track-2');
   });
 
   // The artwork is still on screen, dimmed. Snapping the chrome to grey while
@@ -521,7 +531,9 @@ describe('the theme', () => {
     spotify.playbackState = trackPayload();
     const problems: unknown[] = [];
     const { engine, broadcaster } = build((e) => problems.push(e), {
-      presenter: { themeFor: () => Promise.reject(new Error('decoder exploded')) },
+      presenter: {
+        presentationFor: () => Promise.reject(new Error('decoder exploded')),
+      },
     });
 
     await engine.poll();
@@ -574,5 +586,96 @@ describe('the Premium flag', () => {
     });
     expect(engine.state().isPremium).toBeNull();
     engine.stop();
+  });
+});
+
+/**
+ * The facade is what the HTTP routes are actually given, and passing the raw
+ * `SpotifyCommands` instead compiles and serves — it just silently skips the
+ * optimistic layer. These assert the difference.
+ */
+describe('the optimistic command facade', () => {
+  it('publishes before the network answers, exactly as `command` does', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, broadcaster } = build();
+    await engine.poll();
+    expect(broadcaster.getState().isPlaying).toBe(true);
+
+    const inFlight = engine.commands.pause();
+    // Already false, and the request has not come back yet.
+    expect(broadcaster.getState().isPlaying).toBe(false);
+    await inFlight;
+  });
+
+  it.each([
+    ['pause', () => '/v1/me/player/pause'],
+    ['next', () => '/v1/me/player/next'],
+    ['previous', () => '/v1/me/player/previous'],
+  ])('still sends %s upstream', async (name, path) => {
+    spotify.playbackState = trackPayload();
+    const { engine } = build();
+    const call = engine.commands[name as 'pause' | 'next' | 'previous'];
+    await call();
+
+    expect(spotify.requests.some((r) => r.path === path())).toBe(true);
+  });
+
+  it('carries a device target through', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine } = build();
+    await engine.commands.setVolume(30, { deviceId: 'dev-9' });
+
+    const call = spotify.requests.find((r) => r.path === '/v1/me/player/volume');
+    expect(call?.query['device_id']).toBe('dev-9');
+    expect(call?.query['volume_percent']).toBe('30');
+  });
+
+  it('rolls back when the command fails', async () => {
+    spotify.playbackState = trackPayload();
+    const problems: unknown[] = [];
+    const { engine, broadcaster } = build((e) => problems.push(e));
+    await engine.poll();
+
+    spotify.failNext({ status: 403, body: { error: { message: 'Premium required' } } });
+    await engine.commands.pause();
+
+    expect(broadcaster.getState().isPlaying).toBe(true);
+  });
+
+  it('resumes optimistically', async () => {
+    spotify.playbackState = trackPayload({ is_playing: false });
+    const { engine, broadcaster } = build();
+    await engine.poll();
+
+    const inFlight = engine.commands.play();
+    expect(broadcaster.getState().isPlaying).toBe(true);
+    await inFlight;
+  });
+
+  // Starting a different context changes what is playing, and guessing the
+  // new item's title, artist and artwork would put a fabrication on screen.
+  it('does not guess at a track it has not been told about', async () => {
+    spotify.playbackState = trackPayload({ is_playing: false });
+    const { engine, broadcaster } = build();
+    await engine.poll();
+
+    await engine.commands.play({ contextUri: 'spotify:album:other' });
+
+    expect(broadcaster.getState().item?.title).toBe('Velocity Division');
+    const call = spotify.requests.find((r) => r.path === '/v1/me/player/play');
+    expect(call?.json).toMatchObject({ context_uri: 'spotify:album:other' });
+  });
+
+  // Which device is active is the one thing the panel cannot predict, because
+  // Spotify may refuse the move.
+  it('does not pretend a transfer has happened', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, broadcaster } = build();
+    await engine.poll();
+
+    await engine.commands.transferPlayback('dev-9');
+
+    expect(broadcaster.getState().device?.id).toBe('dev-1');
+    expect(spotify.requests.some((r) => r.path === '/v1/me/player')).toBe(true);
   });
 });

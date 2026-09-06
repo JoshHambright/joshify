@@ -20,14 +20,14 @@
  * component that only wants playback keeps taking `PlaybackState` and needs no
  * knowledge that presentation exists.
  *
- * ## Why `themeFor` exists
+ * ## Why `presentationFor` exists
  *
- * The theme legitimately arrives after the track it belongs to: extraction
- * needs the image, and the image needs a fetch and a decode. Carrying the item
- * key the theme was derived from lets the UI keep showing the *previous*
- * album's colour for those few hundred milliseconds instead of flashing back
- * to neutral grey — the same reasoning as holding the outgoing artwork until
- * the incoming one has decoded (D-045).
+ * The presentation legitimately arrives after the track it belongs to:
+ * extraction needs the image, and the image needs a fetch and a decode.
+ * Carrying the item key it was derived from lets the UI keep showing the
+ * *previous* album's colour and artwork for those few hundred milliseconds
+ * instead of flashing back to neutral grey — the same reasoning as holding the
+ * outgoing artwork until the incoming one has decoded (D-045).
  */
 import { IDLE_PLAYBACK, type PlaybackState } from '../playback/state.js';
 import { DEFAULT_THEME, type ThemeTokens } from '../theme/tokens.js';
@@ -36,11 +36,23 @@ export interface PanelState extends PlaybackState {
   /** Derived server-side from the album art (P3-03). Neutral until one lands. */
   readonly theme: ThemeTokens;
   /**
-   * The `playingItemKey` the theme was derived from, or null while the theme
-   * is still the neutral default. Compare it against the current item to know
-   * whether the colour on screen belongs to the track on screen.
+   * The album art, served from the device's own cache rather than Spotify's
+   * CDN (P3-05). Null until it has been fetched, or when the track has none.
+   *
+   * Serving it locally is not an optimisation. The panel re-renders artwork on
+   * every track change and lives on domestic wifi; going back to the CDN each
+   * time means the album is missing exactly when the connection is worst,
+   * which is exactly when the screen most needs to look unbroken.
    */
-  readonly themeFor: string | null;
+  readonly heroUrl: string | null;
+  /** The pre-rendered blurred wash, same source, same cache (P3-05). */
+  readonly backdropUrl: string | null;
+  /**
+   * The `playingItemKey` the presentation above was derived from, or null
+   * while it is still the neutral default. Compare it against the current item
+   * to know whether what is on screen belongs to the track on screen.
+   */
+  readonly presentationFor: string | null;
   /**
    * Null until the account has been read.
    *
@@ -55,15 +67,26 @@ export interface PanelState extends PlaybackState {
 export const IDLE_PANEL: PanelState = {
   ...IDLE_PLAYBACK,
   theme: DEFAULT_THEME,
-  themeFor: null,
+  heroUrl: null,
+  backdropUrl: null,
+  presentationFor: null,
   isPremium: null,
 };
 
+/** What the server derives from one track's artwork. */
+export interface Presentation {
+  readonly theme: ThemeTokens;
+  readonly heroUrl: string | null;
+  readonly backdropUrl: string | null;
+}
+
 /**
- * Whether the theme on screen belongs to the track on screen.
+ * Whether what is on screen belongs to the track on screen.
  *
  * False during the window between a track change and its extraction landing —
  * which is not an error state, just a fact the UI may want to know.
  */
-export const themeMatchesItem = (state: PanelState, itemKey: string | null): boolean =>
-  state.themeFor !== null && state.themeFor === itemKey;
+export const presentationMatchesItem = (
+  state: PanelState,
+  itemKey: string | null,
+): boolean => state.presentationFor !== null && state.presentationFor === itemKey;

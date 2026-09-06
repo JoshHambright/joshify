@@ -26,7 +26,7 @@
   import Scrubber from './components/Scrubber.svelte';
   import StatusRail from './components/StatusRail.svelte';
   import Transport from './components/Transport.svelte';
-  import { artworkSources } from './lib/artwork.js';
+  import { resolvedArtwork } from './lib/artwork.js';
   import { controlsDisabled, noticeFor } from './lib/notices.js';
   import {
     createThemeApplier,
@@ -74,7 +74,15 @@
 
   const playback = $derived($connection.state);
   const item = $derived(playback?.item ?? null);
-  const art = $derived(artworkSources(item));
+  // Prefers the device's own cache, but only for the track actually on screen
+  // — a stale colour is invisible, a stale album cover is not (D-053).
+  const art = $derived(
+    resolvedArtwork(item, {
+      heroUrl: playback?.heroUrl ?? null,
+      backdropUrl: playback?.backdropUrl ?? null,
+      presentationFor: playback?.presentationFor ?? null,
+    }),
+  );
   const isPremium = $derived(playback?.isPremium ?? null);
   const notice = $derived(
     noticeFor({

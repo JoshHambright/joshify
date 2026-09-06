@@ -138,7 +138,11 @@ export const diffPanelState = (from: PanelState, to: PanelState): PanelDiff => {
   // in it is identical — which is the common case, since most polls do not
   // change the track.
   if (!sameValue(from.theme, to.theme)) changes.theme = to.theme;
-  if (from.themeFor !== to.themeFor) changes.themeFor = to.themeFor;
+  if (from.heroUrl !== to.heroUrl) changes.heroUrl = to.heroUrl;
+  if (from.backdropUrl !== to.backdropUrl) changes.backdropUrl = to.backdropUrl;
+  if (from.presentationFor !== to.presentationFor) {
+    changes.presentationFor = to.presentationFor;
+  }
   if (from.isPremium !== to.isPremium) changes.isPremium = to.isPremium;
   return changes;
 };

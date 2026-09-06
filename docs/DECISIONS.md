@@ -994,3 +994,79 @@ stay, with the problem recorded alongside. Same rule as a failed device refresh
 (D-049) and a dropped socket (D-048): the last true thing on screen is worth
 more than an accurate blank.
 **Status:** ✅ Accepted.
+
+---
+
+### D-053 · Artwork follows the track strictly; colour is allowed to lag
+**Chose:** the panel prefers artwork from the device's own cache, but **only
+when the cached copy belongs to the track on screen**. Otherwise it uses
+Spotify's remote URL for the current track. The theme keeps the opposite rule
+(D-050) and holds the previous album's value across the same gap.
+**Why they differ:** the presentation lands a few hundred milliseconds after
+the track that prompted it. A slightly-wrong *accent* across that gap is
+invisible — it is a hue on a button. A slightly-wrong *album cover* is the most
+noticeable thing on a 1280px screen, and showing the previous album under the
+current title reads as a bug rather than as latency.
+**Why the remote fallback exists at all**, given the server reports `null` when
+caching failed: on a cold cache the remote URL is the only thing that can show
+the album, and showing the album is the entire point of the screen. The caching
+failure is a line in the log, not something the viewer can act on.
+**Status:** ✅ Accepted.
+
+---
+
+### D-054 · The artwork route validates keys by allowlist, not by rejection
+**Chose:** `GET /api/artwork/:key[/:kind]` tests each segment as a whole string
+against `^[0-9a-f]{32}$` and `^[a-z]{1,32}$`. Anything else is a 400 that never
+reaches the cache.
+**Why not a `..` check:** percent-encoded segments arrive at the handler already
+decoded, so a rejection list is applied after the encoding it was meant to
+catch — and it has to anticipate every shape of the attack (`..`, `%2e%2e`,
+double-encoded, absolute paths, null bytes, backslashes on some platforms). An
+allowlist of lowercase hex cannot express a traversal at all, whatever the
+encoding. There is a test for each of those shapes asserting the cache is never
+asked.
+**Defence in depth is real here:** the cache gates `kind` again on its own side,
+so the route's check is the outer one and not the only one.
+**And the caching header is load-bearing.** The key *is* the content hash, so
+the bytes behind a URL can never change, and `immutable` with a one-year
+`max-age` is simply true. Without it the panel re-fetches the same album on
+every render — on domestic wifi, which is exactly when the album goes missing.
+**Status:** ✅ Accepted.
+
+---
+
+### D-055 · The HTTP routes are given the engine's commands, not Spotify's
+**Chose:** `PlaybackEngine` exposes `commands: SpotifyCommands` — the same
+interface the raw client implements — and `serve.ts` hands *that* to the HTTP
+server.
+**Why it is worth writing down:** both objects satisfy the type. Passing the raw
+one compiles, serves, and works, and quietly skips the entire optimistic layer
+(D-028): every tap then waits a full poll cycle before anything moves on
+screen. That is the difference between an instrument and a web page, and
+nothing about the code would look wrong. Wiring it up was the moment this
+became possible, so it is recorded here rather than left as a comment.
+**Two commands are deliberately not optimistic:**
+- **Starting a different context or track.** Guessing the new item's title,
+  artist and artwork would put a fabrication on screen for a beat. A moment of
+  lag before the truth arrives is much better than a moment of fiction.
+- **Transfer.** Which device is active is precisely the thing the panel cannot
+  predict, because Spotify may refuse the move.
+**Status:** ✅ Accepted.
+
+---
+
+### D-056 · One refresh at a time, shared
+**Chose:** `createTokenSource` holds the in-flight refresh and hands the same
+promise to everyone who asks while it runs.
+**Why:** the poll loop and a command can discover the token is stale in the same
+millisecond. Two refreshes race, and Spotify may rotate the refresh token on
+the first — which invalidates the second. That failure takes the device offline
+until somebody re-authorises it by hand, and it would surface after a week on a
+wall, not in a test.
+**It also persists, and complains when it cannot.** A refresh that is not
+written to disk means the device re-refreshes on every restart and eventually
+meets a refresh token Spotify has already rotated away. If the write fails the
+token in memory is still good, so the device keeps working — but that is said
+out loud rather than discovered days later.
+**Status:** ✅ Accepted.

@@ -1,0 +1,176 @@
+/**
+ * `joshify serve` — the composition root.
+ *
+ * Every other module in this package refuses to construct its own
+ * dependencies, which is what makes them testable. The consequence is that
+ * *something* has to know how they fit together, and this is that something.
+ * It is deliberately the only file in the server that reads the environment,
+ * touches the real filesystem, and opens a socket.
+ *
+ * Read top to bottom it is the whole architecture in about a hundred lines:
+ * disk → tokens → Spotify → engine → broadcaster → HTTP.
+ */
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import {
+  createError,
+  err,
+  ok,
+  systemClock,
+  type JoshifyError,
+  type Result,
+} from '@joshify/core';
+import { createTokenStore } from '../auth/token-store.js';
+import { createTokenSource } from '../auth/token-source.js';
+import { createSpotifyClient } from '../spotify/client.js';
+import { createSpotifyCommands } from '../spotify/commands.js';
+import { createArtworkCache, SOURCE_KIND } from '../artwork/cache.js';
+import { createLibraryBrowser } from '../library/browse.js';
+import { createSearchSession } from '../library/search.js';
+import { createBroadcaster } from '../http/broadcast.js';
+import { startHttpServer, type PanelReads, type RunningServer } from '../http/server.js';
+import { createPlaybackEngine } from '../engine/playback-engine.js';
+import { createArtworkPresenter } from '../engine/artwork-presenter.js';
+import { normaliseDeviceList, normaliseQueue } from '@joshify/core';
+
+export const DEFAULT_SERVE_PORT = 4770;
+
+export interface ServeOptions {
+  readonly dataDir: string;
+  readonly clientId: string;
+  readonly host?: string | undefined;
+  readonly port?: number | undefined;
+  /**
+   * ISO country code. Without it Spotify lists tracks that are not licensed
+   * where the device is, and tapping one fails at play time rather than simply
+   * not being offered.
+   */
+  readonly market?: string | undefined;
+  /** Every problem the running device hits. The CLI prints these to journald. */
+  readonly onProblem?: ((error: JoshifyError) => void) | undefined;
+  /**
+   * Where Spotify is.
+   *
+   * The one seam in this file, and it exists for one reason: without it the
+   * only test that proves the whole thing fits together would have to talk to
+   * the real Spotify. Production never sets it. Every other module here takes
+   * the same override for the same reason.
+   */
+  readonly spotify?:
+    | {
+        readonly baseUrl?: string | undefined;
+        readonly tokenEndpoint?: string | undefined;
+      }
+    | undefined;
+}
+
+export interface RunningJoshify {
+  readonly server: RunningServer;
+  readonly stop: () => Promise<void>;
+}
+
+export const serve = async (
+  options: ServeOptions,
+): Promise<Result<RunningJoshify, JoshifyError>> => {
+  const cacheDir = join(options.dataDir, 'artwork');
+  try {
+    await mkdir(cacheDir, { recursive: true });
+  } catch (cause) {
+    return err(createError('unexpected', `could not create ${cacheDir}`, { cause }));
+  }
+
+  const store = createTokenStore({ dataDir: options.dataDir });
+  // Refuse to start rather than come up and fail every request: a systemd unit
+  // that exits is visible in `systemctl status`, while one that runs and
+  // serves 401s looks healthy from the outside.
+  const stored = await store.load();
+  if (!stored.ok) return stored;
+  if (stored.value === null) {
+    return err(
+      createError('auth', 'no Spotify account is connected — run `joshify auth`'),
+    );
+  }
+
+  const tokenSource = createTokenSource({
+    store,
+    clientId: options.clientId,
+    ...(options.spotify?.tokenEndpoint === undefined
+      ? {}
+      : { tokenEndpoint: options.spotify.tokenEndpoint }),
+    ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
+  });
+  const client = createSpotifyClient({
+    tokenSource,
+    ...(options.spotify?.baseUrl === undefined
+      ? {}
+      : { baseUrl: options.spotify.baseUrl }),
+  });
+  const commands = createSpotifyCommands(client);
+
+  const cache = createArtworkCache({ cacheDir });
+  const presenter = createArtworkPresenter({ cache });
+
+  const browserOptions = options.market === undefined ? {} : { market: options.market };
+  const browser = createLibraryBrowser(client, browserOptions);
+  // One session for the life of the process, which is what carries D-032's
+  // generation fence across HTTP: a request overtaken by the next keystroke
+  // resolves as `superseded` rather than as a stale answer.
+  const searchSession = createSearchSession({ client, ...browserOptions });
+
+  const reads: PanelReads = {
+    devices: async () => {
+      const raw = await client.getDevices();
+      return raw.ok ? normaliseDeviceList(raw.value) : raw;
+    },
+    queue: async () => {
+      const raw = await client.getQueue();
+      return raw.ok ? normaliseQueue(raw.value) : raw;
+    },
+    search: (query) => searchSession.search(query),
+    savedAlbums: (page) => browser.savedAlbums(page),
+    playlists: (page) => browser.playlists(page),
+    playlistTracks: (id, page) => browser.playlistTracks(id, page),
+  };
+
+  const broadcaster = createBroadcaster();
+  const engine = createPlaybackEngine({
+    client,
+    commands,
+    broadcaster,
+    clock: systemClock,
+    presenter,
+    readProfile: async () => {
+      const profile = await client.getProfile();
+      return profile.ok ? ok({ isPremium: profile.value.isPremium }) : profile;
+    },
+    ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
+  });
+
+  const server = await startHttpServer({
+    broadcaster,
+    // `engine.commands`, not the raw `commands`. Both compile and both serve;
+    // the raw ones quietly skip the optimistic layer, so every tap would wait
+    // a full poll to show any effect (D-028).
+    commands: engine.commands,
+    reads,
+    artwork: {
+      // The source image is stored under its own kind, so both reads go
+      // through the same gate — the route's key check is the outer one, and
+      // the cache's `kind` check is the inner.
+      read: (key) => cache.readDerived(key, SOURCE_KIND),
+      readDerived: (key, kind) => cache.readDerived(key, kind),
+    },
+    ...(options.host === undefined ? {} : { host: options.host }),
+    port: options.port ?? DEFAULT_SERVE_PORT,
+  });
+
+  engine.start();
+
+  return ok({
+    server,
+    stop: async () => {
+      engine.stop();
+      await server.close();
+    },
+  });
+};
