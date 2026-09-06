@@ -1380,3 +1380,46 @@ would be a real violation this cannot see. The rule that follows is that
 overlays stay out of the plate's rectangle — a layout property, checked
 elsewhere.
 **Status:** ✅ Accepted.
+
+---
+
+### D-069 · The oscilloscope is a resynthesis, and says so
+**Chose:** the `scope` pass sums sixteen harmonics at the band amplitudes and
+draws that. Its docblock states plainly that it is not a waveform.
+**Why:** there is no PCM on Tiers 0 or 1 (D-010), so there is nothing to
+oscillate. What it draws is the waveform *of a signal that has this spectrum* —
+which is honest, and which still shows something true: bass gives a slow
+rolling curve, treble a fine ripple over it.
+**The phases are invented**, and that stays true even on Tier 2: an FFT
+magnitude bin has already discarded its phase. Calling this a waveform would be
+the same class of lie as drawing a volume slider for a device that reports no
+volume (D-047).
+**One detail worth keeping:** every harmonic is an integer multiple of the
+fundamental, so `uPhase`'s sawtooth wraps exactly where the wave repeats and
+the discontinuity is invisible.
+**Status:** ✅ Accepted.
+
+---
+
+### D-070 · Four of the six PS1 artefacts cannot be post passes
+**Chose:** only 15-bit dither and 240p resampling are passes. Vertex snapping
+and affine texture mapping live in the scene's vertex shader, the absent
+z-buffer is pipeline state plus index order, and fog is in the scene's fragment
+shader.
+**Why it matters:** an artefact implemented in the wrong stage either does
+nothing or cannot be turned off. Snapping moves vertices and a post pass has
+none. Affine mapping is a property of the interpolation *between* the two
+stages — by the time the chain runs, texturing has already happened, correctly.
+And fog needs **distance**: the chain's targets are RGBA8 colour with no depth
+attachment, so a post "fog" could only fake it from screen position, which
+comes apart the moment the tunnel bends and would lie about fogging a `flat`
+scene.
+**A table, not a promise.** `PS1_ARTEFACTS` names all six and where each switch
+lives, and its test resolves every entry against the real scene params, pass
+ids and `depthTest` flag — so the table and the implementation cannot drift
+apart silently.
+**Painter's ordering had to become real.** The spike leaned on
+`cullFace(FRONT)`; the pipeline's context has no culling at all, so with
+`depthTest: false` the draw order is the only thing deciding what is in front.
+Indices are emitted far ring first.
+**Status:** ✅ Accepted.

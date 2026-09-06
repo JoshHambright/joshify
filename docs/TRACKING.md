@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 38 | 10 | 🟨 In progress (3 cut) |
+| 5 | **Visualizer + librespot** | 38 | 16 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **82** | |
+| | **Total** | **122** | **88** | |
 
 ---
 
@@ -166,10 +166,10 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-06 | Effect family A — feedback (zoom tunnel, rotational, warp, echo) | ⬜ | The Milkdrop core technique |
 | P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ✅ | Six passes, 16 fetches for the family. "Pixel sort" is named `smear` and is honestly a thresholded running maximum — a real sort needs scatter and a data-dependent loop, neither of which a fragment shader on a tiler has. `dropout` punches through to `uArt`, so corruption *reveals the cover* rather than replacing it with noise |
 | P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ✅ | Every pass documents what it does to contrast, for P5-16. The CRT scanline is `1 + sin(πy)k`, which averages to exactly 1.0 across two rows — the naive `0.5 + 0.5sin` everyone writes is a 50% luminance cut. Bloom is a single-pass two-ring Kawase gather: 9 fetches read 33 texels, because the 6-pass budget and three targets rule out a real pyramid |
-| P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ⬜ | Bars are non-negotiable |
+| P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ✅ | Bars and scope are **overlays** — a 1px bar edge through a half-res upscale is a bar chart seen through a wet window. Kaleido cannot be one: it re-samples what is beneath it, so with no `uTexture` it has nothing to mirror. The scope is honestly a **resynthesis** — sixteen harmonics at the band amplitudes, i.e. the waveform *of a signal with this spectrum*, not of the track, because a magnitude spectrum carries no phase (D-069) |
 | P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
 | P5-11 | Tap-tempo / nudge-phase touch control | ✅ | Three controls, not one: phase takes **one** tap, tempo takes **four**, nudge moves 1/16 of a beat. Estimator is least-squares through (beat number, instant) — the mean interval telescopes to `(last−first)/(n−1)` and throws the middle taps away. A bounced touch is rejected; a *missed* beat is not, because it is a good observation two beats along (D-064) |
-| P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | 🟨 | Picker done; the named looks themselves wait on the effect families. **Shuffle is a pure function of the track key** — playback state arrives every couple of seconds, so "the track changed" is re-decided on every poll, and picking randomly each time reshuffles the visualiser two or three times a second (D-066). A deliberate choice outranks shuffle until the track actually changes |
+| P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ✅ | Six looks — `Ghost`, `VHS`, `Datamosh`, `Newsprint`, `Vapor`, `Tunnel` — each a scene id, an ordered list of pass ids and some numbers. No code path per look, which is the test of whether "presets are data" was true or merely asserted. A look naming a pass somebody renamed is dropped with a reason rather than taking the visualiser down |
 | P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ✅ | A scale factor, not a boolean — `uResolution` is the size *that stage* renders at, not the panel |
 | P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ✅ | 45-frame window, degrade above 20% missed, recover below 2% after 3s. **The window is cleared on every change** — without it one bad second walks the ladder to the floor before the first step has been measured. Dwell is counted in frames, so a backgrounded tab cannot wait it out. Scene is never dropped; overlays go last |
 | P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | 🟨 | State machine done; wiring into the panel waits on the effect families. **The touch that wakes it is swallowed** — delivering it means a tap meant to bring the controls back also lands on whatever control was under the finger (D-067). Ambient keeps the chrome; that is the whole difference between it and Full |
@@ -180,13 +180,13 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-20 | Audio output on Pi 5: USB DAC support + detection | ⬜ | **Pi 5 has no 3.5mm jack.** USB DAC preferred over a HAT (GPIO/case conflict) |
 | P5-21 | librespot device surfaces in the Devices screen | ⬜ | Moved from P8-10 |
 | P5-22 | **Scene stage** ahead of the post chain (`flat` \| `tunnel`) | ✅ | The chain cannot tell which scene produced its input — asserted by planning the same chain over both scenes and comparing |
-| P5-23 | Tunnel scene: ring geometry, camera, curve-with-near-fade | ⬜ | `smoothstep` ease keeps the near ring centred on the camera |
-| P5-24 | PS1 artefact shader set (all six, individually toggleable) | ⬜ | Port from [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/) |
-| P5-25 | Album art as tunnel texture: 256px, `NEAREST`, `REPEAT` | ⬜ | Ring-aligned V so the scroll wrap is invisible |
-| P5-26 | `N2O` preset — speed, radius and flash bound to `uBeat` | ⬜ | |
+| P5-23 | Tunnel scene: ring geometry, camera, curve-with-near-fade | ✅ | Ported from `spikes/n2o-tunnel/`. Painter's ordering is now real — the spike leaned on `cullFace(FRONT)`, and with no culling in the context, draw order is the *only* thing deciding what is in front, so indices emit far ring first. Also a `w == 0` guard the spike lacked: one ring on the camera plane makes one NaN vertex and takes the whole triangle |
+| P5-24 | PS1 artefact shader set (all six, individually toggleable) | ✅ | Only **two** are post passes. Vertex snap and affine mapping are properties of the interpolation between vertex and fragment stages; no-z-buffer is pipeline state and index order; and fog needs *distance*, which the chain's RGBA8 targets do not carry — a post fog could only fake it from screen position, which comes apart the moment the tunnel bends (D-070) |
+| P5-25 | Album art as tunnel texture: 256px, `NEAREST`, `REPEAT` | ✅ | The mesh never moves; the vertex shader scrolls it by a whole ring, which is invisible **iff** consecutive rings carry the same texture content — so the V step must be a whole number of copies. `buildTunnelGeometry` throws on fractional repeats, so a seam cannot be built by accident |
+| P5-26 | `N2O` preset — speed, radius and flash bound to `uBeat` | ✅ | Shipped as the `Tunnel` look. The scene alone, with its two artefact passes: stacking post over it wastes budget the geometry needs |
 | P5-27 | PS1-idiom UI chrome for Now Playing | ⬜ | **Original assets only** (D-015). PS1 BIOS CD player is the reference |
 | P5-28 | Original attract / boot sequence | ⬜ | Also covers the P7-05 boot handoff |
-| P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | ⬜ | The payoff of D-014 |
+| P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | 🟨 | The mechanism works — the chain cannot tell which scene produced its input — and the six named looks prove the shape. The specific tunnel-plus-glitch combinations want a look at a real screen first |
 | P5-30 | Measure the tunnel on Pi 5 hardware | ⬜ | Folded into the P3-01 measurement |
 | P5-31 | **Theme bundle format**: palette + scene + chain + chrome as one unit | ⬜ | D-017. The Microsoft Plus! model, not the Winamp-skin model |
 | P5-32 | Tokenise UI chrome so themes can reach it | ⬜ | Must land in **Phase 3**, not retrofitted later |

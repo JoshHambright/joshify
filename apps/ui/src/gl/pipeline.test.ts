@@ -8,7 +8,13 @@ import {
   type RenderPlan,
   type TargetId,
 } from './pipeline.js';
-import { BUILT_IN_CATALOGUE, FLAT_SCENE, type Catalogue, type Preset } from './passes.js';
+import {
+  FEEDBACK_PASS,
+  FLAT_SCENE,
+  GRAIN_PASS,
+  type Catalogue,
+  type Preset,
+} from './passes.js';
 import { createDegrader, type QualityLevel } from './budget.js';
 import { UNIT_ART, UNIT_PREV, UNIT_TEXTURE } from './uniforms.js';
 import { createFakeGl, type FakeGl, type GlCall } from './testing/fake-gl.js';
@@ -44,9 +50,17 @@ const BARS_PASS = {
   overlay: true,
 };
 
+/**
+ * A fixture, not the shipping catalogue.
+ *
+ * It used to spread `BUILT_IN_CATALOGUE.passes`, which meant these counts
+ * changed the moment anyone added a shader — a pipeline test failing because
+ * the effect library grew is a test measuring the wrong thing. Two passes and
+ * two scenes is all the pipeline needs to be exercised over.
+ */
 const catalogue: Catalogue = {
   scenes: [FLAT_SCENE, TUBE_SCENE],
-  passes: [...BUILT_IN_CATALOGUE.passes, BARS_PASS],
+  passes: [FEEDBACK_PASS, GRAIN_PASS, BARS_PASS],
 };
 
 const preset = (chain: readonly string[], scene = 'flat'): Preset => ({

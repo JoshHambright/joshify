@@ -292,7 +292,26 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
     filter: 'nearest',
     wrap: 'clamp',
   });
-  const art = gl.createTexture({ width: 1, height: 1, filter: 'linear', wrap: 'clamp' });
+  /**
+   * The album cover, as the tunnel wants it (P5-25).
+   *
+   * `nearest` because the chunky filtering *is* the look — a bilinear stretch
+   * of a 256px cover across a tunnel wall sands off exactly the texel grid
+   * the PS1 idiom is made of. `repeat` because the tunnel tiles the cover
+   * around and along itself; with `clamp` the wrap smears one edge texel down
+   * the whole tube.
+   *
+   * The tunnel's fragment shader tiles with `fract()` and so is correct under
+   * either setting. That is deliberate belt-and-braces, not a reason to leave
+   * the sampler wrong: it means the shader survives a texture created
+   * elsewhere, while this makes the `fract` redundant rather than load-bearing.
+   */
+  const art = gl.createTexture({
+    width: 1,
+    height: 1,
+    filter: 'nearest',
+    wrap: 'repeat',
+  });
 
   let targetSize = renderSizeFor(outputSize, degrader.quality.scale);
   const makeTarget = (): Target => {

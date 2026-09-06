@@ -16,6 +16,12 @@ import { err, ok, type Result } from '@joshify/core';
 import type { GeometrySpec } from './gl-context.js';
 
 /** A tunable a preset may set. Bounds are enforced at parse, not in GLSL. */
+import { GLITCH_PASSES } from './effects/glitch.js';
+import { LOFI_PASSES } from './effects/lofi.js';
+import { CLASSIC_PASSES } from './effects/classics.js';
+import { PS1_PASSES } from './effects/ps1.js';
+import { TUNNEL_SCENE } from './scenes/tunnel.js';
+
 export interface PassParam {
   readonly default: number;
   readonly min: number;
@@ -338,9 +344,24 @@ void main() {
   params: { amount: { default: 0.16, min: 0, max: 1 } },
 };
 
+/**
+ * Everything a preset may name.
+ *
+ * Assembled here rather than in each family so that "what exists" has one
+ * answer, and so a family can be written, tested and reviewed without also
+ * editing a shared registry — which is what let four of these be built in
+ * parallel without touching the same file.
+ */
 export const BUILT_IN_CATALOGUE: Catalogue = {
-  scenes: [FLAT_SCENE],
-  passes: [FEEDBACK_PASS, GRAIN_PASS],
+  scenes: [FLAT_SCENE, TUNNEL_SCENE],
+  passes: [
+    FEEDBACK_PASS,
+    GRAIN_PASS,
+    ...GLITCH_PASSES,
+    ...LOFI_PASSES,
+    ...CLASSIC_PASSES,
+    ...PS1_PASSES,
+  ],
 };
 
 /** The floor: what the visualiser looks like before anyone chooses anything. */

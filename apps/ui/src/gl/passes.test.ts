@@ -232,8 +232,12 @@ describe('the built-in catalogue', () => {
       }
     }
     for (const scene of BUILT_IN_CATALOGUE.scenes) {
+      // Both stages: a scene's parameters legitimately live in its *vertex*
+      // shader — the tunnel's speed, radius, curve and vertex snap all move
+      // geometry, and none of them appear in its fragment source.
+      const source = `${scene.vertex}\n${scene.fragment}`;
       for (const name of Object.keys(scene.params)) {
-        expect(scene.fragment).toContain(paramUniformName(name));
+        expect(source).toContain(paramUniformName(name));
       }
     }
   });
