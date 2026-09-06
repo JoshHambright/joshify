@@ -679,3 +679,107 @@ describe('the optimistic command facade', () => {
     expect(spotify.requests.some((r) => r.path === '/v1/me/player')).toBe(true);
   });
 });
+
+/**
+ * P7-07 and P7-08 at the engine's level: what happens across a real outage.
+ *
+ * The screen keeping its last truth is asserted elsewhere; what matters here is
+ * that the loop *notices* the transition in both directions, because nothing
+ * else in the system finds out that Spotify has started answering again.
+ */
+describe('surviving an outage', () => {
+  /**
+   * Enough queued failures to exhaust the client's retries.
+   *
+   * A single 503 never reaches the engine — the client retries it and
+   * succeeds, which is P1-08's job and its own suite's assertion. What is
+   * being tested here starts where that gives up.
+   */
+  const failPoll = (): void => {
+    spotify.failNext({ status: 503 });
+    spotify.failNext({ status: 503 });
+    spotify.failNext({ status: 503 });
+  };
+
+  const buildWatched = () => {
+    const problems: JoshifyError[] = [];
+    const recoveries: number[] = [];
+    const { engine, broadcaster } = build((e) => problems.push(e), {
+      onRecovered: () => recoveries.push(1),
+    });
+    return { engine, broadcaster, problems, recoveries };
+  };
+
+  it('keeps the last known state and reports each failed poll', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, broadcaster, problems } = buildWatched();
+    await engine.poll();
+
+    for (let i = 0; i < 3; i += 1) {
+      failPoll();
+      await engine.poll();
+    }
+
+    expect(broadcaster.getState().item?.title).toBe('Velocity Division');
+    expect(problems.length).toBeGreaterThanOrEqual(3);
+  });
+
+  // Nothing else in the system can tell: the poll loop is the only thing that
+  // finds out Spotify is answering again.
+  it('announces recovery exactly once', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, recoveries } = buildWatched();
+    await engine.poll();
+    expect(recoveries).toHaveLength(0);
+
+    failPoll();
+    await engine.poll();
+    await engine.poll(); // succeeds
+    await engine.poll(); // still fine
+
+    expect(recoveries).toHaveLength(1);
+  });
+
+  it('says nothing about recovery on a device that never failed', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, recoveries } = buildWatched();
+
+    await engine.poll();
+    await engine.poll();
+
+    expect(recoveries).toHaveLength(0);
+  });
+
+  it('treats an unreadable payload as a failure and its repair as a recovery', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, recoveries, problems } = buildWatched();
+    await engine.poll();
+
+    spotify.playbackState = { nonsense: true };
+    await engine.poll();
+    expect(problems).toHaveLength(1);
+
+    spotify.playbackState = trackPayload();
+    await engine.poll();
+
+    expect(recoveries).toHaveLength(1);
+  });
+
+  // The device has to come back on its own: nobody is going to walk over and
+  // restart it.
+  it('recovers the actual state, not just the lamp', async () => {
+    spotify.playbackState = trackPayload();
+    const { engine, broadcaster } = buildWatched();
+    await engine.poll();
+
+    failPoll();
+    await engine.poll();
+
+    spotify.playbackState = trackPayload({
+      item: { ...trackPayload().item, id: 'track-2', name: 'Coolant' },
+    });
+    await engine.poll();
+
+    expect(broadcaster.getState().item?.title).toBe('Coolant');
+  });
+});

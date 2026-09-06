@@ -32,6 +32,7 @@ import { createBroadcaster } from '../http/broadcast.js';
 import { startHttpServer, type PanelReads, type RunningServer } from '../http/server.js';
 import { createPlaybackEngine } from '../engine/playback-engine.js';
 import { createArtworkPresenter } from '../engine/artwork-presenter.js';
+import { createProblemReporter } from '../observability/problem-reporter.js';
 import { normaliseDeviceList, normaliseQueue } from '@joshify/core';
 
 export const DEFAULT_SERVE_PORT = 4770;
@@ -174,6 +175,20 @@ export const serve = async (
   const uiDir = await resolveUiDir(options.uiDir);
 
   const broadcaster = createBroadcaster();
+  // A poll every couple of seconds, for weeks, on an SD card with a finite
+  // number of writes in it. A run of the same failure is reported once and
+  // then counted, and recovery says how long it lasted (D-060).
+  const reporter = createProblemReporter({
+    now: () => Date.now(),
+    emit: (report) => {
+      options.onProblem?.({
+        kind: report.error?.kind ?? 'unexpected',
+        message: report.message,
+        retryable: report.error?.retryable ?? false,
+      });
+    },
+  });
+
   const engine = createPlaybackEngine({
     client,
     commands,
@@ -184,7 +199,8 @@ export const serve = async (
       const profile = await client.getProfile();
       return profile.ok ? ok({ isPremium: profile.value.isPremium }) : profile;
     },
-    ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
+    onProblem: reporter.problem,
+    onRecovered: reporter.recovered,
   });
 
   const server = await startHttpServer({

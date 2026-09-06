@@ -1143,3 +1143,27 @@ directions — Kitchen *has* a slider, the TV does not — so the selector has t
 prove itself before the absence means anything. A negative assertion alone is
 indistinguishable from a typo.
 **Status:** ✅ Accepted.
+
+---
+
+### D-060 · A repeated problem is reported once, then counted
+**Chose:** `createProblemReporter` collapses a run of the same failure into one
+line, a reminder every five minutes, and a recovery notice saying how long it
+lasted and how many attempts it took.
+**Why:** the device polls every couple of seconds and runs for weeks. An
+overnight wifi drop writes about fourteen thousand identical lines, which buries
+the only interesting facts — when it started and when it came back — and spends
+write cycles on an SD card that has a finite number of them.
+**Deliberately not a rate limiter.** A limiter drops by clock, and would hide a
+genuinely new problem that arrived during a storm of old ones. This drops only
+*repeats*; anything different gets through immediately and replaces the run,
+because reporting "network down for 3h" while the real fault has become an
+expired token is worse than saying nothing.
+**Sameness is by kind and message, not by object.** Every failed poll builds a
+fresh error, so comparing references would make every repeat look new — the
+exact failure this exists to prevent.
+**Recovery needed a new signal.** `onProblem` had no counterpart, and nothing
+else in the system can tell that Spotify has started answering again: the poll
+loop is the only thing that finds out. It fires once per outage, not once per
+successful poll.
+**Status:** ✅ Accepted.

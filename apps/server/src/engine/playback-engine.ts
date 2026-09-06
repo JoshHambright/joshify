@@ -60,6 +60,14 @@ export interface PlaybackEngineConfig {
   readonly scheduler?: Scheduler | undefined;
   /** Reported so the UI can show that something is wrong without guessing. */
   readonly onProblem?: ((error: JoshifyError) => void) | undefined;
+  /**
+   * Called after a poll succeeds following one that did not.
+   *
+   * Separate from `onProblem` because recovery is the other half of the story
+   * and nothing else in the system knows when it happened: the poll loop is
+   * the only thing that finds out Spotify is answering again.
+   */
+  readonly onRecovered?: (() => void) | undefined;
   /** Absent means the panel stays on the neutral default theme. */
   readonly presenter?: Presenter | undefined;
   /**
@@ -198,21 +206,35 @@ export const createPlaybackEngine = (config: PlaybackEngineConfig): PlaybackEngi
     });
   };
 
+  /** Whether the last poll failed. Drives the recovery notice, once. */
+  let polling: 'ok' | 'failing' = 'ok';
+
+  const pollFailed = (error: JoshifyError): void => {
+    polling = 'failing';
+    config.onProblem?.(error);
+  };
+
+  const pollSucceeded = (): void => {
+    if (polling === 'failing') config.onRecovered?.();
+    polling = 'ok';
+  };
+
   const poll = async (): Promise<void> => {
     const raw = await config.client.getPlaybackState();
     if (!raw.ok) {
       // A failed poll is not a reason to blank the screen. Keep showing the
       // last truth and try again on the normal cadence (PRODUCT.md §5.3).
-      config.onProblem?.(raw.error);
+      pollFailed(raw.error);
       armNextPoll();
       return;
     }
     const normalised = normalisePlaybackState(raw.value);
     if (!normalised.ok) {
-      config.onProblem?.(normalised.error);
+      pollFailed(normalised.error);
       armNextPoll();
       return;
     }
+    pollSucceeded();
     optimistic.reconcile(normalised.value, config.clock.monotonic());
     refreshPresentation(optimistic.state.item);
     publish();

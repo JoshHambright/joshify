@@ -42,9 +42,9 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
-| 7 | Appliance & hardening | 12 | 6 | 🟨 In progress |
+| 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **70** | |
+| | **Total** | **122** | **72** | |
 
 ---
 
@@ -232,8 +232,8 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P7-04 | systemd unit for the kiosk UI | ✅ | `After=` only proves the server was *exec'd*. Readiness is a bounded `/health` poll in the launcher — the same endpoint the UI's own reconnect loop uses. `Type=notify` was rejected because nothing calls `sd_notify`, and declaring it would make systemd wait for a signal that never comes |
 | P7-05 | Boot splash → app handoff with no flicker or console text | ✅ | 20 things that would otherwise appear, each with the setting that suppresses it. The one most often missed: `--default-background-color=ff101114`, or the browser paints white before first paint. The plymouth theme must be the same `#101114`, or three stages each shift shade and read as flicker |
 | P7-06 | Display config: resolution, rotation, blanking policy | ✅ | 720×1280 native portrait, **no rotation** (D-039). `consoleblank=0` and no DE screensaver. Traded away: backlight hours and ~2–3W; the mitigation is the design itself, and the future lever is scheduled dimming via sysfs rather than blanking |
-| P7-07 | Network-loss resilience + offline state | ⬜ | Shows last known truth, recovers silently |
-| P7-08 | Spotify outage / 5xx resilience | ⬜ | Backoff, no error spam |
+| P7-07 | Network-loss resilience + offline state | ✅ | The screen keeps its last truth and the lamp goes amber (D-048); the loop notices the transition in *both* directions, because nothing else in the system finds out Spotify has started answering again. Recovery says how long the outage lasted (D-060) |
+| P7-08 | Spotify outage / 5xx resilience | ✅ | Backoff already existed (P1-08). The spam did not: a poll every 2s for eight hours wrote ~14,000 identical lines to an SD card with a finite number of writes in it. A run of the same failure is now reported once and then counted, with a reminder every five minutes — about a hundred lines instead (D-060) |
 | P7-09 | Unattended token refresh over multi-day runtime | ⬜ | Success criterion #5 |
 | P7-10 | Memory budget enforcement: RSS < 700MB combined | ⬜ | Success criterion #6. Relaxed by D-008 |
 | P7-11 | 7-day soak test with leak detection | ⬜ | Success criterion #5 |
