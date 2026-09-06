@@ -177,7 +177,10 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
    */
   const locations = new WeakMap<object, Map<string, WebGLUniformLocation | null>>();
 
-  const locationOf = (program: ProgramHandle, name: string): WebGLUniformLocation | null => {
+  const locationOf = (
+    program: ProgramHandle,
+    name: string,
+  ): WebGLUniformLocation | null => {
     const raw = program as unknown as WebGLProgram;
     let cache = locations.get(raw);
     if (cache === undefined) {
@@ -212,7 +215,7 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
     },
 
     deleteProgram: (program) => {
-      gl.deleteProgram(program as unknown as WebGLProgram);
+      gl.deleteProgram(program);
     },
 
     createGeometry: ({ attributes, indices, count }) => {
@@ -276,7 +279,7 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
     },
 
     resizeTexture: (texture, width, height) => {
-      gl.bindTexture(gl.TEXTURE_2D, texture as unknown as WebGLTexture);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(
         gl.TEXTURE_2D,
         0,
@@ -291,12 +294,12 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
     },
 
     uploadImage: (texture, source) => {
-      gl.bindTexture(gl.TEXTURE_2D, texture as unknown as WebGLTexture);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     },
 
     deleteTexture: (texture) => {
-      gl.deleteTexture(texture as unknown as WebGLTexture);
+      gl.deleteTexture(texture);
     },
 
     createFramebuffer: (colour) => {
@@ -306,7 +309,7 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_2D,
-        colour as unknown as WebGLTexture,
+        colour,
         0,
       );
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -314,14 +317,11 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
     },
 
     deleteFramebuffer: (framebuffer) => {
-      gl.deleteFramebuffer(framebuffer as unknown as WebGLFramebuffer);
+      gl.deleteFramebuffer(framebuffer);
     },
 
     bindFramebuffer: (framebuffer) => {
-      gl.bindFramebuffer(
-        gl.FRAMEBUFFER,
-        framebuffer === null ? null : (framebuffer as unknown as WebGLFramebuffer),
-      );
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer === null ? null : framebuffer);
     },
 
     viewport: (width, height) => {
@@ -334,12 +334,12 @@ export const createGlContext = (gl: WebGL2RenderingContext): GlContext => {
     },
 
     useProgram: (program) => {
-      gl.useProgram(program as unknown as WebGLProgram);
+      gl.useProgram(program);
     },
 
     bindTexture: (unit, texture) => {
       gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, texture as unknown as WebGLTexture);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
     },
 
     setUniform: (program, name, value) => {

@@ -90,7 +90,10 @@ export const renderSizeFor = (output: Size, scale: number): Size => {
 
 /** The rungs at or below what the user asked for, their choice first. */
 export const scaleLadderFrom = (ceiling: number): readonly number[] => {
-  const safe = Math.min(1, Math.max(0.01, Number.isFinite(ceiling) ? ceiling : DEFAULT_SCALE));
+  const safe = Math.min(
+    1,
+    Math.max(0.01, Number.isFinite(ceiling) ? ceiling : DEFAULT_SCALE),
+  );
   const below = SCALE_LADDER.filter((rung) => rung < safe);
   return [safe, ...below];
 };
@@ -194,9 +197,12 @@ export const createDegrader = (options: DegraderOptions = {}): Degrader => {
     },
     setCeiling: (scale) => {
       ceilingScale = scale;
-      // A different ceiling is a different frame cost, and the step may no
-      // longer exist on the shorter ladder.
-      changeTo(Math.min(step, maxStepFor(ceilingScale, ceilingPasses)));
+      // Back to the top of the new ladder, not the same rung on it. The step
+      // we were on was measured against a frame cost the user has just changed
+      // by hand — and someone dragging grain down is usually trying to fix the
+      // stutter themselves, so they deserve the benefit of the doubt. If the
+      // machine still cannot hold it, the next window says so.
+      changeTo(0);
     },
     setChain: (passes) => {
       ceilingPasses = Math.max(0, passes);

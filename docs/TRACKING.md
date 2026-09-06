@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
+| 5 | **Visualizer + librespot** | 38 | 5 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **72** | |
+| | **Total** | **122** | **77** | |
 
 ---
 
@@ -158,7 +158,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 
 | ID | Task | Status | Notes |
 |---|---|:---:|---|
-| P5-01 | WebGL2 render pipeline: ping-pong FBOs, pass chain, uniform contract | ⬜ | Presets are data (JSON), not code paths |
+| P5-01 | WebGL2 render pipeline: ping-pong FBOs, pass chain, uniform contract | ✅ | **Three** targets, not a pair — a pair loses last frame's image to the scene, which is the read-write-same-texture bug and looks like a driver fault (D-061). Presets are data: a pass's params map onto uniforms, so an effect is a JSON entry rather than a branch. Split so the decisions test in Node against a recording fake |
 | P5-02 | 🔬 **Spike: BPM source bake-off.** Coverage test against Josh's real library | ⬜ | GetSongBPM vs AcousticBrainz dump vs Deezer-by-ISRC |
 | P5-03 | `ReactivityProvider` interface + Tier 0 procedural implementation | ⬜ | Always-available floor. Injected, so testable headlessly |
 | P5-04 | Tier 1: ISRC→BPM lookup, permanent disk cache, phase-locked pulse | ⬜ | `external_ids.isrc` is **not** deprecated |
@@ -170,16 +170,16 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
 | P5-11 | Tap-tempo / nudge-phase touch control | ⬜ | Fixes Tier 1's missing downbeat phase in two taps |
 | P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ⬜ | `VHS`, `Tunnel`, `Datamosh`, `Ghost`, `Newsprint`, `Vapor` |
-| P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ⬜ | 4x fragment saving **and** the aesthetic |
-| P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ⬜ | |
+| P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ✅ | A scale factor, not a boolean — `uResolution` is the size *that stage* renders at, not the panel |
+| P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ✅ | 45-frame window, degrade above 20% missed, recover below 2% after 3s. **The window is cleared on every change** — without it one bad second walks the ladder to the floor before the first step has been measured. Dwell is counted in frames, so a backgrounded tab cannot wait it out. Scene is never dropped; overlays go last |
 | P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | ⬜ | The screensaver behaviour |
 | P5-16 | **Legibility floor test** — contrast behind text at any intensity | ⬜ | Enforced in tests, not by eye |
-| P5-17 | Headless engine tests driven by a scripted reactivity sequence | ⬜ | No GPU needed in CI |
+| P5-17 | Headless engine tests driven by a scripted reactivity sequence | ✅ | 105 tests, all in Node. One file touches a GL API; everything else asserts against a fake that records calls *and* the bind state each draw happened under — so a stale binding shows up rather than vanishing |
 | P5-18 | `librespot` install + run as a Spotify Connect target | ⬜ | Promoted from Phase 8 by D-013. **Opt-in** — Tiers 0-1 must work without it |
 | P5-19 | PCM tee: librespot pipe backend -> ALSA **and** -> server | ⬜ | s16le / 44.1kHz / stereo. Must not add audible latency |
 | P5-20 | Audio output on Pi 5: USB DAC support + detection | ⬜ | **Pi 5 has no 3.5mm jack.** USB DAC preferred over a HAT (GPIO/case conflict) |
 | P5-21 | librespot device surfaces in the Devices screen | ⬜ | Moved from P8-10 |
-| P5-22 | **Scene stage** ahead of the post chain (`flat` \| `tunnel`) | ⬜ | D-014. Post effects compose over any scene |
+| P5-22 | **Scene stage** ahead of the post chain (`flat` \| `tunnel`) | ✅ | The chain cannot tell which scene produced its input — asserted by planning the same chain over both scenes and comparing |
 | P5-23 | Tunnel scene: ring geometry, camera, curve-with-near-fade | ⬜ | `smoothstep` ease keeps the near ring centred on the camera |
 | P5-24 | PS1 artefact shader set (all six, individually toggleable) | ⬜ | Port from [`spikes/n2o-tunnel/`](../spikes/n2o-tunnel/) |
 | P5-25 | Album art as tunnel texture: 256px, `NEAREST`, `REPEAT` | ⬜ | Ring-aligned V so the scroll wrap is invisible |

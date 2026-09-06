@@ -93,7 +93,11 @@ export const clamp01 = (value: number): number => {
 export const normaliseBands = (bands: readonly number[]): readonly number[] =>
   Array.from({ length: BAND_COUNT }, (_unused, index) => clamp01(bands[index] ?? 0));
 
-const rgb = (colour: Rgb): Rgb => [clamp01(colour[0]), clamp01(colour[1]), clamp01(colour[2])];
+const rgb = (colour: Rgb): Rgb => [
+  clamp01(colour[0]),
+  clamp01(colour[1]),
+  clamp01(colour[2]),
+];
 
 /** A preset parameter `amount` reaches its shader as `uAmount`. */
 export const paramUniformName = (param: string): string =>

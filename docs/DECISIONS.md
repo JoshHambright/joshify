@@ -1167,3 +1167,49 @@ else in the system can tell that Spotify has started answering again: the poll
 loop is the only thing that finds out. It fires once per outage, not once per
 successful poll.
 **Status:** ✅ Accepted.
+
+---
+
+### D-061 · The render chain needs three targets, not a ping-pong pair
+**Chose:** three render targets, rotating roles each frame. One holds the
+previous frame and is read-only for the whole frame; the other two ping-pong
+the post chain between them.
+**Why:** the obvious design is a pair. It ping-pongs the chain correctly and
+then loses the thing feedback exists for — a scene rendering into one of the
+two overwrites last frame's finished image before the feedback pass reads it.
+Two buffers cannot hold both the chain's intermediate result *and* the previous
+frame.
+**Why it matters more than it sounds:** getting it wrong does not produce a
+clean failure. It produces a draw that samples the texture attached to its own
+framebuffer, which is undefined behaviour — it looks like a driver fault or a
+flickering artefact, on a Pi, in a room, and not like a design error in a
+diagram.
+**This corrected `VISUALIZER.md`**, whose architecture diagram showed `uPrev`
+as a side-loop off a single pair. The document specified the bug.
+**How it is proved:** the invariant is asserted twice. In the plan — each
+step's source is the previous step's target, and the feedback target never
+appears among a frame's targets, across eight frames of varying chain length.
+And where it actually matters, against the recording fake over six rendered
+frames: **no draw samples the texture attached to the framebuffer it is bound
+to.** The fake replays bind state per draw, so a stale binding shows up rather
+than disappearing.
+**Cost:** one extra full-size texture. On a VideoCore VII at half resolution
+that is a few hundred kilobytes, against a class of bug that only appears on
+hardware.
+**Status:** ✅ Accepted.
+
+---
+
+### D-062 · Overlays composite; they do not filter
+**Chose:** a pass may declare `overlay: true`. Overlays draw after the upscale,
+at full panel size, alpha-blended, and are given **no `uTexture`**.
+**Why:** VISUALIZER.md asks for "effects that need sharpness" — spectrum bars,
+text — to render full-resolution on top, and gives no mechanism. The obvious
+one is a second ping-pong pair at panel size, which doubles the memory for
+passes that never read what is beneath them. Denying them the chain input makes
+that structural rather than conventional: an overlay *cannot* filter, so it
+cannot need a full-resolution copy of the frame to filter.
+**A consequence worth stating:** overlays are the last thing the degrader
+drops. Dropping a few dozen triangles of spectrum bars saves nothing worth the
+hole it leaves in the picture.
+**Status:** ✅ Accepted.

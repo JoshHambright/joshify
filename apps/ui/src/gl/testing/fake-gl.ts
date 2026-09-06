@@ -21,9 +21,19 @@ import type {
 } from '../gl-context.js';
 
 export type GlCall =
-  | { readonly op: 'createProgram'; readonly label: string; readonly vertex: string; readonly fragment: string }
+  | {
+      readonly op: 'createProgram';
+      readonly label: string;
+      readonly vertex: string;
+      readonly fragment: string;
+    }
   | { readonly op: 'deleteProgram'; readonly label: string }
-  | { readonly op: 'createGeometry'; readonly label: string; readonly count: number; readonly indexed: boolean }
+  | {
+      readonly op: 'createGeometry';
+      readonly label: string;
+      readonly count: number;
+      readonly indexed: boolean;
+    }
   | { readonly op: 'deleteGeometry'; readonly label: string }
   | {
       readonly op: 'createTexture';
@@ -33,7 +43,12 @@ export type GlCall =
       readonly filter: string;
       readonly wrap: string;
     }
-  | { readonly op: 'resizeTexture'; readonly label: string; readonly width: number; readonly height: number }
+  | {
+      readonly op: 'resizeTexture';
+      readonly label: string;
+      readonly width: number;
+      readonly height: number;
+    }
   | { readonly op: 'uploadImage'; readonly label: string }
   | { readonly op: 'deleteTexture'; readonly label: string }
   | { readonly op: 'createFramebuffer'; readonly label: string; readonly colour: string }
@@ -94,13 +109,15 @@ export const createFakeGl = (): FakeGl => {
   const alive = new Map<string, Set<string>>();
   let nextId = 0;
 
-  const mint = <T>(kind: string): T & Labelled => {
+  // Every handle is the same thing to the fake — a label it can print back in
+  // an assertion — so the branded types are only put on at the call site.
+  const mint = (kind: string): Labelled => {
     nextId += 1;
     const label = `${kind}#${String(nextId)}`;
     const set = alive.get(kind) ?? new Set<string>();
     set.add(label);
     alive.set(kind, set);
-    return { label } as T & Labelled;
+    return { label };
   };
 
   const labelOf = (handle: object): string => (handle as Labelled).label;
@@ -111,7 +128,7 @@ export const createFakeGl = (): FakeGl => {
 
   const gl: GlContext = {
     createProgram: ({ vertex, fragment }) => {
-      const handle = mint<ProgramHandle>('program');
+      const handle = mint('program') as ProgramHandle & Labelled;
       calls.push({ op: 'createProgram', label: handle.label, vertex, fragment });
       return handle;
     },
@@ -120,7 +137,7 @@ export const createFakeGl = (): FakeGl => {
       bury('program', labelOf(program));
     },
     createGeometry: ({ count, indices }) => {
-      const handle = mint<GeometryHandle>('geometry');
+      const handle = mint('geometry') as GeometryHandle & Labelled;
       calls.push({
         op: 'createGeometry',
         label: handle.label,
@@ -134,7 +151,7 @@ export const createFakeGl = (): FakeGl => {
       bury('geometry', labelOf(geometry));
     },
     createTexture: ({ width, height, filter, wrap }) => {
-      const handle = mint<TextureHandle>('texture');
+      const handle = mint('texture') as TextureHandle & Labelled;
       calls.push({
         op: 'createTexture',
         label: handle.label,
@@ -156,7 +173,7 @@ export const createFakeGl = (): FakeGl => {
       bury('texture', labelOf(texture));
     },
     createFramebuffer: (colour) => {
-      const handle = mint<FramebufferHandle>('framebuffer');
+      const handle = mint('framebuffer') as FramebufferHandle & Labelled;
       attachments.set(handle.label, labelOf(colour));
       calls.push({
         op: 'createFramebuffer',

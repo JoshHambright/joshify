@@ -70,10 +70,7 @@ export interface Preset {
 }
 
 export type PresetProblemReason =
-  | 'malformed'
-  | 'unknown-scene'
-  | 'unknown-pass'
-  | 'chain-too-long';
+  'malformed' | 'unknown-scene' | 'unknown-pass' | 'chain-too-long';
 
 export interface PresetProblem {
   readonly reason: PresetProblemReason;
@@ -117,7 +114,9 @@ export const resolveParams = (
   for (const [name, param] of Object.entries(spec)) {
     const raw = given[name];
     resolved[name] =
-      typeof raw === 'number' && Number.isFinite(raw) ? clampTo(param, raw) : param.default;
+      typeof raw === 'number' && Number.isFinite(raw)
+        ? clampTo(param, raw)
+        : param.default;
   }
   return resolved;
 };
@@ -220,9 +219,7 @@ export const parsePresetJson = (
  * removes an edge is free money.
  */
 export const FULLSCREEN_TRIANGLE: GeometrySpec = {
-  attributes: [
-    { location: 0, size: 2, data: new Float32Array([-1, -1, 3, -1, -1, 3]) },
-  ],
+  attributes: [{ location: 0, size: 2, data: new Float32Array([-1, -1, 3, -1, -1, 3]) }],
   count: 3,
 };
 

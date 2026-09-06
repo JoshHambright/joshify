@@ -202,18 +202,31 @@ changes preset on track change. Very Winamp.
 
 ## Architecture
 
+> **Corrected during P5-01.** An earlier version of the diagram below showed
+> `uPrev` as a side-loop off a single ping-pong *pair*. That is not merely
+> under-specified, it is wrong: two buffers cannot hold both the chain's
+> intermediate result and last frame's finished image, so a scene rendering
+> into one of them overwrites the frame a feedback pass is about to read.
+> Implemented literally it produces the read-and-write-the-same-texture bug,
+> which is undefined behaviour and looks like a driver fault rather than a
+> design error. **Three targets** (D-061).
+
+
 ```
 album art (640px, cached)
         │
         ▼
    ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-   │ source  │──►│ pass 1  │──►│ pass 2  │──►│ pass N  │──► screen
-   └─────────┘   └────┬────┘   └─────────┘   └─────────┘
-                      │ ▲
-                      ▼ │  ping-pong FBO (feedback)
-                   ┌───────┐
-                   │ uPrev │
-                   └───────┘
+   │  scene  │──►│ pass 1  │──►│ pass 2  │──►│ pass N  │──► screen
+   │ flat /  │   └─────────┘   └─────────┘   └─────────┘
+   │ tunnel  │        ▲
+   └─────────┘        │ uPrev (last frame, whole)
+                 ┌────┴────┐
+                 │ THREE targets, rotating each frame:
+                 │   A  the previous frame — read-only all frame
+                 │   B  ┐ the chain ping-pongs between these two
+                 │   C  ┘
+                 └─────────┘
                       ▲
    uTime / uBeat / uBands / uAccent ──┘
         ▲
@@ -279,7 +292,7 @@ behind text — enforced in tests, not by eye.
 
 A multi-pass fragment shader chain at 60fps is precisely what the **Pi Zero 2 W's
 VideoCore IV cannot do** — it has no GLES 3.x, poor driver support, and no memory
-headroom for ping-pong framebuffers on top of Node and a browser.
+headroom for the three render targets on top of Node and a browser.
 
 The **Pi 5's VideoCore VII (Mesa V3D, GLES 3.1 + Vulkan 1.2)** has real headroom —
 enough to run deep effect stacks at full resolution rather than being forced to
