@@ -16,6 +16,7 @@
     "typecheck": "tsc --build && pnpm --filter @joshify/ui check",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
     "coverage": "vitest run --coverage",
     "build": "pnpm --recursive --if-present build",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm coverage && pnpm build",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^3.2.4",

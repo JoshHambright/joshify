@@ -30,6 +30,21 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // The end-to-end suite and its harness. Node globals, and the harness is
+    // deliberately plain `.mjs` — adding a TypeScript loader to start a
+    // process would put a second build path between the test and the artefact
+    // it is meant to be testing.
+    files: ['e2e/**/*.{ts,mjs}', 'playwright.config.ts'],
+    languageOptions: {
+      globals: { process: 'readonly', console: 'readonly' },
+      parserOptions: {
+        projectService: false,
+        project: ['./e2e/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
   ...svelte.configs.recommended,
   {
     files: ['**/*.svelte'],

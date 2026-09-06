@@ -31,3 +31,22 @@ jobs:
       # Spotify server (P1-10).
       - name: Verify
         run: pnpm verify
+
+      # Only Chromium: the panel ships on one browser, on one device, and
+      # installing three would be two minutes spent proving nothing.
+      - name: Install Chromium for the end-to-end suite
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Runs against `dist/`, which `pnpm verify` just built. Every other suite
+      # tests one seam with the rest faked — this is the only one that can see
+      # the pieces failing to be assembled (P8-06).
+      - name: End-to-end
+        run: pnpm e2e
+
+      - name: Upload end-to-end traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

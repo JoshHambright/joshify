@@ -6,3 +6,5 @@ spikes
 docs
 *.md
 dist-web
+test-results
+playwright-report

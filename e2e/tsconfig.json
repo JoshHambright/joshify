@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    // The harness reaches into `apps/server/dist`, which is JavaScript with
+    // declarations beside it — the whole point is to test the built artefact
+    // rather than the source it came from.
+    "allowJs": true
+  },
+  "include": ["**/*.ts", "**/*.mjs", "../playwright.config.ts"]
+}

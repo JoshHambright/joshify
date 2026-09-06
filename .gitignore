@@ -19,3 +19,5 @@ coverage/
 .DS_Store
 dist-web/
 dist-demo/
+test-results/
+playwright-report/

@@ -43,8 +43,8 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 5 | **Visualizer + librespot** | 38 | 0 | ⬜ Not started (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 6 | 🟨 In progress |
-| 8 | Packaging, CI/CD & audio module | 11 | 4 | 🟨 In progress |
-| | **Total** | **122** | **69** | |
+| 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
+| | **Total** | **122** | **70** | |
 
 ---
 
@@ -252,7 +252,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P8-03 | `docker-compose.yml` for the container path | ✅ | `network_mode: host` is required, not lazy: under bridge networking the browser's `127.0.0.1` during PKCE is the *host* while the listener is in the container, so the callback lands nowhere |
 | P8-04 | One-line install script (non-container path) | ✅ | Run end to end as root against a synthetic bundle: first install, re-run, permissions, uninstall, double-uninstall and the loud-failure paths. Found a real bug — `--skip-systemd` reported success and did nothing |
 | P8-05 | Release pipeline: versioning, changelog, tagged artefacts | 🟨 | Changelog grouped by the `P<phase>-<task>` prefix this repo already uses, so notes and tracker share a vocabulary. Never run against a real tag. Caught a genuine bug in testing: `pnpm install --prod` leaves workspace links in per-project `node_modules`, so a root-only copy produces a bundle that installs and then dies on `ERR_MODULE_NOT_FOUND` — the workflow now proves the bundle resolves its own imports before publishing |
-| P8-06 | E2E smoke test in CI against the fake Spotify server | ⬜ | Playwright |
+| P8-06 | E2E smoke test in CI against the fake Spotify server | ✅ | Seven tests against `dist/` — real browser at 720×1280, real `joshify serve`, fake Spotify. Deliberately small: this is the only suite that can see the pieces failing to be *assembled*, and the one that would have caught the missing `/` route (D-059) |
 | P8-07 | Installation documentation | ✅ | [`docs/INSTALL.md`](./INSTALL.md) |
 | P8-08 | Hardware guide: screen, case, wiring, OS flashing | ✅ | In `INSTALL.md`, cross-linked from `HARDWARE.md`. Both traps called out: the 22→15-way DSI cable and the 27W supply |
 | P8-09 | Optional `librespot` module: install + systemd unit | ⬜ | Opt-in; must not break core install |

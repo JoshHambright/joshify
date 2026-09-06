@@ -1116,3 +1116,30 @@ error somewhere far from the cause.
 still serves the API, and the CLI says so on startup — much easier to diagnose
 there than from a black screen on a wall.
 **Status:** ✅ Accepted.
+
+---
+
+### D-059 · One end-to-end suite, kept deliberately small
+**Chose:** seven Playwright tests against `dist/` — a real browser at the
+device's 720×1280, a real `joshify serve`, and the fake Spotify behind it.
+Nothing about *behaviour*; only about the pieces being connected.
+**Why it exists:** 1,183 unit and component tests pass in seconds and give
+precise failure messages, and every one of them tests a single seam with the
+others faked. That is what makes them good, and it is exactly why they could
+all be green while the shipped artefact did not work. The bug that prompted
+this was real: the server had no route at `/`, so the panel loaded from
+nowhere, and nothing in the suite could see it.
+**Why it stays small:** an end-to-end suite that grows into a behaviour suite
+becomes the slowest and flakiest way to learn things that were already known.
+Each test here has to justify itself by testing something no faster test can.
+**No retries.** A panel that only works on the third try is broken, and a retry
+would hide it.
+**It runs against `dist/`, not source.** Testing the source would leave the
+build itself — the thing that actually ships — unexercised.
+**A lesson from writing it:** the first version of the "a device with no volume
+shows no slider" test asserted `toHaveCount(0)` against a selector that matched
+nothing at all, and passed for entirely the wrong reason. It now asserts both
+directions — Kitchen *has* a slider, the TV does not — so the selector has to
+prove itself before the absence means anything. A negative assertion alone is
+indistinguishable from a typo.
+**Status:** ✅ Accepted.
