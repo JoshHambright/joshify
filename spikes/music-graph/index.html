@@ -17,21 +17,21 @@
 }
 @media (prefers-color-scheme:light){
   :root:not([data-theme="dark"]){
-    --ground:#dcd9d2; --panel:#eceae4; --panel-2:#f5f3ee; --panel-3:#fffefb;
+    --ground:#cfcbc2; --panel:#f1efe9; --panel-2:#f8f6f1; --panel-3:#fffefb;
     --rule:#c2beb4; --rule-soft:#d6d2c9;
     --ink:#23252a; --ink-2:#565b64; --ink-3:#868c95;
     --oxide:#ab4d26; --lamp:#a4740a;
-    --canvas-bg:#f4f2ed; --edge-line:#b3aea3; --shadow:rgba(60,52,40,.16);
+    --canvas-bg:#e6e2d9; --edge-line:#9a948a; --shadow:rgba(60,52,40,.16);
     --t-person:#b06c0c; --t-band:#ad3a22; --t-album:#22648b; --t-song:#3b7a27;
     --t-studio:#6446ab; --t-instrument:#127668; --t-tour:#ab3764; --t-label:#5a616c;
   }
 }
 :root[data-theme="light"]{
-  --ground:#dcd9d2; --panel:#eceae4; --panel-2:#f5f3ee; --panel-3:#fffefb;
+  --ground:#cfcbc2; --panel:#f1efe9; --panel-2:#f8f6f1; --panel-3:#fffefb;
   --rule:#c2beb4; --rule-soft:#d6d2c9;
   --ink:#23252a; --ink-2:#565b64; --ink-3:#868c95;
   --oxide:#ab4d26; --lamp:#a4740a;
-  --canvas-bg:#f4f2ed; --edge-line:#b3aea3; --shadow:rgba(60,52,40,.16);
+  --canvas-bg:#e6e2d9; --edge-line:#9a948a; --shadow:rgba(60,52,40,.16);
   --t-person:#b06c0c; --t-band:#ad3a22; --t-album:#22648b; --t-song:#3b7a27;
   --t-studio:#6446ab; --t-instrument:#127668; --t-tour:#ab3764; --t-label:#5a616c;
 }
@@ -340,9 +340,9 @@ input[type=range]::-moz-range-thumb{width:9px;height:15px;border-radius:1px;back
       <div class="sect">
         <h2>Year</h2>
         <div class="yr">
-          <div class="yrhead"><span id="yrFromLbl">1954</span><span id="yrToLbl">2009</span></div>
-          <input type="range" id="yrFrom" min="1954" max="2009" value="1954" aria-label="Earliest year">
-          <input type="range" id="yrTo" min="1954" max="2009" value="2009" aria-label="Latest year">
+          <div class="yrhead"><span id="yrFromLbl">—</span><span id="yrToLbl">—</span></div>
+          <input type="range" id="yrFrom" aria-label="Earliest year">
+          <input type="range" id="yrTo" aria-label="Latest year">
           <label class="chk"><input type="checkbox" id="keepUndated" checked> Keep undated entities</label>
         </div>
       </div>
@@ -964,13 +964,17 @@ const RELS = {
   covered:     {label:"covers",      inv:"covered by",    style:"dot",   len:46},
 };
 const REL_KEYS = Object.keys(RELS);
-const YMIN = 1954, YMAX = 2009;
+const YEARS = BASE_NODES.map(n => n[3]).concat(BASE_EDGES.map(e => e[3])).filter(y => y != null);
+const YMIN = Math.min(...YEARS), YMAX = Math.max(...YEARS);
+/* The slider spans the era the corpus actually lives in; at either end it
+   means "no bound", so the handful of much older entries stay visible. */
+const SMIN = Math.min(1950, YMIN), SMAX = Math.max(2010, YMAX);
 
 /* ============================================================ 2. STATE */
 const S = {
   types: new Set(TYPES.map(t => t[0])),
   rels: new Set(REL_KEYS),
-  yFrom: YMIN, yTo: YMAX, keepUndated: true,
+  yFrom: SMIN, yTo: SMAX, keepUndated: true,
   hideOrphans: false, showLabels: true, freeze: false, dim: true,
   sel: null, hover: null, matched: null, path: null, armPath: false,
   k: 1, tx: 0, ty: 0, alpha: 1,
@@ -1039,7 +1043,10 @@ function memoPositions() {
 }
 
 /* ============================================================ 4. FILTERS */
-function inYear(y) { return y == null ? S.keepUndated : (y >= S.yFrom && y <= S.yTo); }
+function inYear(y) {
+  if (y == null) return S.keepUndated;
+  return (S.yFrom <= SMIN || y >= S.yFrom) && (S.yTo >= SMAX || y <= S.yTo);
+}
 
 function applyFilters() {
   for (const n of nodes) n.vis = S.types.has(n.type) && inYear(n.year);
@@ -1156,7 +1163,7 @@ function draw() {
                 : halo ? (e.f === focus || e.t === focus) : false;
       if ((pass === 1) !== hot) continue;
       const q = inQuery(e.f) && inQuery(e.t);
-      let al = hot ? 0.95 : (halo || pathIds ? 0.1 : 0.3);
+      let al = hot ? 0.95 : (halo || pathIds ? 0.11 : 0.36);
       if (!q) al *= 0.22;
       const st = RELS[e.rel] ? RELS[e.rel].style : "solid";
       ctx.setLineDash(st === "dash" ? [5 / S.k, 4 / S.k] : st === "dot" ? [1.5 / S.k, 3.5 / S.k] : []);
@@ -1226,7 +1233,7 @@ function fit(ids) {
   if (!pool.length) return;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const n of pool) { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); }
-  const pad = 70;
+  const pad = 52;
   S.k = Math.max(0.15, Math.min(2.6, Math.min((W - pad * 2) / Math.max(1, x1 - x0), (H - pad * 2) / Math.max(1, y1 - y0))));
   S.tx = W / 2 - ((x0 + x1) / 2) * S.k;
   S.ty = H / 2 - ((y0 + y1) / 2) * S.k;
@@ -1652,7 +1659,8 @@ $("keepUndated").onchange = (e) => { S.keepUndated = e.target.checked; refresh(t
 function yrSync() {
   const a = +$("yrFrom").value, b = +$("yrTo").value;
   S.yFrom = Math.min(a, b); S.yTo = Math.max(a, b);
-  $("yrFromLbl").textContent = S.yFrom; $("yrToLbl").textContent = S.yTo;
+  $("yrFromLbl").textContent = S.yFrom <= SMIN ? "earliest" : S.yFrom;
+  $("yrToLbl").textContent = S.yTo >= SMAX ? "latest" : S.yTo;
   refresh(true);
 }
 $("yrFrom").oninput = yrSync; $("yrTo").oninput = yrSync;
@@ -1789,11 +1797,15 @@ async function connectStore() {
     const o = document.createElement("option"); o.value = k; o.textContent = RELS[k].label;
     $("eRel").append(o);
   }
+  for (const [id, v] of [["yrFrom", SMIN], ["yrTo", SMAX]]) {
+    const r = $(id); r.min = String(SMIN); r.max = String(SMAX); r.value = String(v);
+  }
   readColors();
   buildGraph();
   applyFilters();
   for (let i = 0; i < 280; i++) tick();
   memoPositions();
+  $("yrFromLbl").textContent = "earliest"; $("yrToLbl").textContent = "latest";
   renderFilters(); renderChips(); renderInspect(); renderResults(); renderMine();
   resize();
   fit(null);
