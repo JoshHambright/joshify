@@ -1285,3 +1285,30 @@ file stops compiling. That is worth more than any runtime check in it.
 the seam needs an owner and a test, and both belong to whoever briefed them.
 Reviewing each half against its brief is not the same as checking they meet.
 **Status:** ✅ Accepted.
+
+---
+
+### D-066 · Shuffle-on-track-change is a function of the track, not a random draw
+**Chose:** `shuffledFor(presets, trackKey)` hashes the track key and indexes
+into the list. The same track always yields the same preset. `trackChanged` is
+safe to call on every poll and does nothing unless the key actually moved.
+**Why:** playback state arrives every couple of seconds, so "the track changed"
+is a question re-answered on every poll. Draw randomly each time and the
+visualiser reshuffles itself two or three times a second. That bug does not
+appear against a fixture — only against a live poll, on a wall, once everything
+else looks finished.
+
+The obvious fix is a "have I already shuffled for this track?" flag, and that
+is a piece of state with a lifetime and an invalidation rule, both of which can
+be wrong. A pure function of the key has neither: there is nothing to get out
+of step because there is nothing to keep in step.
+
+**A deliberate choice outranks shuffle until the next track.** Continuing to
+shuffle after someone has tapped a preset takes their choice away within
+seconds, which reads as the panel ignoring them.
+**And nothing playing does not shuffle.** Changing the look because the music
+stopped is motion nobody asked for.
+**One small trap, worth the test it has:** `findIndex` answers `-1` for an
+unknown id, and stepping forward from `-1` lands on the *last* preset — so the
+first tap after a preset is removed appears to go backwards.
+**Status:** ✅ Accepted.
