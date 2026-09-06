@@ -16,6 +16,29 @@ share the repo and the visual-prototype-first workflow from D-016. It is
 deliberately absent from `docs/TRACKING.md`. If it graduates into its own app it
 gets its own tracker, not a phase in Joshify's.
 
+## Visual direction
+
+Vaporwave / cyberpunk, committed to rather than gestured at: a receding neon
+plane with a horizon glow, cyan-and-magenta chromatic aberration on the
+wordmark, CRT scanlines over the stage, and nodes drawn as glowing tubes.
+
+**There is no light theme, on purpose.** A washed-out vaporwave is a
+contradiction, so the page commits to one visual world and paints every colour
+explicitly (including `body`'s background) rather than inheriting anything from
+the host. What would have been a light/dark switch is instead a **mood switch**
+between two dark palettes — NIGHT (indigo ground, cyan and violet) and SUNSET
+(plum ground, magenta and orange) — which is a real choice in this idiom rather
+than a concession to a convention that does not fit.
+
+Type is the vaporwave/cyberpunk collision made literal: **Bodoni Moda**, a
+high-contrast didone, wide-tracked in caps for the wordmark and entity names;
+**Chakra Petch**, a techno face, for every control and label; **Share Tech Mono**
+for data, years and the query bar. The didone is the "aesthetic" half, the
+techno face is the cyberpunk half, and the tension between them is the point.
+
+All of this is original work in the idiom — no reproduced logos, wordmarks or
+assets (D-015).
+
 ## The corpus
 
 233 entities, 376 typed relationships, one fully connected component — no
@@ -94,6 +117,26 @@ for (const pass of [0, 1])
 **Label budget by zoom and degree.** `thresh = k > 1.5 ? 0 : k > 0.9 ? 4 : 9` —
 plus an always-on set for the selection, its neighbours and any active path.
 Labels get a `--canvas-bg` backplate so they stay legible over edges.
+
+**Node size is a world value but a screen measurement.** Radii feed the force
+layout in world units, so they must live there — but drawing with them means a
+zoomed-in node inflates into a blob and a zoomed-out one vanishes. The fix is one
+line at the draw call:
+
+```js
+const drawR = (n) => Math.max(3 / S.k, Math.min(n.r, 26 / S.k));
+```
+
+Hit-testing and label placement use the same function, so what you can click is
+always what you can see. This was invisible until the neon halos went on — at
+2.5× the node radius, the zoom bug turned four selected nodes into four
+overlapping discs.
+
+**The atmosphere has to lose.** The first neon pass drew the grid at 0.42 alpha
+and haloed all 233 nodes equally; the result was a pretty haze you could not read
+a graph out of. Grid down to 0.26, scanlines to 0.34, halos to 0.10 alpha except
+on lit nodes, edges brightened. The scenery reads as scenery in a still frame and
+gets out of the way the moment you look for data.
 
 **Slider extremes mean "unbounded".** The year filter spans the era the corpus
 lives in (1950–2010), not its literal min/max — a single 1870 traditional song
