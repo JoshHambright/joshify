@@ -268,6 +268,20 @@ input[type=range]::-moz-range-thumb{width:9px;height:16px;border-radius:0;backgr
 .lk .dot{width:8px;height:8px;border-radius:50%;transform:translateY(1px)}
 .lk .nm{font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.02em}
 .lk .yr{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.lkwrap{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px}
+.lkx{background:none;border:0;color:var(--ink-3);cursor:pointer;padding:5px 9px;font-size:15px;line-height:1}
+.lkx:hover{color:#ff4d6d}
+.form.editing{background:rgba(255,47,185,.055);border-bottom:1px solid var(--rule-soft)}
+.importbox{display:none;flex-direction:column;gap:9px;margin-top:11px}
+.importbox.on{display:flex}
+.importbox textarea{
+  width:100%;min-height:96px;padding:8px;resize:vertical;
+  background:rgba(7,4,26,.7);border:1px solid var(--rule);color:var(--ink);
+  font-family:var(--mono);font-size:11px;
+}
+.importbox input[type=file]{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.importbox textarea:focus{border-color:var(--cyan);outline:none}
+.iorow{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
 .empty{padding:28px 16px;color:var(--ink-3);font-size:12.5px;line-height:1.75;max-width:40ch}
 .empty b{color:var(--ink-2);font-weight:500}
 .empty code{font-family:var(--mono);font-size:11px;color:var(--magenta)}
@@ -465,6 +479,7 @@ input[type=range]::-moz-range-thumb{width:9px;height:16px;border-radius:0;backgr
         <label class="chk"><input type="checkbox" id="hideOrphans"> Hide unconnected</label>
         <label class="chk"><input type="checkbox" id="showLabels" checked> Labels on hubs</label>
         <label class="chk"><input type="checkbox" id="freeze"> Freeze layout</label>
+        <button class="go ghost" type="button" id="moodBtn" style="margin-top:9px">Mood: Night</button>
       </div>
       <div class="sect">
         <h2>Try a query</h2>
@@ -542,11 +557,19 @@ input[type=range]::-moz-range-thumb{width:9px;height:16px;border-radius:0;backgr
           <p class="say" id="sayEdge"></p>
         </div>
         <div class="form" style="border-top:1px solid var(--rule-soft)">
-          <h4 class="fh">Your additions</h4>
+          <h4 class="fh">Your changes</h4>
           <div id="mineList"></div>
-          <div style="display:flex;gap:7px;margin-top:11px">
-            <button class="go ghost" type="button" id="exportBtn">Export JSON</button>
-            <button class="go ghost" type="button" id="moodBtn">Mood: Night</button>
+          <div class="iorow">
+            <button class="go ghost" type="button" id="exportBtn">Export</button>
+            <button class="go ghost" type="button" id="importBtn">Import</button>
+          </div>
+          <div class="importbox" id="importBox">
+            <input type="file" id="importFile" accept="application/json,.json">
+            <textarea id="importText" spellcheck="false" placeholder='…or paste {"nodes":[…], "edges":[…]} here'></textarea>
+            <div class="iorow" style="margin:0">
+              <button class="go" type="button" id="importGo">Merge in</button>
+              <button class="go ghost" type="button" id="importCancel">Cancel</button>
+            </div>
           </div>
           <p class="say" id="sayIO"></p>
         </div>
@@ -1101,7 +1124,7 @@ const S = {
   rels: new Set(REL_KEYS),
   yFrom: SMIN, yTo: SMAX, keepUndated: true,
   hideOrphans: false, showLabels: true, freeze: false, dim: true, layout: "web",
-  sel: null, hover: null, matched: null, path: null, armPath: false,
+  sel: null, hover: null, matched: null, path: null, armPath: false, editing: null,
   k: 1, tx: 0, ty: 0, alpha: 1,
 };
 const OV_NODES = new Map();   // overlay: id -> {…, deleted?}
@@ -1113,6 +1136,9 @@ const posMemo = new Map();
 
 /* ============================================================ 3. GRAPH BUILD */
 function edgeKey(f, t, r) { return f + "+" + t + "+" + r; }
+const BASE_NODE_IDS = new Set(BASE_NODES.map(a => a[0]));
+const BASE_EDGE_IDS = new Set(BASE_EDGES.map(a => edgeKey(a[0], a[1], a[2])));
+const DOC_ID = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
 
 function buildGraph() {
   byId = new Map();
@@ -1125,7 +1151,8 @@ function buildGraph() {
     if (d.deleted) { byId.delete(id); continue; }
     const prev = byId.get(id) || {};
     byId.set(id, { ...prev, id, type: d.type, name: d.name, year: d.year ?? null,
-                   note: d.note ?? null, own: true });
+                   note: d.note ?? null, own: true,
+                   added: !BASE_NODE_IDS.has(id), edited: BASE_NODE_IDS.has(id) });
   }
   const em = new Map();
   for (const a of BASE_EDGES) {
@@ -1136,7 +1163,8 @@ function buildGraph() {
   for (const [id, d] of OV_EDGES) {
     if (d.deleted) { em.delete(id); continue; }
     em.set(id, { id, f: d.f, t: d.t, rel: d.rel, year: d.year ?? null,
-                 note: d.note ?? null, own: true });
+                 note: d.note ?? null, own: true,
+                 added: !BASE_EDGE_IDS.has(id), edited: BASE_EDGE_IDS.has(id) });
   }
 
   nodes = [...byId.values()];
@@ -1763,7 +1791,7 @@ function renderInspect() {
   const bits = [];
   if (n.year != null) bits.push(n.type === "person" ? "b. " + n.year : String(n.year));
   bits.push(n.deg + (n.deg === 1 ? " connection" : " connections"));
-  if (n.own) bits.push("added here");
+  if (n.added) bits.push("added here"); else if (n.edited) bits.push("edited here");
   card.append(el("p", "meta", bits.join("  ·  ")));
   if (n.note) card.append(el("p", "note", n.note));
 
@@ -1774,9 +1802,11 @@ function renderInspect() {
   btns.append(mk(S.armPath ? "Pick a target…" : "Path from here", S.armPath ? "hot" : "", () => {
     S.armPath = !S.armPath; renderInspect();
   }));
-  if (n.own) btns.append(mk("Remove", "danger", () => removeNode(n.id)));
+  btns.append(mk(S.editing === n.id ? "Done" : "Edit", S.editing === n.id ? "hot" : "",
+    () => { S.editing = S.editing === n.id ? null : n.id; renderInspect(); }));
   card.append(btns);
   p.append(card);
+  if (S.editing === n.id) p.append(editForm(n));
 
   const groups = relRows(n);
   const order = [...groups.keys()];
@@ -1789,12 +1819,63 @@ function renderInspect() {
       b.append(dot(other.type), el("span", "nm", other.name), el("span", "yr", e.year != null ? String(e.year) : "—"));
       b.title = e.note || (RELS[e.rel].label + " · " + other.name);
       b.onclick = () => select(other.id, false);
-      g.append(b);
+      if (S.editing === n.id) {
+        const row = el("div", "lkwrap");
+        const x = el("button", "lkx", "×"); x.type = "button";
+        x.title = "Remove this connection";
+        x.onclick = () => removeEdge(e.id);
+        row.append(b, x); g.append(row);
+      } else g.append(b);
       if (e.note) { const nt = el("p", "note"); nt.style.margin = "1px 0 6px 16px"; nt.style.fontSize = "11.5px"; nt.textContent = e.note; g.append(nt); }
     }
     p.append(g);
   }
   if (!order.length) p.append(el("div", "empty", "No connections with the current relationship filters."));
+}
+
+/* One form for every entity, corpus or your own. Edits land in the same overlay
+   that holds additions, keyed by the entity's id, so correcting a fact and
+   inventing one are the same operation — and either can be reverted. */
+function editForm(n) {
+  const box = el("div", "form editing");
+  const field = (cap, node) => { const l = el("label"); l.append(el("span", "cap", cap), node); return l; };
+  const inp = (v, type) => { const i = document.createElement("input"); i.type = type || "text"; if (v != null) i.value = v; return i; };
+
+  const kindSel = document.createElement("select");
+  for (const [k] of TYPES) { const o = document.createElement("option"); o.value = k; o.textContent = TYPE_LABEL[k]; kindSel.append(o); }
+  kindSel.value = n.type;
+  const nameIn = inp(n.name), yearIn = inp(n.year, "number");
+  const noteIn = document.createElement("textarea"); noteIn.value = n.note || "";
+
+  const two = el("div", "two");
+  two.append(field("Kind", kindSel), field("Year", yearIn));
+  box.append(two, field("Name", nameIn), field("Note", noteIn));
+
+  const row = el("div", "iorow"); row.style.margin = "0";
+  const save = el("button", "go", "Save"); save.type = "button";
+  save.onclick = async () => {
+    const name = nameIn.value.trim();
+    if (!name) return say("sayNode", "An entity needs a name.", "bad");
+    await writeNode(n.id, { id: n.id, type: kindSel.value, name,
+      year: yearIn.value ? +yearIn.value : null, note: noteIn.value.trim() || null });
+    S.editing = null; renderInspect();
+  };
+  const del = el("button", "go ghost", "Delete"); del.type = "button";
+  del.onclick = () => removeNode(n.id);
+  row.append(save, del);
+  box.append(row);
+
+  if (n.own) {
+    const rev = el("button", "go ghost", n.added ? "Discard this entity" : "Revert to the original");
+    rev.type = "button"; rev.style.marginTop = "7px";
+    rev.onclick = () => revertNode(n.id);
+    box.append(rev);
+  }
+  const hint = el("p", "say", n.added ? "Added here — not part of the shipped corpus."
+    : n.edited ? "Edited here. The original is one click away."
+    : "From the corpus. Saving keeps your version on top of it; you can revert later.");
+  box.append(hint);
+  return box;
 }
 
 function renderResults(msg) {
@@ -1889,6 +1970,7 @@ function select(id, doFit) {
     else { say("sayNode", "No route with these relationships on", "bad"); }
     renderResults(); renderPathbar(); refresh(false); fit(p ? p.nodes : null); return;
   }
+  if (S.editing && S.editing !== id) S.editing = null;
   S.sel = id;
   renderInspect();
   renderPeek();
@@ -2139,34 +2221,153 @@ $("addEdge").onclick = async () => {
 };
 async function removeNode(id) {
   const n = byId.get(id); if (!n) return;
-  await writeNode(id, { id, deleted: true, name: n.name, type: n.type });
-  S.sel = null; renderInspect();
+  /* Something you added is simply dropped; something from the corpus gets a
+     tombstone, because the baseline ships in the page and cannot be edited. */
+  if (n.added) await dropOverlay("n", id);
+  else await writeNode(id, { id, deleted: true, name: n.name, type: n.type });
+  S.sel = null; S.editing = null; renderInspect(); renderPeek();
 }
 async function removeEdge(id) {
   const e = edges.find(x => x.id === id); if (!e) return;
-  await writeEdge(id, { id, deleted: true, f: e.f, t: e.t, rel: e.rel });
+  if (e.added) await dropOverlay("e", id);
+  else await writeEdge(id, { id, deleted: true, f: e.f, t: e.t, rel: e.rel });
+  renderInspect();
 }
+async function dropOverlay(kind, id) {
+  (kind === "n" ? OV_NODES : OV_EDGES).delete(id);
+  rebuild();
+  if (!db) return;
+  try { await db.collection(kind === "n" ? "graph_nodes" : "graph_edges").doc(id).delete(); }
+  catch (e) { /* the overlay is already gone locally */ }
+}
+const revertNode = (id) => dropOverlay("n", id).then(() => { S.editing = null; renderInspect(); renderPeek(); });
+const revertEdge = (id) => dropOverlay("e", id).then(renderInspect);
 function renderMine() {
   const box = $("mineList"); box.textContent = "";
-  const mine = nodes.filter(n => n.own), me = edges.filter(e => e.own);
-  if (!mine.length && !me.length) {
-    const p = el("p", "say", "Nothing added yet. New entities carry a ring so you can spot them on the graph.");
-    box.append(p); return;
+  const rows = [];
+  for (const n of nodes) if (n.own) rows.push({ kind: "n", id: n.id, type: n.type,
+    label: n.name, tag: n.added ? "added" : "edited", go: () => select(n.id, true) });
+  for (const e of edges) if (e.own) rows.push({ kind: "e", id: e.id, type: "label",
+    label: (byId.get(e.f) || {}).name + " " + RELS[e.rel].label + " " + (byId.get(e.t) || {}).name,
+    tag: e.added ? "added" : "edited", go: () => select(e.f, true) });
+  for (const [id, v] of OV_NODES) if (v.deleted) rows.push({ kind: "n", id, type: v.type || "label",
+    label: v.name || id, tag: "removed", go: null });
+  for (const [id, v] of OV_EDGES) if (v.deleted) rows.push({ kind: "e", id, type: "label",
+    label: ((byId.get(v.f) || {}).name || v.f) + " " + ((RELS[v.rel] || {}).label || v.rel) + " " + ((byId.get(v.t) || {}).name || v.t),
+    tag: "removed", go: null });
+
+  if (!rows.length) {
+    box.append(el("p", "say", "No changes yet. Anything you add or edit carries a ring on the graph and is listed here, with a way back."));
+    return;
   }
-  for (const n of mine) {
+  for (const r of rows) {
+    const wrap = el("div", "lkwrap");
     const b = el("button", "lk"); b.type = "button";
-    b.append(dot(n.type), el("span", "nm", n.name), el("span", "yr", "edit"));
-    b.onclick = () => select(n.id, true);
-    box.append(b);
+    b.append(dot(r.type), el("span", "nm", r.label), el("span", "yr", r.tag));
+    b.onclick = r.go || (() => {});
+    const x = el("button", "lkx", "↺"); x.type = "button";
+    x.title = "Undo this change";
+    x.onclick = () => (r.kind === "n" ? revertNode : revertEdge)(r.id);
+    wrap.append(b, x); box.append(wrap);
   }
-  for (const e of me) {
-    const b = el("button", "lk"); b.type = "button";
-    const label = (byId.get(e.f) || {}).name + " " + RELS[e.rel].label + " " + (byId.get(e.t) || {}).name;
-    b.append(dot("label"), el("span", "nm", label), el("span", "yr", "×"));
-    b.onclick = () => removeEdge(e.id);
-    box.append(b);
-  }
+  const reset = el("button", "go ghost", "Undo all " + plural(rows.length, "change", "changes"));
+  reset.type = "button"; reset.style.marginTop = "10px";
+  reset.onclick = async () => {
+    for (const r of rows) await dropOverlay(r.kind, r.id);
+    S.editing = null; renderInspect(); renderPeek();
+    say("sayIO", "Back to the shipped corpus.", "ok");
+  };
+  box.append(reset);
 }
+/* ---- import ------------------------------------------------------------
+   Takes what export writes. Rows identical to the shipped corpus are counted
+   and skipped rather than written, so importing your own export does not
+   mint 233 redundant overlay documents against the store's quota. */
+const CORPUS_N = new Map(BASE_NODES.map(a => [a[0], { type: a[1], name: a[2], year: a[3] ?? null, note: a[4] ?? null }]));
+const CORPUS_E = new Map(BASE_EDGES.map(a => [edgeKey(a[0], a[1], a[2]),
+  { f: a[0], t: a[1], rel: a[2], year: a[3] ?? null, note: a[4] ?? null }]));
+const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+const same = (a, b, keys) => !!a && !!b && keys.every(k => (a[k] ?? null) === (b[k] ?? null));
+
+async function importJSON(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { return say("sayIO", "That isn't valid JSON.", "bad"); }
+  const inN = Array.isArray(data.nodes) ? data.nodes : [];
+  const inE = Array.isArray(data.edges) ? data.edges : [];
+  if (!inN.length && !inE.length) return say("sayIO", "No entities or connections in that file.", "bad");
+
+  const byName = new Map(nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const minted = new Set();
+  const writes = [];
+  let skipped = 0, matched = 0;
+
+  for (const r of inN) {
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    if (!name || !TYPE_LABEL[r.type]) { skipped++; continue; }
+    const given = typeof r.id === "string" && DOC_ID.test(r.id) ? r.id : null;
+    const id = given || byName.get(name.toLowerCase()) || newId();
+    const body = { id, type: r.type, name, year: Number.isFinite(r.year) ? r.year : null,
+                   note: typeof r.note === "string" && r.note ? r.note : null };
+    byName.set(name.toLowerCase(), id); minted.add(id);
+    if (same(CORPUS_N.get(id), body, ["type", "name", "year", "note"])) { matched++; continue; }
+    writes.push(["n", id, body]);
+  }
+
+  const resolve = (v) => {
+    if (typeof v !== "string") return null;
+    if (byId.has(v) || minted.has(v)) return v;
+    return byName.get(v.toLowerCase()) || null;
+  };
+  for (const r of inE) {
+    const f = resolve(r.from ?? r.f), t = resolve(r.to ?? r.t);
+    if (!f || !t || f === t || !RELS[r.rel]) { skipped++; continue; }
+    const id = edgeKey(f, t, r.rel);
+    const body = { id, f, t, rel: r.rel, year: Number.isFinite(r.year) ? r.year : null,
+                   note: typeof r.note === "string" && r.note ? r.note : null };
+    if (same(CORPUS_E.get(id), body, ["f", "t", "rel", "year", "note"])) { matched++; continue; }
+    writes.push(["e", id, body]);
+  }
+
+  if (!writes.length) return say("sayIO", "Nothing new — all " + plural(matched, "row", "rows") + " already match what's here.", "ok");
+  if (writes.length > 800) return say("sayIO", writes.length + " new rows is more than this store will hold. Trim the file and try again.", "bad");
+
+  for (const [kind, id, body] of writes) (kind === "n" ? OV_NODES : OV_EDGES).set(id, body);
+  rebuild();
+
+  let failed = 0;
+  if (db) {
+    for (let i = 0; i < writes.length; i += 20) {
+      await Promise.all(writes.slice(i, i + 20).map(([kind, id, body]) =>
+        db.collection(kind === "n" ? "graph_nodes" : "graph_edges").doc(id).set(body).catch(() => { failed++; })));
+    }
+  }
+  const nn = writes.filter(w => w[0] === "n").length;
+  say("sayIO", "Merged " + plural(nn, "entity", "entities") + " and " +
+    plural(writes.length - nn, "connection", "connections") + "." +
+    (matched ? " " + plural(matched, "row", "rows") + " already matched." : "") +
+    (skipped ? " " + plural(skipped, "row", "rows") + " skipped." : "") +
+    (failed ? " " + failed + " could not be saved." : db ? "" : " Not stored — this browser only."),
+    failed ? "bad" : "ok");
+  $("importBox").classList.remove("on");
+  $("importText").value = "";
+}
+
+$("importBtn").onclick = () => {
+  const box = $("importBox");
+  box.classList.toggle("on");
+  if (box.classList.contains("on")) say("sayIO", "Takes what Export writes: {\"nodes\":[…], \"edges\":[…]}. Rows already matching the corpus are skipped.");
+};
+$("importCancel").onclick = () => { $("importBox").classList.remove("on"); say("sayIO", ""); };
+$("importGo").onclick = () => importJSON($("importText").value);
+$("importFile").onchange = (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => importJSON(String(fr.result));
+  fr.onerror = () => say("sayIO", "Couldn't read that file.", "bad");
+  fr.readAsText(f);
+};
+
 $("exportBtn").onclick = async () => {
   const payload = JSON.stringify({
     generated: new Date().toISOString(),

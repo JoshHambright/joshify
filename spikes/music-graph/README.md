@@ -128,6 +128,35 @@ left rail, so turning off `issued by` stops routes tunnelling through record
 labels — which is usually what you want, because a label connects everything to
 everything.
 
+## Editing, and getting data in and out
+
+The corpus ships in the page as content; everything you change lives in an
+**overlay** keyed by entity id, merged over that baseline at build time. One
+mechanism covers three cases, which is why correcting a fact and inventing one
+are the same operation:
+
+| You do | The overlay holds | Undo |
+|---|---|---|
+| Add an entity or connection | a new row | drop the row |
+| Edit one from the corpus | a row under the corpus id, which wins the merge | drop the row, and the original returns |
+| Delete one from the corpus | a tombstone | drop the tombstone |
+
+Every entity is editable, not just the ones you added — kind, name, year, note —
+and while an entity is in edit mode each of its connections grows a × so wrong
+edges can go too. **Your changes** in the Add tab lists every add, edit and
+deletion with a one-click revert, and an undo-all. Nothing you do is destructive
+to the corpus: the baseline is in the file, so the worst case is a stack of
+overlay rows you can throw away.
+
+**Import** takes what Export writes — `{"nodes": […], "edges": […]}` — by file or
+paste. Rows are resolved by id where one is given and by name otherwise, so an
+export from a different copy still lands on the right entities. Rows identical to
+the shipped corpus are counted and skipped rather than written: importing your own
+export of 610 rows writes only the handful that are actually yours, instead of
+minting 610 redundant documents against the store's 5,000-document quota. Bad
+rows (no name, unknown kind, an endpoint that resolves to nothing) are skipped and
+counted rather than failing the whole file.
+
 ## On a phone
 
 The desktop layout does not survive a 390px screen, so below 820px it is a
@@ -225,10 +254,12 @@ shared editing, and nothing races to seed a store on load.
   Barnes–Hut quadtree or a grid.
 - **One shortest path.** BFS returns the first route it finds; ties are
   arbitrary and there is no "show me all paths of length 3".
-- **No editing of baseline entities.** You can add and connect, and remove your
-  own additions, but you cannot rename a corpus entity — the overlay supports it,
-  the UI doesn't expose it.
-- **No import.** Export writes JSON; there is no matching paste-to-load.
+- **No merge conflict handling.** Two people editing the same entity is
+  last-writer-wins, like everything else in the store. Fine for a few people,
+  wrong for a crowd.
+- **Import trusts the file's relationship vocabulary.** An unknown `rel` is
+  skipped rather than mapped or created, so a graph built with different
+  relationship names imports as entities with no connections.
 - **The phone still opens on a hairball**, just a legible one. Below about 0.4
   zoom the graph is a texture, and the query language is how you actually get
   anywhere.
