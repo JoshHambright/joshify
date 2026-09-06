@@ -36,80 +36,37 @@
  * a dark surface and covers the small type the large-text rule does not.
  */
 
+import {
+  BLACK,
+  clamp01,
+  TEXT_CONTRAST_MIN,
+  clampChannel,
+  contrastRatio,
+  WHITE,
+  type Hsl,
+  type Rgb,
+} from '@joshify/core';
+
+/**
+ * Re-exported so callers keep one import for "colour", even though the
+ * primitives now live in core where the UI can reach them too (D-068).
+ */
+export {
+  BLACK,
+  contrastRatio,
+  formatHex,
+  meetsContrast,
+  mix,
+  parseHex,
+  relativeLuminance,
+  TEXT_CONTRAST_MIN,
+  UI_CONTRAST_MIN,
+  WHITE,
+  type Hsl,
+  type Rgb,
+} from '@joshify/core';
+
 /** 8-bit sRGB, the form both hex tokens and image pixels arrive in. */
-export interface Rgb {
-  readonly r: number;
-  readonly g: number;
-  readonly b: number;
-}
-
-/** Hue in degrees, saturation and lightness in 0..1. */
-export interface Hsl {
-  readonly h: number;
-  readonly s: number;
-  readonly l: number;
-}
-
-/** WCAG 2.2 §1.4.3 AA, body text. */
-export const TEXT_CONTRAST_MIN = 4.5;
-
-/** WCAG 2.2 §1.4.11, non-text UI components. */
-export const UI_CONTRAST_MIN = 3;
-
-export const WHITE: Rgb = { r: 255, g: 255, b: 255 };
-export const BLACK: Rgb = { r: 0, g: 0, b: 0 };
-
-const clampChannel = (value: number): number => {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(255, Math.max(0, Math.round(value)));
-};
-
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
-
-/** `null` rather than a throw: hex strings reach this from config files. */
-export const parseHex = (hex: string): Rgb | null => {
-  const text = hex.trim().replace(/^#/, '').toLowerCase();
-  if (!/^[0-9a-f]+$/.test(text)) return null;
-
-  // The 3-digit form doubles each digit (#f0a === #ff00aa), which is not the
-  // same as padding with zeroes — a naive parse turns #fff into near-black.
-  const full = text.length === 3 ? text.replace(/[0-9a-f]/g, '$&$&') : text;
-  if (full.length !== 6) return null;
-
-  return {
-    r: Number.parseInt(full.slice(0, 2), 16),
-    g: Number.parseInt(full.slice(2, 4), 16),
-    b: Number.parseInt(full.slice(4, 6), 16),
-  };
-};
-
-export const formatHex = (colour: Rgb): string => {
-  const hex = (value: number): string =>
-    clampChannel(value).toString(16).padStart(2, '0');
-  return `#${hex(colour.r)}${hex(colour.g)}${hex(colour.b)}`;
-};
-
-/** WCAG 2.2 relative luminance: sRGB channels linearised, then Rec.709 weights. */
-const channelLuminance = (value: number): number => {
-  const channel = clampChannel(value) / 255;
-  return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-};
-
-export const relativeLuminance = (colour: Rgb): number =>
-  0.2126 * channelLuminance(colour.r) +
-  0.7152 * channelLuminance(colour.g) +
-  0.0722 * channelLuminance(colour.b);
-
-/** WCAG 2.2 contrast ratio, 1:1 (identical) to 21:1 (black on white). */
-export const contrastRatio = (a: Rgb, b: Rgb): number => {
-  const first = relativeLuminance(a);
-  const second = relativeLuminance(b);
-  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
-};
-
-export const meetsContrast = (a: Rgb, b: Rgb, minRatio: number): boolean =>
-  contrastRatio(a, b) >= minRatio;
-
 export const rgbToHsl = (colour: Rgb): Hsl => {
   const r = clampChannel(colour.r) / 255;
   const g = clampChannel(colour.g) / 255;
@@ -168,23 +125,6 @@ export const hslToRgb = (hsl: Hsl): Rgb => {
  * pulling one colour a short way toward another to derive a muted chrome tint,
  * where the endpoints are what the eye reads and the path between them is never
  * shown. Anything doing a long blend should reach for a better space.
- */
-export const mix = (from: Rgb, to: Rgb, amount: number): Rgb => {
-  const t = clamp01(amount);
-  return {
-    r: clampChannel(from.r + (to.r - from.r) * t),
-    g: clampChannel(from.g + (to.g - from.g) * t),
-    b: clampChannel(from.b + (to.b - from.b) * t),
-  };
-};
-
-/**
- * Pure white or pure black, whichever contrasts more with `background`.
- *
- * Because the two are at opposite ends of the luminance range, the better of
- * them clears 4.5:1 against *any* background — the worst case is a background
- * of luminance ~0.179, where both land at ~4.58:1. That property is what lets
- * {@link ensureContrast} promise a result rather than a best effort.
  */
 export const bestNeutralOn = (background: Rgb): Rgb =>
   contrastRatio(WHITE, background) >= contrastRatio(BLACK, background) ? WHITE : BLACK;

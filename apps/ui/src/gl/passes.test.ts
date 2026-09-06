@@ -80,7 +80,7 @@ describe('parameters', () => {
   it('fills in every default the shader declares', () => {
     const result = parsed({ id: 'p', scene: 'flat', chain: [{ pass: 'grain' }] });
 
-    expect(isOk(result) && result.value.chain[0]?.params).toEqual({ amount: 0.08 });
+    expect(isOk(result) && result.value.chain[0]?.params).toEqual({ amount: 0.16 });
     expect(isOk(result) && result.value.sceneParams).toEqual({ flash: 0.15 });
   });
 

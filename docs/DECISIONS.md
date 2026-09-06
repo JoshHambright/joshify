@@ -1333,3 +1333,50 @@ Full.** Getting that backwards makes one of the two modes pointless.
 different and more useful state than "nothing renders" — the drifting backdrop
 is already there, and the effect chain is what will eventually draw it.
 **Status:** ✅ Accepted.
+
+---
+
+### D-068 · The legibility floor is a property of the plate, and it failed
+**Chose:** prove the guarantee by compositing every possible backdrop through
+the plate and checking the ink still clears its contrast floor — 4.5:1 for
+text, 3:1 for chrome — rather than by rendering frames and sampling pixels.
+**Why:** the pixel-sampling reading of "enforced in tests, not by eye" needs a
+GPU, is slow, and only ever proves the presets somebody thought to try. Text
+never sits on the visualiser; it sits on a translucent surface over it (D-040).
+So if the plate is opaque enough that *every* backdrop composites to something
+readable, no effect can break legibility — including effects nobody has written
+yet. That is checkable arithmetic over the whole range instead of a sample.
+
+**It immediately found a live bug, before any visualiser existed.** Over a
+white sleeve, through the plate at `alpha: 0.62`:
+
+| ink | measured | floor |
+|---|---|---|
+| `--jf-ink` (title) | 4.90:1 | 4.5 — passes, barely |
+| `--jf-ink-dim` (subtitle) | **2.72:1** | 4.5 — fails |
+| `--jf-ink-faint` (inactive glyphs) | **1.30:1** | 3 — invisible, not faint |
+
+**The fix keeps the glass.** Raising the plate's own alpha to 0.755 would have
+worked and taken the translucency with it, which is the thing that makes the
+panel look like anything. A scrim of `rgb(0 0 0 / 0.35)` *beneath* the plate
+bounds how bright the substrate can get and leaves the plate's alpha alone —
+the same technique the status rail already uses over artwork. `--jf-ink-faint`
+was lifted from `#7d7a8b` to `#9692a7`; 0.35 is the smallest scrim that clears
+every floor with that ink.
+
+**Two things the check itself taught:**
+- The worst case is not at the extremes. Contrast falls as the composited
+  surface approaches the ink's own luminance and rises again past it, so
+  sampling only black and white misses it. There is a test with an ink chosen
+  to prove that.
+- The first `solveAlpha` optimised against the backdrop that was worst at the
+  *current* alpha, which is wrong: raising the alpha moves where the worst case
+  is. The test asserting "the alpha it suggests actually works" is what caught
+  it.
+
+**What this does not cover:** anything drawn *over* the plate. Overlays
+composite on the finished frame (D-062), so a spectrum bar across the title
+would be a real violation this cannot see. The rule that follows is that
+overlays stay out of the plate's rectangle — a layout property, checked
+elsewhere.
+**Status:** ✅ Accepted.

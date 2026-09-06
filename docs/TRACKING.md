@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 38 | 7 | 🟨 In progress (3 cut) |
+| 5 | **Visualizer + librespot** | 38 | 10 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **79** | |
+| | **Total** | **122** | **82** | |
 
 ---
 
@@ -164,8 +164,8 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-04 | Tier 1: ISRC→BPM lookup, permanent disk cache, phase-locked pulse | 🟨 | Client half done: the phase-locked pulse, and `setAnchor` absorbing poll jitter the way D-024 does for the progress bar — at 120 BPM a ±100ms stale poll is ±20% of a beat, so the pulse would trip once per poll. **Server half (ISRC lookup + disk cache) still to do**, and it is blocked on P5-02's bake-off |
 | P5-05 | Tier 2: PCM tap + FFT + beat detection | ⬜ | librespot `--backend pipe`: s16le, 44.1kHz, stereo. **Gated on V1** |
 | P5-06 | Effect family A — feedback (zoom tunnel, rotational, warp, echo) | ⬜ | The Milkdrop core technique |
-| P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ⬜ | |
-| P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ⬜ | |
+| P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ✅ | Six passes, 16 fetches for the family. "Pixel sort" is named `smear` and is honestly a thresholded running maximum — a real sort needs scatter and a data-dependent loop, neither of which a fragment shader on a tiler has. `dropout` punches through to `uArt`, so corruption *reveals the cover* rather than replacing it with noise |
+| P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ✅ | Every pass documents what it does to contrast, for P5-16. The CRT scanline is `1 + sin(πy)k`, which averages to exactly 1.0 across two rows — the naive `0.5 + 0.5sin` everyone writes is a 50% luminance cut. Bloom is a single-pass two-ring Kawase gather: 9 fetches read 33 texels, because the 6-pass budget and three targets rule out a real pyramid |
 | P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ⬜ | Bars are non-negotiable |
 | P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
 | P5-11 | Tap-tempo / nudge-phase touch control | ✅ | Three controls, not one: phase takes **one** tap, tempo takes **four**, nudge moves 1/16 of a beat. Estimator is least-squares through (beat number, instant) — the mean interval telescopes to `(last−first)/(n−1)` and throws the middle taps away. A bounced touch is rejected; a *missed* beat is not, because it is a good observation two beats along (D-064) |
@@ -173,7 +173,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ✅ | A scale factor, not a boolean — `uResolution` is the size *that stage* renders at, not the panel |
 | P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ✅ | 45-frame window, degrade above 20% missed, recover below 2% after 3s. **The window is cleared on every change** — without it one bad second walks the ladder to the floor before the first step has been measured. Dwell is counted in frames, so a backgrounded tab cannot wait it out. Scene is never dropped; overlays go last |
 | P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | 🟨 | State machine done; wiring into the panel waits on the effect families. **The touch that wakes it is swallowed** — delivering it means a tap meant to bring the controls back also lands on whatever control was under the finger (D-067). Ambient keeps the chrome; that is the whole difference between it and Full |
-| P5-16 | **Legibility floor test** — contrast behind text at any intensity | ⬜ | Enforced in tests, not by eye |
+| P5-16 | **Legibility floor test** — contrast behind text at any intensity | ✅ | Proved as a property of the *plate*, not of any preset: if every possible backdrop composites to something the ink still contrasts against, no effect can break it — including ones nobody has written. **It found a live bug**: over a white sleeve the subtitle was at 2.7:1, below the 4.5 floor, before any visualiser existed (D-068) |
 | P5-17 | Headless engine tests driven by a scripted reactivity sequence | ✅ | 105 tests, all in Node. One file touches a GL API; everything else asserts against a fake that records calls *and* the bind state each draw happened under — so a stale binding shows up rather than vanishing |
 | P5-18 | `librespot` install + run as a Spotify Connect target | ⬜ | Promoted from Phase 8 by D-013. **Opt-in** — Tiers 0-1 must work without it |
 | P5-19 | PCM tee: librespot pipe backend -> ALSA **and** -> server | ⬜ | s16le / 44.1kHz / stereo. Must not add audible latency |

@@ -102,3 +102,19 @@ export {
   type PanelState,
   type Presentation,
 } from './panel/state.js';
+export {
+  BLACK,
+  clamp01,
+  clampChannel,
+  contrastRatio,
+  formatHex,
+  meetsContrast,
+  mix,
+  parseHex,
+  relativeLuminance,
+  TEXT_CONTRAST_MIN,
+  UI_CONTRAST_MIN,
+  WHITE,
+  type Hsl,
+  type Rgb,
+} from './colour/contrast.js';

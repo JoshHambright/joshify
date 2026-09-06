@@ -31,13 +31,28 @@
      desktop app seen from 60cm. */
   --jf-ink: #f4f2f7;
   --jf-ink-dim: #b9b5c6;
-  --jf-ink-faint: #7d7a8b;
+  /* Lifted from #7d7a8b. Over a white sleeve it composited to 1.3:1 through
+     the plate — invisible, not faint. 3:1 is the chrome floor (P5-16). */
+  --jf-ink-faint: #9692a7;
 
   /* --- The glass plate (D-040, D-041). ------------------------------------
      A translucent surface over live artwork. The tint is intentionally cool
      and near-black: it has to sit legibly over a white sleeve and a black one
      without changing, since it does not move with the album. */
   --jf-plate: rgb(14 13 20 / 0.62);
+  /*
+   * A scrim between the artwork and the plate.
+   *
+   * The plate alone does not carry the legibility guarantee at this opacity:
+   * over a white sleeve the subtitle composited to 2.7:1, below the 4.5:1
+   * floor, *before any visualiser existed* (D-068). Raising the plate's own
+   * alpha to 0.755 would fix it and take the glass with it, so the scrim
+   * bounds the substrate instead and the plate stays translucent.
+   *
+   * 0.35 is the smallest value that clears the floor for every ink. The check
+   * is `gl/legibility.test.ts`, not an eye.
+   */
+  --jf-plate-scrim: rgb(0 0 0 / 0.35);
   --jf-plate-solid: #14131a; /* the @supports fallback, same hue, opaque */
   --jf-plate-edge: rgb(255 255 255 / 0.09);
   --jf-plate-blur: 26px;

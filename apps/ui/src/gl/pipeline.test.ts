@@ -74,7 +74,7 @@ const plan = (over: Partial<PlanInput> = {}): RenderPlan =>
   });
 
 const frame = (over: Partial<RenderInputs> = {}): RenderInputs => ({
-  reactivity: { timeSeconds: 1, beat: 0.5, energy: 0.5, bands: [] },
+  reactivity: { timeSeconds: 1, beat: 0.5, phase: 0.5, energy: 0.5, bands: [] },
   accent: [1, 0, 0],
   foreground: [1, 1, 1],
   intensity: 1,
@@ -375,7 +375,9 @@ describe('drawing a frame', () => {
 
     fake.clearLog();
     pipeline.render(
-      frame({ reactivity: { timeSeconds: 3, beat: 1, energy: 0.5, bands: [0.25] } }),
+      frame({
+        reactivity: { timeSeconds: 3, beat: 1, phase: 0.5, energy: 0.5, bands: [0.25] },
+      }),
     );
     const pass = fake.draws()[1];
 

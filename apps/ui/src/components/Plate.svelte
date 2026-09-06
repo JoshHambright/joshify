@@ -34,9 +34,23 @@
     background: var(--jf-plate-solid);
   }
 
+  /*
+   * The scrim, beneath the glass rather than in it.
+   *
+   * Two layered backgrounds rather than a darker plate tint, because the
+   * plate's own alpha is what lets the artwork through — raising it to carry
+   * the contrast guarantee would have taken the glass with it (D-068). This
+   * bounds how bright the substrate can get and leaves the translucency alone.
+   */
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .plate {
-      background: var(--jf-plate);
+      background:
+        linear-gradient(var(--jf-plate-scrim), var(--jf-plate-scrim)), var(--jf-plate);
+    }
+  }
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .plate {
       -webkit-backdrop-filter: blur(var(--jf-plate-blur)) saturate(1.4);
       backdrop-filter: blur(var(--jf-plate-blur)) saturate(1.4);
     }

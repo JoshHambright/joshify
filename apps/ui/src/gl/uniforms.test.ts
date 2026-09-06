@@ -13,7 +13,7 @@ import {
 } from './uniforms.js';
 
 const context = (over: Partial<FrameContext> = {}): FrameContext => ({
-  reactivity: { timeSeconds: 12.5, beat: 0.5, energy: 0.25, bands: [] },
+  reactivity: { timeSeconds: 12.5, beat: 0.5, phase: 0.25, energy: 0.25, bands: [] },
   accent: [1, 0.5, 0],
   foreground: [1, 1, 1],
   intensity: 0.75,
@@ -70,7 +70,9 @@ describe('the block every shader reads', () => {
   // wraps it itself, and clamping it here would freeze every effect at 1.0.
   it('leaves time unclamped', () => {
     const uniforms = buildFrameUniforms(
-      context({ reactivity: { timeSeconds: 4_000, beat: 0, energy: 0, bands: [] } }),
+      context({
+        reactivity: { timeSeconds: 4_000, beat: 0, phase: 0, energy: 0, bands: [] },
+      }),
     );
 
     expect(uniforms['uTime']).toEqual({ kind: 'float', value: 4_000 });
@@ -89,6 +91,7 @@ describe('surviving a provider having a bad moment', () => {
         reactivity: {
           timeSeconds: Number.NaN,
           beat: Infinity,
+          phase: Number.NaN,
           energy: -Infinity,
           bands: [],
         },
@@ -107,7 +110,7 @@ describe('surviving a provider having a bad moment', () => {
 
     const uniforms = buildFrameUniforms(
       context({
-        reactivity: { timeSeconds: 0, beat: 4, energy: -1, bands: [] },
+        reactivity: { timeSeconds: 0, beat: 4, phase: -2, energy: -1, bands: [] },
         intensity: 9,
         accent: [-1, 2, 0.5],
       }),

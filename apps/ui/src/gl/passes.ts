@@ -290,7 +290,25 @@ void main() {
   },
 };
 
-/** Animated grain — cheap, and the thing the half-res upscale wants on top. */
+/**
+ * Animated grain — cheap, and the thing the half-res upscale wants on top.
+ *
+ * Three things here are deliberate, and all three were wrong in the first
+ * version (found while writing the lofi family, P5-08):
+ *
+ *  - **It reads `uIntensity`.** Without that the user's effect dial cannot
+ *    reach it and neither can the legibility floor (P5-16) — a pass that
+ *    ignores intensity is a pass that cannot be turned down.
+ *  - **The noise field advances with `floor(uTime * 60.0)` rather than
+ *    `fract(uTime)`.** `fract` returns to the same value every second, so the
+ *    grain pattern repeated exactly once a second — slow enough to read as a
+ *    pulse rather than as noise.
+ *  - **The noise is applied as a gain, not an offset.** Flat additive noise
+ *    clips against black, so half of it is discarded in the shadows and the
+ *    mean luminance drifts down as the amount rises. Multiplying keeps the
+ *    mean where it was, which is what lets the legibility floor treat this
+ *    pass as neutral.
+ */
 export const GRAIN_PASS: PassDefinition = {
   id: 'grain',
   fragment: `#version 300 es
@@ -300,17 +318,24 @@ uniform sampler2D uTexture;
 uniform vec2 uResolution;
 uniform float uTime;
 uniform float uAmount;
+uniform float uIntensity;
 out vec4 fragColour;
-float hash(vec2 p) {
+// highp: the seed is a pixel index times a frame counter, and mediump cannot
+// hold either past a few thousand — the field collapses into bands.
+float hash(highp vec2 p) {
   return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 void main() {
   vec3 here = texture(uTexture, vUv).rgb;
-  float noise = hash(floor(vUv * uResolution) + fract(uTime) * 71.0) - 0.5;
-  fragColour = vec4(here + noise * uAmount, 1.0);
+  highp vec2 cell = floor(vUv * uResolution);
+  float noise = hash(cell + floor(uTime * 60.0) * 71.0) - 0.5;
+  // A gain around 1.0 rather than an offset around 0.0: additive noise clips
+  // in the blacks and quietly darkens the frame.
+  float gain = 1.0 + noise * uAmount * uIntensity;
+  fragColour = vec4(here * gain, 1.0);
 }
 `,
-  params: { amount: { default: 0.08, min: 0, max: 0.5 } },
+  params: { amount: { default: 0.16, min: 0, max: 1 } },
 };
 
 export const BUILT_IN_CATALOGUE: Catalogue = {
