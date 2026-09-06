@@ -99,6 +99,31 @@ left rail, so turning off `issued by` stops routes tunnelling through record
 labels — which is usually what you want, because a label connects everything to
 everything.
 
+## On a phone
+
+The desktop layout does not survive a 390px screen, so below 820px it is a
+different interface over the same engine:
+
+- **The inspector is a bottom sheet**, not a side drawer. A 292px drawer over a
+  390px screen hides the graph you just tapped, which defeats the point.
+- **A tap shows a one-line peek** — kind, name, year, connection count — and the
+  sheet opens only when you ask for it. Auto-opening a full-height panel on every
+  tap makes exploring impossible.
+- **Two rows in the header** below 700px: wordmark and controls, then the query
+  field full width. As one row it overflowed the viewport, which pushed the Dim
+  and Panel buttons off-screen entirely — the inspector was simply unreachable —
+  and stretched the layout to 539px so `fit()` threw most of the graph outside
+  the visible area. That was the actual bug; everything else here is comfort.
+- **Pinch to zoom and two-finger pan**, tracked through the same pointer handlers
+  as the mouse. `touch-action: none` on the canvas means the page hands us the
+  gesture and we owe it an implementation.
+- **Double-tap replaces double-click** to focus a node's two-hop neighbourhood;
+  `dblclick` is unreliable on touch.
+- **Touch gets a 20px catch radius** against the cursor's 6px, and hit-testing
+  uses the same `drawR` clamp as rendering, so what you can tap is what you see.
+- Bigger controls, `16px` on the query input so iOS does not zoom on focus, and
+  `overscroll-behavior` pinned so the sheet does not drag the page.
+
 ## Techniques worth keeping
 
 **Simulate only what's visible.** `applyFilters()` sets `vis` on nodes and
@@ -138,6 +163,13 @@ a graph out of. Grid down to 0.26, scanlines to 0.34, halos to 0.10 alpha except
 on lit nodes, edges brightened. The scenery reads as scenery in a still frame and
 gets out of the way the moment you look for data.
 
+**Labels are placed in screen space, and collisions are dropped.** Candidates are
+sorted — selection, hover, path, neighbours, then by degree — and each is tested
+against the rects already placed; a clash means the label is skipped, not
+squeezed. World-space label sizing looks fine at the desktop's `k ≈ 1` and falls
+apart at the `k ≈ 0.36` a phone opens at, where every neighbour name lands in the
+same pile of plates. The same guard quietly improves the desktop hairball.
+
 **Slider extremes mean "unbounded".** The year filter spans the era the corpus
 lives in (1950–2010), not its literal min/max — a single 1870 traditional song
 would otherwise waste 60% of the slider's travel. At either end the bound is
@@ -161,6 +193,9 @@ shared editing, and nothing races to seed a store on load.
   own additions, but you cannot rename a corpus entity — the overlay supports it,
   the UI doesn't expose it.
 - **No import.** Export writes JSON; there is no matching paste-to-load.
+- **The phone still opens on a hairball**, just a legible one. Below about 0.4
+  zoom the graph is a texture, and the query language is how you actually get
+  anywhere.
 - **Force layout is still a hairball at rest.** The query language, not the
   default view, is how you actually find anything. That is the honest finding,
   and it is why the filters came before the prettiness.
