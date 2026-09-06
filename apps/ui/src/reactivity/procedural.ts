@@ -262,7 +262,9 @@ export const createProceduralProvider = (
       // than the instantaneous one: a 6% tempo difference moves the decay by
       // 16ms, which nothing can see, and the base period keeps the envelope
       // shape identical from beat to beat.
-      const beat = barAccent(beatIndex) * beatEnvelope(phase * BASE_BEAT_PERIOD_MS, BEAT_HOLD_MS, decayMs);
+      const beat =
+        barAccent(beatIndex) *
+        beatEnvelope(phase * BASE_BEAT_PERIOD_MS, BEAT_HOLD_MS, decayMs);
       const energy = proceduralEnergy(beats, elapsedS, beat);
       fillBands(frame.bands, elapsedS, beat, energy);
       frame.beat = beat;

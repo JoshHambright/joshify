@@ -22,8 +22,9 @@
  * - **Tempo.** Four taps minimum (`MIN_TAPS_FOR_BPM`), i.e. three intervals.
  *   Two taps give one interval, and one interval cannot be checked against
  *   anything: a single late tap moves the estimate by tens of BPM and nothing
- *   can notice. Three intervals is the smallest sample with a meaningful
- *   middle, and a middle is the only reason a mistimed tap is survivable.
+ *   can notice. Three intervals is the smallest sample with a middle worth
+ *   trusting, and that middle is the only reason a mistimed tap is
+ *   survivable.
  * - **Nudge.** A third gesture, deliberately separate: two small buttons that
  *   shift the pulse by a fixed musical fraction and never touch the tempo.
  *   When the tempo is right and the pulse is merely early, re-tapping is the
@@ -31,11 +32,13 @@
  *
  * **Outliers, and the two ways a tap can be wrong.**
  *
- * A *fumbled* tap — one landing early or late inside an otherwise steady
- * sequence — is rejected: intervals further than `TAP_OUTLIER_TOLERANCE` from
- * the middle one are dropped and the survivors averaged. That covers both real
- * cases, a missed beat (one double-length interval) and a bounced touch (two
- * half-length ones), because in each the majority is still correct.
+ * A *fumbled* tap is one that lands where no beat is. Every tap is placed on a
+ * provisional grid and any that sits more than `TAP_PHASE_TOLERANCE` of a beat
+ * away is dropped before the tempo is fitted — which is what catches the
+ * bounced touch, the one real case that lands *between* beats. A *missed* beat
+ * is not a fumble at all and is not rejected: the tap after it is a perfectly
+ * good observation that simply belongs two beats along, and `fitTaps` places
+ * it there rather than throwing it away.
  *
  * A *restart* — the user stops, thinks, and taps again, or starts tapping to
  * the next song — is not an outlier at all, and treating it as one would leave
@@ -79,10 +82,12 @@ export const MAX_TAPS = 8;
 /** Four taps, three intervals — the smallest sample a middle can defend. */
 export const MIN_TAPS_FOR_BPM = 4;
 
-/** How far an interval may sit from the middle one before it reads as a fumble. */
-export const TAP_OUTLIER_TOLERANCE = 0.35;
-
-/** How far a tap may sit from the fitted grid before it is left out of the phase. */
+/**
+ * How far a tap may sit from the grid before it is left out of the fit, as a
+ * fraction of a beat. A quarter beat is the natural limit: beyond it, a tap is
+ * closer to the neighbouring beat than to this one, and calling it either is a
+ * coin toss.
+ */
 export const TAP_PHASE_TOLERANCE = 0.25;
 
 /**
@@ -149,17 +154,32 @@ export interface TapFit {
    * rather than to the last tap alone.
    *
    * Fitting rather than snapping is what makes repeated tapping *converge*:
-   * every tap is an independent measurement of the same phase, so averaging
-   * them means each new tap moves the answer less than the one before, and the
-   * pulse settles instead of chasing the jitter in the tapper's hand.
+   * every tap is an independent measurement of the same grid, so each new one
+   * moves the answer less than the one before, and the pulse settles instead
+   * of chasing the jitter in the tapper's hand.
    */
   readonly beatAtMs: number;
-  /** How many taps survived rejection and went into `beatAtMs`. */
+  /** How many taps survived rejection and went into the fit. */
   readonly usedTaps: number;
 }
 
 /**
  * Estimate tempo and beat position from a tap session.
+ *
+ * The tempo comes from a **least-squares line through (beat number, tap
+ * instant)** rather than from the average of the intervals. The distinction is
+ * not academic: averaging intervals telescopes to `(last − first) / (taps − 1)`,
+ * which uses only the two end taps and throws the middle ones away, so eight
+ * taps are no more precise than two. Fitting a line uses all of them, and it
+ * gets the missed-beat case right for free — a tap two beats after the last
+ * one is a point at index +2, not an outlier to discard.
+ *
+ * Beat numbers come from a first pass over the intervals: the middle interval
+ * is the provisional beat length, each tap is assigned the nearest whole
+ * number of those from the last tap, and any tap that then sits more than
+ * `TAP_PHASE_TOLERANCE` of a beat off that grid is dropped before the line is
+ * fitted. That is what catches the bounced touch, which lands *between* beats
+ * rather than on a wrong one.
  *
  * `referenceBpm` is the tempo already in force — from an ISRC lookup, or from
  * an earlier tap session. It lets one or two taps refine the *phase* against a
@@ -178,34 +198,53 @@ export const fitTaps = (
   if (lastTap === undefined) return null;
 
   let bpm: number | null = null;
+  let tappedPeriodMs: number | null = null;
+
   if (taps.length >= MIN_TAPS_FOR_BPM) {
     const intervals: number[] = [];
     for (let i = 1; i < taps.length; i += 1) {
       intervals.push((taps[i] ?? 0) - (taps[i - 1] ?? 0));
     }
     const typical = middleValue(intervals);
-    // The middle interval is the centre; the mean of everything near it is the
-    // estimate. The middle alone would quantise the answer to one observed
-    // interval and throw away the precision the other taps carry; the mean
-    // alone would swallow the outlier the middle is here to find.
-    const inliers = intervals.filter(
-      (value) => Math.abs(value - typical) <= typical * TAP_OUTLIER_TOLERANCE,
+    const grid = taps.map((tap) => ({
+      beat: Math.round((tap - lastTap) / typical),
+      atMs: tap,
+    }));
+    const centre = middleValue(grid.map((point) => point.atMs - point.beat * typical));
+    const kept = grid.filter(
+      (point) =>
+        Math.abs(point.atMs - point.beat * typical - centre) <=
+        typical * TAP_PHASE_TOLERANCE,
     );
-    const candidate = 60_000 / mean(inliers);
-    if (candidate >= MIN_TAP_BPM && candidate <= MAX_TAP_BPM) bpm = candidate;
+
+    const beatMean = mean(kept.map((point) => point.beat));
+    const atMean = mean(kept.map((point) => point.atMs));
+    let spread = 0;
+    let covariance = 0;
+    for (const point of kept) {
+      spread += (point.beat - beatMean) ** 2;
+      covariance += (point.beat - beatMean) * (point.atMs - atMean);
+    }
+    // No guard on a zero spread: it yields NaN, and NaN fails the range test
+    // below like any other unusable answer. One check instead of two.
+    const candidate = 60_000 / (covariance / spread);
+    if (candidate >= MIN_TAP_BPM && candidate <= MAX_TAP_BPM) {
+      bpm = candidate;
+      tappedPeriodMs = covariance / spread;
+    }
   }
 
-  const gridBpm = bpm ?? referenceBpm;
-  if (gridBpm === null) {
+  const periodMs =
+    tappedPeriodMs ?? (referenceBpm === null ? null : 60_000 / referenceBpm);
+  if (periodMs === null) {
     // No grid to fit against: the last tap is the only beat we can name.
     return { bpm, beatAtMs: lastTap, usedTaps: 1 };
   }
 
   // Fold every tap onto the beat nearest the last one, then average. Folding
-  // first is what lets taps seconds apart contribute to a single phase
-  // estimate; averaging after is what makes the fourth tap move the pulse less
-  // than the second did.
-  const periodMs = 60_000 / gridBpm;
+  // first is what lets taps seconds apart contribute to one phase estimate;
+  // averaging after is what makes the fourth tap move the pulse less than the
+  // second did.
   const residuals = taps.map(
     (tap) => tap - Math.round((tap - lastTap) / periodMs) * periodMs,
   );

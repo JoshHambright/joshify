@@ -153,8 +153,11 @@ export const clamp01 = (value: number): number => {
  * Holding for one frame's worth of time guarantees at least one sample at the
  * full peak whatever the frame phase, without softening the attack into a
  * swell. It is a sampling fix, not an envelope shape.
+ *
+ * 17ms rather than 16: a 60Hz frame is 16.67ms, and the hold has to cover a
+ * whole one of them or the guarantee has a gap in it.
  */
-export const BEAT_HOLD_MS = 16;
+export const BEAT_HOLD_MS = 17;
 
 /**
  * How long the fall takes. Percussion decay is a property of the instrument,

@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 38 | 5 | 🟨 In progress (3 cut) |
+| 5 | **Visualizer + librespot** | 38 | 7 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **77** | |
+| | **Total** | **122** | **79** | |
 
 ---
 
@@ -160,15 +160,15 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 |---|---|:---:|---|
 | P5-01 | WebGL2 render pipeline: ping-pong FBOs, pass chain, uniform contract | ✅ | **Three** targets, not a pair — a pair loses last frame's image to the scene, which is the read-write-same-texture bug and looks like a driver fault (D-061). Presets are data: a pass's params map onto uniforms, so an effect is a JSON entry rather than a branch. Split so the decisions test in Node against a recording fake |
 | P5-02 | 🔬 **Spike: BPM source bake-off.** Coverage test against Josh's real library | ⬜ | GetSongBPM vs AcousticBrainz dump vs Deezer-by-ISRC |
-| P5-03 | `ReactivityProvider` interface + Tier 0 procedural implementation | ⬜ | Always-available floor. Injected, so testable headlessly |
-| P5-04 | Tier 1: ISRC→BPM lookup, permanent disk cache, phase-locked pulse | ⬜ | `external_ids.isrc` is **not** deprecated |
+| P5-03 | `ReactivityProvider` interface + Tier 0 procedural implementation | ✅ | A fixed period reads as a screensaver and jitter reads as broken, so Tier 0 layers beat/bar/phrase, accents the bar, and drifts ±6% over 37s — computed as a **closed-form integral**, because recomputing `t·bpm(t)/60` per frame retroactively moves every past beat and makes the pulse jitter instead of speed up (D-063). Frame is provider-owned and reused: zero allocation per frame |
+| P5-04 | Tier 1: ISRC→BPM lookup, permanent disk cache, phase-locked pulse | 🟨 | Client half done: the phase-locked pulse, and `setAnchor` absorbing poll jitter the way D-024 does for the progress bar — at 120 BPM a ±100ms stale poll is ±20% of a beat, so the pulse would trip once per poll. **Server half (ISRC lookup + disk cache) still to do**, and it is blocked on P5-02's bake-off |
 | P5-05 | Tier 2: PCM tap + FFT + beat detection | ⬜ | librespot `--backend pipe`: s16le, 44.1kHz, stereo. **Gated on V1** |
 | P5-06 | Effect family A — feedback (zoom tunnel, rotational, warp, echo) | ⬜ | The Milkdrop core technique |
 | P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ⬜ | |
 | P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ⬜ | |
 | P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ⬜ | Bars are non-negotiable |
 | P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
-| P5-11 | Tap-tempo / nudge-phase touch control | ⬜ | Fixes Tier 1's missing downbeat phase in two taps |
+| P5-11 | Tap-tempo / nudge-phase touch control | ✅ | Three controls, not one: phase takes **one** tap, tempo takes **four**, nudge moves 1/16 of a beat. Estimator is least-squares through (beat number, instant) — the mean interval telescopes to `(last−first)/(n−1)` and throws the middle taps away. A bounced touch is rejected; a *missed* beat is not, because it is a good observation two beats along (D-064) |
 | P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ⬜ | `VHS`, `Tunnel`, `Datamosh`, `Ghost`, `Newsprint`, `Vapor` |
 | P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ✅ | A scale factor, not a boolean — `uResolution` is the size *that stage* renders at, not the panel |
 | P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ✅ | 45-frame window, degrade above 20% missed, recover below 2% after 3s. **The window is cleared on every change** — without it one bad second walks the ladder to the floor before the first step has been measured. Dwell is counted in frames, so a backgrounded tab cannot wait it out. Scene is never dropped; overlays go last |

@@ -12,6 +12,7 @@
  * ```glsl
  * uniform float     uTime;        // seconds, monotonic
  * uniform float     uBeat;        // 0..1, decaying spike on each beat
+ * uniform float     uPhase;       // 0..1 sawtooth across the current beat
  * uniform float     uEnergy;      // 0..1, overall intensity
  * uniform float     uBands[16];   // 0..1, bass -> treble
  * uniform float     uIntensity;   // 0..1, the user's effect-strength dial
@@ -53,8 +54,28 @@ export interface Size {
 export interface Reactivity {
   readonly timeSeconds: number;
   readonly beat: number;
+  /**
+   * Where we are *between* beats, as a sawtooth. The discontinuity is the
+   * beat.
+   *
+   * `uBeat` is a one-way decay and `uTime` has no relation to the grid, so
+   * without this an effect wanting to sweep from one beat to the next — the
+   * tunnel's advance, most obviously — has to reconstruct the sawtooth from a
+   * tempo it was never given. It is one float and the provider has already
+   * computed it.
+   */
+  readonly phase: number;
   readonly energy: number;
-  readonly bands: readonly number[];
+  /**
+   * Sixteen values, bass to treble.
+   *
+   * `ArrayLike` rather than `readonly number[]` so a provider can hand over
+   * the `Float32Array` it already holds. The alternative boxes sixteen numbers
+   * into a fresh array on every frame, for a value that goes straight into
+   * `uniform1fv` — the per-frame allocation this whole layer is written to
+   * avoid.
+   */
+  readonly bands: ArrayLike<number>;
 }
 
 export interface FrameContext {
@@ -90,7 +111,7 @@ export const clamp01 = (value: number): number => {
  * against a shorter array leaves the tail at whatever the last preset wrote,
  * so an eight-band provider would show a frozen top octave.
  */
-export const normaliseBands = (bands: readonly number[]): readonly number[] =>
+export const normaliseBands = (bands: ArrayLike<number>): readonly number[] =>
   Array.from({ length: BAND_COUNT }, (_unused, index) => clamp01(bands[index] ?? 0));
 
 const rgb = (colour: Rgb): Rgb => [
@@ -130,6 +151,7 @@ export const buildFrameUniforms = (context: FrameContext): UniformSet => {
     // that wants it wrapped can wrap it.
     uTime: float(finite(reactivity.timeSeconds)),
     uBeat: float(clamp01(reactivity.beat)),
+    uPhase: float(clamp01(reactivity.phase)),
     uEnergy: float(clamp01(reactivity.energy)),
     uBands: floats(normaliseBands(reactivity.bands)),
     uIntensity: float(clamp01(context.intensity)),

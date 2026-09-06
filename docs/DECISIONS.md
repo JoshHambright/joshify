@@ -1213,3 +1213,75 @@ cannot need a full-resolution copy of the frame to filter.
 drops. Dropping a few dozen triangles of spectrum bars saves nothing worth the
 hole it leaves in the picture.
 **Status:** ✅ Accepted.
+
+---
+
+### D-063 · Tier 0 is musical, not merely honest
+**Chose:** the procedural provider layers three periods (beat, four-beat bar,
+eight-bar phrase), accents beat one of the bar, and drifts ±6% over 37 seconds.
+The envelope has an instant attack, a 17ms hold and a quartic decay over 260ms.
+**Why:** VISUALIZER.md asked for a pulse that "does not claim to be the track's
+beat", and a literal reading of that gives a fixed period — which reads as a
+screensaver. The opposite failure, random jitter, reads as broken. The honesty
+is in not claiming the rhythm is the track's, not in refusing to make it
+musical.
+**The drift is a closed-form integral of a sinusoidally varying frequency.**
+The obvious implementation multiplies elapsed time by the current tempo, and
+that retroactively moves every past beat as the tempo changes — the pulse
+jitters instead of speeding up. Closed form gives real rubato with no
+accumulator and no drift over eight hours.
+**The decay is in milliseconds, not beat fractions.** VISUALIZER.md specified
+`pow(1 - beatPhase, 4)`, which ties decay to tempo: the same preset sags for a
+second at 60 BPM and snaps in 375ms at 160. Percussion decay is a property of
+the instrument. The shape is kept, the time base is absolute, capped at 60% of
+the beat period so the pulse still goes dark before the next one.
+**The 17ms hold is a sampling fix, not a musical one.** An instantaneous attack
+sampled at 60Hz peaks anywhere between 100% and 78% depending on where the
+frame lands, so the pulse flickers at a rate unrelated to the music. The test
+sweeps frame phase and asserts the peak is always reachable.
+**Status:** ✅ Accepted.
+
+---
+
+### D-064 · Tap-tempo is three controls, and a missed beat is not an error
+**Chose:** aligning the phase takes **one** tap. Setting the tempo takes
+**four** (three intervals is the smallest sample with a trustworthy middle).
+Nudge is a third control that moves the grid by a sixteenth of a beat and never
+touches tempo.
+**Why separate:** "the beat is in the wrong place" and "the tempo is wrong" are
+different complaints with different gestures, and a single control that tries
+to serve both does neither well — one tap cannot mean "shift by 40ms" and "the
+song is 96 BPM" at the same time.
+**The estimator is a least-squares line through (beat number, tap instant),**
+not the mean interval. The mean telescopes to `(last − first) / (n − 1)` and
+throws every tap in the middle away, which is exactly the data that makes a
+long tap session better than a short one.
+**Three kinds of wrong tap, three answers.** A bounced touch lands between
+beats and is rejected. A *missed* beat is not rejected — it is a perfectly good
+observation two beats along, and treating it as an outlier throws away a true
+sample. A gap over two seconds ends the session: reject within a gesture,
+restart between gestures.
+**No half/double folding.** Tapping half-time is a legitimate thing to do, and
+a system that silently doubles it is arguing with the person holding it.
+**A track change drops everything** and falls back to Tier 0. A phase locked to
+the previous track is *confidently* wrong, which is legible: the eye tries to
+lock and keeps failing. An unlocked procedural pulse reads as atmosphere.
+**Status:** ✅ Accepted.
+
+---
+
+### D-065 · A contract needs a test that belongs to neither side
+**Chose:** `apps/ui/src/visualiser-contract.test.ts` takes a real frame from a
+real provider and puts it through the real uniform builder.
+**Why it exists:** the reactivity provider and the render pipeline were built
+independently against a written contract. Both were complete, both were green,
+and they did not fit — one produced a `Float32Array` of bands and a `phase`,
+the other declared `readonly number[]` and had no `phase` at all. Nothing
+either could test would have caught it, because a contract is the one thing
+neither side owns.
+**The assignment is the assertion.** If the two shapes drift apart again, this
+file stops compiling. That is worth more than any runtime check in it.
+**A general lesson for parallel work:** when two pieces are written to meet,
+the seam needs an owner and a test, and both belong to whoever briefed them.
+Reviewing each half against its brief is not the same as checking they meet.
+**Status:** ✅ Accepted.

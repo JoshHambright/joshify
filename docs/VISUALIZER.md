@@ -28,21 +28,46 @@ Every effect shader reads the same uniform block. What fills it depends on what'
 available at runtime — the shaders never know or care.
 
 ```glsl
-uniform float uTime;        // seconds, monotonic
+uniform float uTime;        // seconds, monotonic, unbounded
 uniform float uEnergy;      // 0..1  overall intensity
 uniform float uBeat;        // 0..1  decaying spike on each beat
+uniform float uPhase;       // 0..1  sawtooth across the current beat
 uniform float uBands[16];   // 0..1  spectrum buckets, bass -> treble
 uniform vec3  uAccent;      // from album art
 uniform vec3  uForeground;
 uniform float uIntensity;   // user-set effect strength
+uniform vec2  uResolution;  // the size THIS stage renders at, not the panel
+uniform vec2  uTexel;       // 1.0 / uResolution
+uniform sampler2D uTexture; // what the previous stage drew
 uniform sampler2D uArt;     // the album cover
 uniform sampler2D uPrev;    // previous frame (feedback)
 ```
 
+**`uPhase` was added during P5-03**, and it earns its place: `uBeat` is a
+one-way decay and `uTime` has no relation to the beat grid, so without a
+sawtooth any effect wanting to sweep *between* beats — the tunnel's advance
+most obviously — has to reconstruct one from a tempo it was never given. It is
+one float, and the provider has already computed it.
+
+**`uBeat`'s decay is in milliseconds, not in beat fractions.** An earlier draft
+of this document specified `pow(1 - beatPhase, 4)`, which ties the decay to the
+tempo: the same preset sags for a full second at 60 BPM and snaps in 375ms at
+160. Percussion decay is a property of the instrument, not of the song's speed.
+The shape is kept; the time base is absolute, capped at 60% of the beat period
+so the pulse still goes dark before the next one.
+
 ### Tier 0 — Procedural · *always available*
 
 `uTime` drives layered LFOs; `uBands` is filled with smooth pseudo-noise; `uBeat`
-pulses on a slow, honest rhythm that **does not claim** to be the track's beat.
+pulses on a rhythm that **does not claim** to be the track's beat.
+
+The honesty is in not claiming the rhythm is the track's — *not* in refusing to
+make it musical. A fixed period reads as a screensaver and random jitter reads
+as broken, so Tier 0 layers a beat, a four-beat bar and an eight-bar phrase,
+accents the bar, and drifts ±6% over 37 seconds. That drift is computed as a
+closed-form integral rather than by multiplying elapsed time by a current
+tempo: recomputing `t·bpm(t)/60` per frame retroactively moves every past beat,
+so the pulse jitters instead of speeding up.
 
 Works in every mode, on every track, with zero dependencies. This is the floor,
 and it still looks good — most Milkdrop presets are far more time-driven than
