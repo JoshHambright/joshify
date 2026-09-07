@@ -67,10 +67,64 @@
       input[type='range'] {
         width: 96px;
       }
+
+      /* Review chrome. None of this ships to the panel — it exists so the
+         published page explains itself to somebody who was not in the
+         conversation that produced it. */
+      .masthead {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: center;
+      }
+      .masthead h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        color: #e9e6f0;
+      }
+      .masthead p,
+      .hint,
+      .new {
+        margin: 0;
+        max-width: 62ch;
+        line-height: 1.6;
+        color: #74707f;
+      }
+      .hint {
+        text-align: center;
+      }
+      .masthead strong,
+      .hint strong {
+        color: #b6b2c2;
+        font-weight: 700;
+      }
+      .new {
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .new b {
+        color: #cbc7d6;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
     <div id="app">
+      <div class="masthead">
+        <h1>Joshify &mdash; visualiser</h1>
+        <p>
+          Twenty-six shader passes and <strong>seven scenes</strong> across fifteen looks,
+          running the real pipeline the Pi will run.
+          <strong>Pick a look, then drag Intensity down to zero</strong> &mdash; every
+          pass is required to be an exact pass-through there, which is what makes the
+          effect dial mean anything.
+        </p>
+      </div>
       <canvas id="stage"></canvas>
       <div id="readout"></div>
       <div id="looks"></div>
@@ -86,6 +140,44 @@
           >Grain<input id="grain" type="range" min="25" max="100" value="100"
         /></label>
       </div>
+      <ul class="new">
+        <li>
+          <b>Orbit</b> &mdash; a Julia orbit trap where the cover <i>is</i> the trap
+          texture. Turn the cover off and there is no picture, only a two-tone wash. It
+          walks the parameter rather than zooming: fp32 runs out of mantissa about twenty
+          seconds into a zoom, and staying inside the main cardioid guarantees the set can
+          never fall to dust.
+        </li>
+        <li>
+          <b>Reef</b> &mdash; the calm mode. The album is the light: the only source is
+          the surface overhead, and what it transmits is the cover. Its fragment shader
+          declares neither uBeat nor uTime, so the stage that decides every colour is
+          structurally incapable of flashing.
+        </li>
+        <li>
+          <b>Solids</b> &mdash; the cover twice over, which is what a mid-90s desktop
+          theme actually was: the field behind the solids is the sleeve, and every facet
+          is a crop of that same sleeve.
+        </li>
+        <li>
+          <b>Relief</b> &mdash; the cover as a heightfield, flown over. Mirrored rather
+          than repeated, because a repeat puts a cliff at every tile edge and a cliff in a
+          heightfield is a wall.
+        </li>
+        <li>
+          <b>Drift</b> &mdash; the cover sampled into depth. One star per 8&times;8 block
+          of the sleeve, coloured by that block&rsquo;s hue. The beat streaks rather than
+          flashes, dividing colour by the square root of the stretch so the light on the
+          panel is unchanged.
+        </li>
+      </ul>
+      <p class="hint">
+        The pulse is <strong>Tier 0</strong>: procedural, and not claiming to be the
+        track&rsquo;s beat &mdash; Spotify&rsquo;s tempo and beat-grid endpoints were
+        withdrawn for new apps. Tap four times to set a tempo and the readout switches to
+        Tier 1. <strong>Grain</strong> is the render scale, so dropping it is both a
+        4&times; saving and the look.
+      </p>
     </div>
     <script type="module" src="./visualiser.ts"></script>
   </body>

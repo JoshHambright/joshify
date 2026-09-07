@@ -32,6 +32,20 @@ export default tseslint.config(
     },
   },
   {
+    /*
+     * The one-file packer that folds the visualiser build into an artifact
+     * page. Plain `.mjs` and outside every tsconfig on purpose: it is a build
+     * step, not application code, and putting it in the UI's project would
+     * drag Node's fs types into a browser bundle's type graph.
+     */
+    ...tseslint.configs.disableTypeChecked,
+    files: ['apps/ui/demo/*.mjs'],
+    languageOptions: {
+      globals: { console: 'readonly', URL: 'readonly' },
+      parserOptions: { projectService: false, project: false },
+    },
+  },
+  {
     // The end-to-end suite and its harness. Node globals, and the harness is
     // deliberately plain `.mjs` — adding a TypeScript loader to start a
     // process would put a second build path between the test and the artefact
