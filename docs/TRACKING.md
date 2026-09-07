@@ -196,8 +196,8 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-34 | `PLUS!` theme — bevelled chrome + `ambient` scene | ⬜ | **Working title, must be renamed** (D-015). Proves chrome theming works |
 | P5-35 | `ambient` scene — slow geometric solids | ⬜ | The Plus!-era screensaver lineage |
 | P5-36 | Theme switching UI + shuffle-on-track-change | ⬜ | |
-| P5-37 | `reef` scene — caustics, god rays, drifting silhouettes | ⬜ | **The calm mode** (D-018). Product gap, not a nice-to-have |
-| P5-38 | `REEF` theme — slow, dark, no strobe, safe to leave running | ⬜ | The tonal opposite of `N2O` |
+| P5-37 | `reef` scene — caustics, god rays, drifting silhouettes | ✅ | **The album is the light**: the only source is the surface overhead, and what it transmits is `uArt`, sampled through the *same* warped domain that bends the caustics. Turn the cover off and nothing is lighting the scene. The fragment shader declares neither `uBeat` nor `uTime` — all animation arrives as pre-integrated phase varyings, so the stage that decides every colour is structurally incapable of flashing (D-071 by construction, not by cap). Caustics are two octaves of three cancelling sine sheets, 8 transcendentals against ~36 evaluations for Worley; god rays are level sets of a single divide, no radial blur and no fetches |
+| P5-38 | `REEF` theme — slow, dark, no strobe, safe to leave running | ✅ | Pins **nothing** — the scene makes the album the light, so a fixed palette would put the lamp out. The common case for a theme: a look, a little chrome (softer corner, heavier blur, a press that does not snap), and the record still supplying the colour. Chain is bloom → grain → CRT-for-its-vignette, and deliberately no `bars`: a spectrum bar is the most anti-calm element in the library |
 | P5-39 | ~~Spike: autostereogram from the depth buffer~~ | ❌ | **Cut.** Technically interesting, but off-vision — it serves the effect, not the music. Notes kept in THEMES.md |
 | P5-40 | ~~Autostereogram effect pass~~ | ❌ | **Cut** with P5-39 |
 | P5-41 | ~~`LAGOON` theme~~ | ❌ | **Cut from schedule** — moved to the theme backlog, not a tracked task |

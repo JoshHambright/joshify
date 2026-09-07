@@ -97,6 +97,29 @@ export const THEMES: readonly ThemeSpec[] = [
       '--jf-track-label': '0.06em',
     },
   },
+  {
+    // P5-38. The tonal opposite of the tunnel, and the reason the calm mode is
+    // a product gap rather than a nice-to-have (D-018): a panel on a wall is
+    // running while nobody is asking it for anything.
+    //
+    // It pins nothing. The reef scene makes the album *the light* — the cover
+    // is what the surface transmits — so a fixed palette would put the lamp
+    // out. This is what the common case looks like: a theme is a look and a
+    // little chrome, and the record still supplies the colour.
+    id: 'reef',
+    name: 'Reef',
+    look: 'reef',
+    chrome: {
+      // Softer corner and a heavier blur than the default: the chrome should
+      // read as something submerged, and neither token is load-bearing for
+      // the contrast proof (D-073).
+      '--jf-plate-radius': '34px',
+      '--jf-plate-blur': '34px',
+      '--jf-plate-edge': 'rgb(255 255 255 / 0.06)',
+      // Nothing snaps in this theme, including a button under a finger.
+      '--jf-press': '160ms',
+    },
+  },
 ];
 
 export interface BuiltThemes {

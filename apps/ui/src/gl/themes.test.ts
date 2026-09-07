@@ -30,7 +30,7 @@ describe('the shipped themes', () => {
   });
 
   it('names them in picker order', () => {
-    expect(THEME_IDS).toEqual(['night', 'vga']);
+    expect(THEME_IDS).toEqual(['night', 'vga', 'reef']);
   });
 
   it('names a look that exists, not a preset id that used to', () => {

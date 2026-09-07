@@ -176,6 +176,24 @@ const LOOKS: readonly LookSpec[] = [
     sceneParams: { scale: 3, steps: 32, trap: 0.5, swell: 0.35 },
     chain: [['grain', { amount: 0.08 }]],
   },
+  {
+    // P5-37, the calm mode (D-018). Everything here is chosen against the
+    // brief rather than for impact: the bloom is low so the caustic filaments
+    // bleed like light in water, the grain is silt, and the CRT is present
+    // only for its vignette — corners darkened, not a television.
+    //
+    // No `bars`. A spectrum bar is the single most anti-calm element in the
+    // library and would undo the thing the scene exists for.
+    id: 'reef',
+    name: 'Reef',
+    scene: 'reef',
+    sceneParams: { drift: 1, sway: 0.3, flow: 0.8, caustics: 0.7, rays: 0.5, murk: 0.75 },
+    chain: [
+      ['bloom', { threshold: 0.5, radius: 1, amount: 0.35 }],
+      ['grain', { amount: 0.05 }],
+      ['crt', { curve: 0.15, scan: 0.12, mask: 0.05, vignette: 0.45 }],
+    ],
+  },
 ];
 
 /**

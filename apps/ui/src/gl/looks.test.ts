@@ -31,6 +31,7 @@ describe('the shipped looks', () => {
       'vga',
       'tunnel',
       'orbit',
+      'reef',
     ]);
   });
 
