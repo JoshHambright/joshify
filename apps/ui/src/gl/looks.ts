@@ -164,6 +164,18 @@ const LOOKS: readonly LookSpec[] = [
       ['bars', { gain: 1, tilt: 0.6, gap: 0.3, height: 0.22, cap: 0.01 }],
     ],
   },
+  {
+    // The orbit-trap fractal, with almost nothing behind it. The scene costs
+    // roughly fifteen ordinary passes a fragment and the degrader is not
+    // allowed to drop a scene (P5-14), so the chain is where the budget has to
+    // come from: one cheap pass, no bloom and no edge. `steps` is the first
+    // dial to reach for if a real Pi cannot hold it.
+    id: 'orbit',
+    name: 'Orbit',
+    scene: 'fractal',
+    sceneParams: { scale: 3, steps: 32, trap: 0.5, swell: 0.35 },
+    chain: [['grain', { amount: 0.08 }]],
+  },
 ];
 
 /**

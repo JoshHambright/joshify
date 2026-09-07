@@ -30,6 +30,7 @@ describe('the shipped looks', () => {
       'wall',
       'vga',
       'tunnel',
+      'orbit',
     ]);
   });
 

@@ -370,10 +370,15 @@ uniform float uDrift;
 uniform float uSway;
 uniform float uFlow;
 
+// Every varying carries an explicit precision, matching the fragment stage
+// declaration for declaration. Precision is not part of the interface-matching
+// rules for varyings the way it is for uniforms, so a mismatch here would link
+// and then quantise on some drivers and not others — which is a worse bug than
+// one that refuses to link.
 out highp vec4 vFlowA;
 out highp vec4 vFlowB;
-out vec2 vWater;
-out vec4 vForm;
+out mediump vec2 vWater;
+out mediump vec4 vForm;
 
 const float kTau = 6.28318;
 // Crossings per second at full drift. The near form takes ~29s to cross and
@@ -468,8 +473,8 @@ precision mediump float;
 
 in highp vec4 vFlowA;
 in highp vec4 vFlowB;
-in vec2 vWater;
-in vec4 vForm;
+in mediump vec2 vWater;
+in mediump vec4 vForm;
 
 uniform sampler2D uArt;
 uniform vec3 uAccent;

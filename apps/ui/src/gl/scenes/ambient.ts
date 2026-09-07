@@ -334,23 +334,25 @@ export interface SolidPlacement {
  * each other's depth range, so the check is made against the worst case a
  * preset is allowed to ask for, once, at build time.
  */
-export const SIZE_CEILING = 1.25;
-export const SWELL_CEILING = 0.2;
+export const SIZE_CEILING = 1.2;
+export const SWELL_CEILING = 0.18;
 const WORST_CASE_SCALE = SIZE_CEILING * (1 + SWELL_CEILING);
 
 /** Matches `kNear` in the vertex shader. Nothing may cross it. */
 const NEAR_PLANE = 0.5;
 
 /**
- * Five solids, near to far, each about a fifth of the screen high.
+ * Five solids, near to far, each about a quarter of the screen high.
  *
  * Five, not fifteen: the idiom is a nearly empty field with a few objects in
  * it, and every extra solid is another depth band the separation rule has to
  * fit — the roster is a geometric series in depth for exactly that reason.
  * Apparent size is `radius * focal / depth`, so a fixed ratio between depths
- * keeps the same ratio between radii and the whole field scales together. The
- * taper (a fifth of the screen near, a seventh far) is the only depth cue that
- * survives, since parallax cannot help: everything drifts, nothing approaches.
+ * keeps the same ratio between radii and the whole field scales together — the
+ * roster is a 1.6 ratio throughout, which is the tightest spacing that still
+ * clears the separation rule at the size and swell ceilings. The taper (24% of
+ * the screen near, 19% far) is nearly the only depth cue left, since parallax
+ * cannot help: everything drifts, nothing approaches.
  *
  * `x` and `y` are given in world units at each solid's own depth, so they read
  * as roughly a quarter to a third of a screen away from centre wherever the
@@ -360,10 +362,10 @@ const NEAR_PLANE = 0.5;
 export const AMBIENT_SOLIDS: readonly SolidPlacement[] = [
   {
     kind: 'tetrahedron',
-    x: -2.5,
-    y: -2.3,
-    depth: 9,
-    radius: 1.16,
+    x: -2.4,
+    y: -2.2,
+    depth: 8.6,
+    radius: 1.35,
     spinAxis: [0.31, 0.87, 0.38],
     spinRate: 0.023,
     driftPhase: 0.4,
@@ -374,7 +376,7 @@ export const AMBIENT_SOLIDS: readonly SolidPlacement[] = [
     x: 4.3,
     y: 3.7,
     depth: 14.4,
-    radius: 1.77,
+    radius: 2.14,
     spinAxis: [0.62, 0.55, -0.56],
     spinRate: 0.017,
     driftPhase: 2.1,
@@ -385,7 +387,7 @@ export const AMBIENT_SOLIDS: readonly SolidPlacement[] = [
     x: -2.8,
     y: 0.5,
     depth: 23,
-    radius: 2.67,
+    radius: 3.26,
     spinAxis: [-0.42, 0.79, 0.45],
     spinRate: 0.029,
     driftPhase: 3.9,
@@ -396,7 +398,7 @@ export const AMBIENT_SOLIDS: readonly SolidPlacement[] = [
     x: 12.5,
     y: -8.9,
     depth: 36.9,
-    radius: 3.93,
+    radius: 4.88,
     spinAxis: [0.71, -0.35, 0.61],
     spinRate: 0.013,
     driftPhase: 5.2,
@@ -407,7 +409,7 @@ export const AMBIENT_SOLIDS: readonly SolidPlacement[] = [
     x: -17.7,
     y: 13,
     depth: 59,
-    radius: 5.71,
+    radius: 7.23,
     spinAxis: [-0.28, 0.66, 0.7],
     spinRate: 0.011,
     driftPhase: 1.3,

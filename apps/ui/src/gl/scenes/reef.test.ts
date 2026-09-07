@@ -469,6 +469,40 @@ describe('the reef scene', () => {
       expect(fragmentPrecision.get(name)).toBe('mediump');
     }
   });
+
+  /**
+   * The varyings carry the clock into the fragment stage, so their precision is
+   * load-bearing in a way a colour's is not: at `mediump` the phases quantise
+   * after a few minutes of uptime and every slow drift in the scene ratchets.
+   * Precision is not part of the interface-matching rules for varyings the way
+   * it is for uniforms, so a mismatch links happily and then behaves
+   * differently per driver — worse than a failure.
+   */
+  it('declares every varying at the same explicit precision in both stages', () => {
+    const varyings = (
+      source: string,
+      direction: 'in' | 'out',
+    ): ReadonlyMap<string, string> =>
+      new Map(
+        [
+          ...source.matchAll(
+            new RegExp(
+              `^\\s*${direction}\\s+(highp|mediump|lowp)\\s+\\w+\\s+(\\w+)\\s*;`,
+              'gm',
+            ),
+          ),
+        ].map(([, precision, name]) => [name ?? '', precision ?? '']),
+      );
+
+    const out = varyings(REEF_SCENE.vertex, 'out');
+    const into = varyings(REEF_SCENE.fragment, 'in');
+
+    expect(out.size).toBe(4);
+    expect([...into.entries()].sort()).toEqual([...out.entries()].sort());
+    // The two that carry time are the ones that must be highp.
+    expect(out.get('vFlowA')).toBe('highp');
+    expect(out.get('vFlowB')).toBe('highp');
+  });
 });
 
 describe('the calm guarantee (D-018)', () => {
