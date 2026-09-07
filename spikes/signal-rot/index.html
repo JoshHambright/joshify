@@ -418,14 +418,25 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
           <input type="range" id="sScan" min="0" max="100" value="45"></div>
       </div>
       <div class="row">
-        <div class="ctl"><label>TRAIL<i id="vTrail">64</i></label>
-          <input type="range" id="sTrail" min="0" max="100" value="64"></div>
+        <div class="ctl"><label>TRAIL<i id="vTrail">78</i></label>
+          <input type="range" id="sTrail" min="0" max="100" value="78"></div>
         <div class="ctl"><label>CHROMA<i id="vChroma">42</i></label>
           <input type="range" id="sChroma" min="0" max="100" value="42"></div>
       </div>
+      <div class="hdr">MOTION <span>FLOW FIELD &amp; LONG-FORM DRIFT</span></div>
       <div class="row">
-        <div class="ctl"><label>DRIFT<i id="vDrift">32</i></label>
-          <input type="range" id="sDrift" min="0" max="100" value="32"></div>
+        <div class="ctl big"><label>FLOW<i id="vFlow">58</i></label>
+          <input type="range" id="sFlow" min="0" max="100" value="58"></div>
+        <div class="ctl big"><label>EVOLVE<i id="vEvolve">55</i></label>
+          <input type="range" id="sEvolve" min="0" max="100" value="55"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>BREATH<i id="vBreath">62</i></label>
+          <input type="range" id="sBreath" min="0" max="100" value="62"></div>
+        <div class="ctl"><label>DRIFT<i id="vDrift">22</i></label>
+          <input type="range" id="sDrift" min="0" max="100" value="22"></div>
+      </div>
+      <div class="row">
         <div class="ctl"><label>RENDER<i id="vScale">62</i></label>
           <input type="range" id="sScale" min="30" max="100" value="62"></div>
       </div>
@@ -438,8 +449,15 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
       <p class="note"><b>STOCK</b> swaps the four-colour grade the whole image is
       mapped through; DMG and AMBER also quantise to four tones. <b>FADE</b> lifts
       the blacks and washes the colour — the single biggest difference between
-      "broken digital" and "old". <b>RENDER</b> is the internal buffer resolution;
-      drop it first if the frame rate sags.</p>
+      "broken digital" and "old".</p>
+      <p class="note"><b>FLOW</b> advects the previous frame along three drifting
+      vortices instead of scaling it toward the centre, which is what makes the
+      motion curl rather than pulse. <b>BREATH</b> is how far the feedback swings
+      between contracting and blooming. <b>EVOLVE</b> is the rate of the long-form
+      drifts — these are random walks, not cycles, so the scene never returns to
+      a state you have already seen. At zero the whole structure holds still.
+      <b>RENDER</b> is the internal buffer resolution; drop it first if the frame
+      rate sags.</p>
     </section>
   </main>
 </div>
@@ -486,7 +504,8 @@ const P = {
   bass:.78, lead:.40, perc:.55, bell:.62, drone:.40,
   delayDiv:3, dcrush:.58,
   vmode:0, stock:1,
-  trail:.64, chroma:.42, scan:.45, drift:.32, rscale:.62,
+  trail:.78, chroma:.42, scan:.45, drift:.22, rscale:.62,
+  flowAmt:.58, breath:.62, evolve:.55,
   fade:.50, track:.35, bleed:.50, halo:.40, curve:.32,
   fx:{stut:0,rev:0,crsh:0,drop:0,grain:0,fill:0,stop:0,wobl:0},
   latch:false, running:false, osd:true
@@ -501,7 +520,7 @@ const SCALES = [
 ];
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const DIVS=[{n:'1/16',v:1},{n:'1/8',v:2},{n:'3/16',v:3},{n:'1/4',v:4},{n:'3/8',v:6}];
-const VMODES=['BARS','TUNNEL','MOSH','SCOPE','RASTER'];
+const VMODES=['BARS','TUNNEL','MOSH','SCOPE','RASTER','FLOW'];
 
 /* Media stocks: four grade colours plus the defaults that come with each look.
    c0 = ground, c1 = shadow, c2 = accent, c3 = highlight. */
@@ -979,22 +998,43 @@ precision highp float;
 varying vec2 vUv;
 uniform sampler2D uPrev, uAud;
 uniform vec2 uRes;
-uniform float uTime,uBass,uMid,uHigh,uLevel,uGlitch,uTrail,uDrift,uMode,uTiltX,uTiltY;
+uniform float uTime,uVt,uBass,uMid,uHigh,uLevel,uGlitch,uTrail,uDrift,uMode,uTiltX,uTiltY;
+uniform float uFlow,uBreath,uSwirl,uInk,uAngle;
+uniform vec2 uV0,uV1,uV2;
+uniform vec3 uSpin;
 
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
 float fq(float t){ return texture2D(uAud, vec2(clamp(t,0.0,1.0),0.25)).r; }
 
+vec2 vort(vec2 p, vec2 c, float s){
+  vec2 d = p - c;
+  return vec2(-d.y, d.x) * (s / (dot(d,d) + 0.045));
+}
+/* Three drifting vortices plus a small-scale domain warp. A vortex swirls
+   material without pushing it in or out, so the previous frame is advected
+   along curved paths — that is what reads as organic. An affine zoom moves
+   every pixel toward one point and never can. Centres and spins arrive as
+   uniforms; the CPU already knows them, so this costs two sines per pixel. */
+vec2 flowField(vec2 p){
+  vec2 v = vort(p,uV0,uSpin.x) + vort(p,uV1,uSpin.y) + vort(p,uV2,uSpin.z);
+  v += 0.55*vec2(sin(p.y*7.3 - uVt*0.21), cos(p.x*6.1 + uVt*0.17));
+  return v / (1.0 + length(v)*0.55);
+}
+
 void main(){
   vec2 uv = vUv;
-  vec2 c  = uv-0.5;
-  c.x *= uRes.x/uRes.y;
+  float asp = uRes.x/uRes.y;
+  vec2 c = (uv-0.5)*vec2(asp,1.0);
 
-  float dr   = 0.004 + uDrift*0.028 + uBass*0.030;
-  float rota = (uDrift*0.020+0.001)*sin(uTime*0.17) + uTiltX*0.02;
+  /* Breathing: the feedback zoom reverses between drawing inward and blooming
+     outward. uBreath is a random walk, so it never returns on a schedule. */
+  float zoom = 1.0 - (0.0030 + uDrift*0.011)*uBreath - uBass*0.016;
+  float rota = uDrift*0.012*uSwirl + uTiltX*0.02;
   mat2 R = mat2(cos(rota),-sin(rota),sin(rota),cos(rota));
-  vec2 pc = R*(vUv-0.5)*(1.0-dr);
-  pc.y += uTiltY*0.004;
-  vec2 puv = pc+0.5;
+  vec2 puv = R*(vUv-0.5)*zoom + 0.5;
+
+  puv -= flowField(vUv)*uFlow*0.0075;
+  puv.y += uTiltY*0.004;
 
   float blocks = mix(56.0, 9.0, uGlitch);
   vec2 bid = floor(puv*blocks);
@@ -1003,41 +1043,61 @@ void main(){
     puv.x += (hash(bid*1.7+3.1)-0.5)*0.22*uGlitch;
     puv.y += (hash(bid*2.3+7.7)-0.5)*0.05*uGlitch;
   }
-  vec3 col = texture2D(uPrev, puv).rgb * mix(0.74, 0.985, uTrail);
+  float decay = mix(0.78,0.990,uTrail) - uGlitch*0.010;
+  vec3 col = texture2D(uPrev, puv).rgb * decay;
 
   vec3 ink = vec3(0.0);
   float m = uMode;
-  if(m < 0.5){
-    float t  = abs(uv.x*2.0-1.0);
-    float d  = pow(fq(t*0.85),1.5)*0.92 - uv.y;
-    ink += vec3(smoothstep(0.0,0.012,d)*0.55);
-    ink += vec3(smoothstep(0.028,0.0,abs(d)))*vec3(1.0,0.55,0.85)*1.5;
-  } else if(m < 1.5){
-    float r = length(c)+0.0001;
-    float a = atan(c.y,c.x)/6.2831853+0.5;
-    float z = fract(0.24/r + uTime*(0.22+uBass*0.9));
+  vec2 ar = vec2(cos(uAngle), sin(uAngle));
+
+  if(m < 0.5){                                 /* BARS — ribbon on a rotating axis */
+    float t = dot(uv-0.5, ar) + 0.5;
+    float u = dot(c, vec2(-ar.y, ar.x));
+    float d = pow(fq(abs(t*2.0-1.0)*0.9),1.5)*0.46 - abs(u);
+    ink += vec3(smoothstep(0.0,0.014,d))*0.40;
+    ink += vec3(smoothstep(0.030,0.0,abs(d)))*vec3(1.0,0.55,0.85)*1.35;
+  } else if(m < 1.5){                          /* TUNNEL — off-centre, stalls and reverses */
+    vec2 tc = (uV0-0.5)*0.55;
+    vec2 d  = c-tc;
+    float r = length(d)+0.0001;
+    float a = atan(d.y,d.x)/6.2831853+0.5;
+    float z = fract(0.24/r + uVt*(0.10+uBass*0.55)*(uSwirl*0.8+0.36));
     float ring = smoothstep(0.5,0.98,z)*smoothstep(0.02,0.16,r);
-    float spokes = 0.5+0.5*sin(a*6.2831853*8.0 + uTime*0.7);
+    float spokes = 0.5+0.5*sin(a*6.2831853*8.0 + uVt*0.5);
     ink += vec3(ring*(0.35+fq(a)*1.4)*(0.4+spokes*0.6));
     ink += vec3(smoothstep(0.10,0.0,r))*uHigh*1.4;
-  } else if(m < 2.5){
+  } else if(m < 2.5){                          /* MOSH */
     vec2 g = floor(uv*vec2(24.0,14.0));
     float k = hash(g+floor(uTime*3.0));
     ink += vec3(step(1.0-(0.06+uHigh*0.30), k))*vec3(0.9,0.35,0.7)*mix(0.4,1.4,uLevel);
     ink += vec3(step(0.985, hash(vec2(floor(uv.y*90.0), floor(uTime*8.0)))))*0.6;
-  } else if(m < 3.5){
-    ink += vec3(0.0);                       // SCOPE draws line geometry instead
-  } else {
+  } else if(m < 3.5){                          /* SCOPE draws line geometry instead */
+    ink += vec3(0.0);
+  } else if(m < 4.5){                          /* RASTER */
     float rows = 34.0;
     float row = floor(uv.y*rows);
-    float off = sin(row*1.7 + uTime*(0.5+uMid*3.0))*0.5+0.5;
+    float off = sin(row*1.7 + uVt*(0.30+uMid*2.0))*0.5+0.5;
     float lvl = fq(row/rows);
-    float x = fract(uv.x + off*0.25);
-    ink += vec3(step(x, lvl*1.1))*0.42;
-    ink += vec3(smoothstep(0.02,0.0,abs(x-lvl*1.1)))*vec3(0.4,1.0,1.0)*1.2;
+    float x = fract(uv.x + off*0.25 + uAngle*0.09);
+    ink += vec3(step(x, lvl*1.1))*0.36;
+    ink += vec3(smoothstep(0.02,0.0,abs(x-lvl*1.1)))*vec3(0.4,1.0,1.0)*1.15;
+  } else {                                     /* FLOW — ink emitted at the vortices */
+    float d0=length((uv-uV0)*vec2(asp,1.0));
+    float d1=length((uv-uV1)*vec2(asp,1.0));
+    float d2=length((uv-uV2)*vec2(asp,1.0));
+    /* Concentric bands rather than solid discs — the flow shears the rings
+       into filaments, which a flat blob has no structure to become. */
+    ink += vec3(smoothstep(0.14,0.0,d0))*(0.30+fq(fract(d0*5.0     ))*1.5)*vec3(1.00,0.42,0.74);
+    ink += vec3(smoothstep(0.14,0.0,d1))*(0.30+fq(fract(d1*5.0+0.33))*1.5)*vec3(0.38,1.00,0.94);
+    ink += vec3(smoothstep(0.14,0.0,d2))*(0.30+fq(fract(d2*5.0+0.66))*1.5)*vec3(0.86,0.84,1.00);
+    ink *= 0.85;
   }
 
-  col += ink*(0.50+uLevel*1.1);
+  /* A feedback buffer settles at ink/(1-decay). Scaling the deposit by
+     (1-decay) holds that equilibrium fixed, so TRAIL changes how far the smear
+     reaches without changing how bright the image gets — otherwise long trails
+     blow out to white and short ones vanish. */
+  col += ink*(0.70+uLevel*0.45)*uInk*(1.0-decay)*2.6;
   gl_FragColor = vec4(min(col,vec3(1.6)),1.0);
 }`;
 
@@ -1224,11 +1284,56 @@ let tiltX=0,tiltY=0,tiltOn=false;
 let bassE=0,midE=0,highE=0,lvlE=0;
 let t0=performance.now(), lastFrame=t0, fps=60;
 
+/* ---- long-form drift ----------------------------------------------------
+   A smoothstep-interpolated walk between random targets. Unlike a sine it has
+   no period at all, so nothing in the scene can ever return to a state the eye
+   recognises. Each drift runs on its own duration; they never re-align.      */
+function drifter(period,min,max){
+  return {
+    t:rnd(), p:period, min:min, max:max, v:0,
+    a:min+(max-min)*rnd(), b:min+(max-min)*rnd(),
+    tick(dt){
+      this.t += dt/this.p;
+      while(this.t>=1){ this.t-=1; this.a=this.b; this.b=this.min+(this.max-this.min)*rnd(); }
+      const s=this.t*this.t*(3-2*this.t);
+      this.v = this.a+(this.b-this.a)*s;
+      return this.v;
+    }
+  };
+}
+const D = {
+  flow:   drifter(37, 0.45, 1.75),   // how hard the field pushes
+  breath: drifter(41, -1.0, 1.0),    // inhale / exhale
+  ink:    drifter(29, 0.74, 1.28),   // how much new ink is laid down
+  angVel: drifter(59, -0.075, 0.075),// rotation rate of the ink axis
+  spin:  [drifter(43,-0.9,0.9), drifter(53,-0.9,0.9), drifter(61,-0.9,0.9)]
+};
+// vt is "organic time": it advances at the EVOLVE rate, so slowing EVOLVE
+// slows the structure without freezing the fast artefacts driven by uTime.
+let vt=0, vAngle=0, vSwirl=0;
+const VC=[[0.5,0.5],[0.5,0.5],[0.5,0.5]];
+
 function frame(now){
   requestAnimationFrame(frame);
   const t=(now-t0)/1000;
   const dt=now-lastFrame; lastFrame=now;
   fps = fps*0.92 + (1000/Math.max(1,dt))*0.08;
+
+  // ---- advance the long-form drifts ----
+  // clamped so a stalled tab cannot jump the drifts, but high enough that a
+  // slow device still evolves at close to real time
+  const dtS = Math.min(0.10, dt/1000);
+  const ev  = P.evolve * (reduceMotion?0.35:1);
+  vt += dtS*(0.30 + ev*1.35);
+  const dEv = dtS*(0.15 + ev*1.65);
+  const fFlow=D.flow.tick(dEv), fBreath=D.breath.tick(dEv), fInk=D.ink.tick(dEv);
+  vAngle += D.angVel.tick(dEv)*dtS*(0.3+ev);
+  const s0=D.spin[0].tick(dEv), s1=D.spin[1].tick(dEv), s2=D.spin[2].tick(dEv);
+  vSwirl = (s0+s1+s2)/3;
+  for(let i=0;i<3;i++){
+    VC[i][0] = 0.5 + 0.33*Math.sin(vt*(0.101+i*0.037) + i*2.399);
+    VC[i][1] = 0.5 + 0.33*Math.cos(vt*(0.087+i*0.041) + i*1.117);
+  }
 
   let bass=0,mid=0,high=0,lvl=0;
   if(AU.ready && P.running){
@@ -1291,21 +1396,34 @@ function frame(now){
   gl.uniform1f(pFeed.u.uHigh,highE);
   gl.uniform1f(pFeed.u.uLevel,lvlE);
   gl.uniform1f(pFeed.u.uGlitch,glitch);
-  gl.uniform1f(pFeed.u.uTrail,reduceMotion?P.trail*0.6:P.trail);
+  gl.uniform1f(pFeed.u.uTrail,reduceMotion?P.trail*0.75:P.trail);
   gl.uniform1f(pFeed.u.uDrift,reduceMotion?P.drift*0.4:P.drift);
   gl.uniform1f(pFeed.u.uMode,P.vmode);
   gl.uniform1f(pFeed.u.uTiltX,tiltX);
   gl.uniform1f(pFeed.u.uTiltY,tiltY);
+  gl.uniform1f(pFeed.u.uVt,vt);
+  gl.uniform1f(pFeed.u.uFlow,P.flowAmt*fFlow*(reduceMotion?0.35:1));
+  gl.uniform1f(pFeed.u.uBreath,P.breath*fBreath);
+  gl.uniform1f(pFeed.u.uSwirl,vSwirl);
+  gl.uniform1f(pFeed.u.uInk,fInk);
+  gl.uniform1f(pFeed.u.uAngle,vAngle);
+  gl.uniform2f(pFeed.u.uV0,VC[0][0],VC[0][1]);
+  gl.uniform2f(pFeed.u.uV1,VC[1][0],VC[1][1]);
+  gl.uniform2f(pFeed.u.uV2,VC[2][0],VC[2][1]);
+  gl.uniform3f(pFeed.u.uSpin,s0,s1,s2);
   drawQuad(pFeed);
 
   if(P.vmode===3){
     const N=AUDN;
-    const lis = (Math.floor(t*0.12)%2)===1;
+    const lis = (Math.floor(vt*0.09)%2)===1;
+    const ca=Math.cos(vAngle*0.7), sa=Math.sin(vAngle*0.7);
     for(let i=0;i<N;i++){
       const a=(waveData[Math.min(i,waveData.length-1)]-128)/128;
       const b=(waveData[Math.min((i+64)%N,waveData.length-1)]-128)/128;
-      if(lis){ linePts[i*2]=a*0.82; linePts[i*2+1]=b*0.82; }
-      else   { linePts[i*2]=(i/(N-1))*2-1; linePts[i*2+1]=a*0.78; }
+      let x,y;
+      if(lis){ x=a*0.82; y=b*0.82; }
+      else   { x=(i/(N-1))*2-1; y=a*0.78; }
+      linePts[i*2]=x*ca-y*sa; linePts[i*2+1]=x*sa+y*ca;
     }
     gl.bindBuffer(gl.ARRAY_BUFFER,lineBuf);
     gl.bufferSubData(gl.ARRAY_BUFFER,0,linePts);
@@ -1410,6 +1528,9 @@ bindSlider('#sTrail','#vTrail','trail');
 bindSlider('#sChroma','#vChroma','chroma');
 bindSlider('#sScan','#vScan','scan');
 bindSlider('#sDrift','#vDrift','drift');
+bindSlider('#sFlow','#vFlow','flowAmt');
+bindSlider('#sBreath','#vBreath','breath');
+bindSlider('#sEvolve','#vEvolve','evolve');
 bindSlider('#sFade','#vFade','fade');
 bindSlider('#sTrack','#vTrack','track');
 bindSlider('#sBleed','#vBleed','bleed');
@@ -1444,35 +1565,40 @@ const PRESETS=[
     bass:.70,lead:.20,perc:.38,bell:.82,drone:.46,
     age:.58,wow:.44,hiss:.36,dust:.56,wear:.20,
     cutoff:.44,rot:.08,smear:.34,space:.56,drive:.18,delayDiv:3,dcrush:.50,
-    vmode:0,stock:3,trail:.72,chroma:.30,scan:.40,drift:.22,
+    vmode:5,stock:3,trail:.86,chroma:.30,scan:.40,drift:.14,
+    flowAmt:.52,breath:.78,evolve:.34,
     fade:.66,track:.16,bleed:.60,halo:.52,curve:.36}},
 
   {n:'BASEMENT', p:{bpm:88,swing:.26,scaleIx:0,root:9,density:.58,chaos:.24,
     bass:.86,lead:.44,perc:.62,bell:.40,drone:.34,
     age:.46,wow:.32,hiss:.30,dust:.42,wear:.34,
     cutoff:.50,rot:.26,smear:.32,space:.44,drive:.40,delayDiv:2,dcrush:.62,
-    vmode:1,stock:1,trail:.66,chroma:.44,scan:.48,drift:.34,
+    vmode:1,stock:1,trail:.78,chroma:.44,scan:.48,drift:.24,
+    flowAmt:.60,breath:.62,evolve:.52,
     fade:.48,track:.32,bleed:.50,halo:.34,curve:.30}},
 
   {n:'TRACKING', p:{bpm:96,swing:.10,scaleIx:0,root:7,density:.66,chaos:.42,
     bass:.74,lead:.56,perc:.70,bell:.26,drone:.30,
     age:.72,wow:.62,hiss:.44,dust:.50,wear:.78,
     cutoff:.62,rot:.52,smear:.46,space:.60,drive:.46,delayDiv:1,dcrush:.78,
-    vmode:2,stock:1,trail:.78,chroma:.66,scan:.52,drift:.48,
+    vmode:2,stock:1,trail:.80,chroma:.66,scan:.52,drift:.36,
+    flowAmt:.86,breath:.50,evolve:.88,
     fade:.44,track:.92,bleed:.72,halo:.30,curve:.42}},
 
   {n:'ARCADE', p:{bpm:132,swing:.04,scaleIx:2,root:4,density:.62,chaos:.20,
     bass:.72,lead:.72,perc:.60,bell:.54,drone:.16,
     age:.24,wow:.16,hiss:.20,dust:.18,wear:.10,
     cutoff:.70,rot:.40,smear:.16,space:.30,drive:.34,delayDiv:0,dcrush:.72,
-    vmode:4,stock:4,trail:.52,chroma:.24,scan:.62,drift:.40,
+    vmode:4,stock:4,trail:.60,chroma:.24,scan:.62,drift:.30,
+    flowAmt:.30,breath:.44,evolve:.72,
     fade:.30,track:.10,bleed:.20,halo:.22,curve:.44}},
 
   {n:'RUINED', p:{bpm:64,swing:.32,scaleIx:4,root:11,density:.40,chaos:.52,
     bass:.66,lead:.34,perc:.40,bell:.58,drone:.56,
     age:1.0,wow:.88,hiss:.62,dust:.80,wear:.86,
     cutoff:.34,rot:.60,smear:.62,space:.74,drive:.30,delayDiv:4,dcrush:.90,
-    vmode:3,stock:5,trail:.86,chroma:.72,scan:.44,drift:.52,
+    vmode:3,stock:5,trail:.92,chroma:.72,scan:.44,drift:.40,
+    flowAmt:1.0,breath:.90,evolve:.26,
     fade:.72,track:.60,bleed:.66,halo:.58,curve:.38}}
 ];
 function applyPreset(i){
@@ -1673,7 +1799,7 @@ addEventListener('keydown',e=>{
   if(e.code==='Space'){ e.preventDefault(); toggleRun(); return; }
   const pi=PADKEYS.indexOf(e.key);
   if(pi>=0){ const el=$$('.pad')[pi]; if(el) setFx(el.dataset.fx,true,el); return; }
-  const vi='qwert'.indexOf(e.key.toLowerCase());
+  const vi='qwerty'.indexOf(e.key.toLowerCase());
   if(vi>=0){ P.vmode=vi; syncSeg('vmode'); }
   if(e.key==='h') toggleHud();
   if(e.key==='m') mutate();

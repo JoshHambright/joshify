@@ -18,6 +18,7 @@ so it survives the container.
 |---|---|
 | Audio | One `ScriptProcessorNode`. Every sample — sequencer, voices, effects, media decay — computed in JS |
 | Visual | WebGL1 ping-pong feedback, driven by an `AnalyserNode` uploaded as a 256×2 texture, graded through a four-colour stock |
+| Motion | The previous frame is advected along a vortex flow field; the long-form structure comes from random walks with no period |
 | Control | Multi-touch XY field, eight momentary pads, a 16-step × 5-track grid, five whole-instrument scenes |
 
 Five voices — bass, pulse lead, noise perc, 2-op FM bell, three-saw drone — run
@@ -43,7 +44,9 @@ Everything from `TAPE` on is scaled by one **AGE** macro.
 | Wow and flutter need a delay line, not an LFO on pitch | A modulated fractional read pointer detunes the *delay repeats* against the dry signal, which an oscillator-detune cannot do |
 | "Old" is a grade, not an effect | Lifting the blacks and washing the colour (`FADE`) moves the image from "broken digital" to "aged" more than any artefact does |
 | The analyser can drive a shader cheaply | 256 bins + 256 wave samples as one 2048-byte `texSubImage2D` per frame |
-| Feedback buffers are the whole visual | Five modes share one ping-pong pass; the modes differ only in what ink they add on top |
+| Feedback buffers are the whole visual | Six modes share one ping-pong pass; the modes differ only in what ink they add on top |
+| Advection, not scaling, is what reads as organic | A vortex field moves material along curved paths; an affine zoom moves every pixel toward one point, which is why it looked static |
+| A random walk is the only real cure for "it loops" | Sine-driven motion has a period the eye finds in seconds; the drifts have no period at all |
 | Low internal resolution reads as *more* glitch | Feedback renders at 30–100% (`RENDER`), presents at full — same finding as D-011 |
 
 ## Techniques worth keeping
@@ -100,6 +103,66 @@ characteristic sound in the instrument.
 post-effect output; grains replay it at ±0.5/1/2× with a Hann window. Because
 the recording is post-effect, smear compounds — the audio equivalent of the
 visual feedback buffer.
+
+**A vortex flow field instead of an affine warp.** The first two versions
+advected the previous frame with `R*(uv-0.5)*zoom + 0.5` — a rotation and a
+scale about the centre. Every pixel moves the same way, so however much you
+modulate it, it reads as a pulsing zoom. Three drifting vortices give
+differential motion:
+
+```glsl
+vec2 vort(vec2 p, vec2 c, float s){
+  vec2 d = p - c;
+  return vec2(-d.y, d.x) * (s / (dot(d,d) + 0.045));   // perpendicular = swirl
+}
+vec2 flowField(vec2 p){
+  vec2 v = vort(p,uV0,uSpin.x) + vort(p,uV1,uSpin.y) + vort(p,uV2,uSpin.z);
+  v += 0.55*vec2(sin(p.y*7.3 - uVt*0.21), cos(p.x*6.1 + uVt*0.17));
+  return v / (1.0 + length(v)*0.55);                   // soft-clamp
+}
+```
+
+A vortex is divergence-free — it swirls material without pushing it in or out —
+which is the property that makes it look like fluid rather than a transform.
+Curl noise would be more correct and costs 12–16 noise evaluations per pixel;
+three analytic vortices cost a divide each. **Centres and spins are computed on
+the CPU and passed as uniforms**, so the whole field is two sines per pixel.
+
+**Long-form structure from random walks, not LFOs.** A sine has a period, and
+the eye finds it in about ten seconds. A smoothstep-interpolated walk between
+random targets has no period at all:
+
+```js
+function drifter(period,min,max){
+  return { t:rnd(), a:..., b:..., tick(dt){
+    this.t += dt/period;
+    while(this.t>=1){ this.t-=1; this.a=this.b; this.b=min+(max-min)*rnd(); }
+    const s=this.t*this.t*(3-2*this.t);
+    return this.a+(this.b-this.a)*s;
+  }};
+}
+```
+
+Six of them run at 29–61 second periods on independent phases — flow strength,
+breath, ink density, ink-axis rotation, and one spin per vortex. Nothing
+re-aligns, so the scene never returns to a state you have seen. `EVOLVE` scales
+every drift's rate at once; at zero the structure holds still while the fast
+artefacts (tear, grain, head-switch) keep running off real time.
+
+**Normalise the ink deposit by `(1-decay)`.** A feedback buffer settles at
+`ink/(1-decay)`, so a fixed deposit rate means raising TRAIL raises *brightness*
+as well as smear length — long trails blow out to white, short ones vanish.
+Scaling the deposit by `(1-decay)` holds the equilibrium fixed and lets TRAIL
+mean only what it says:
+
+```glsl
+float decay = mix(0.78,0.990,uTrail) - uGlitch*0.010;
+vec3 col = texture2D(uPrev, puv).rgb * decay;
+col += ink*(0.70+uLevel*0.45)*uInk*(1.0-decay)*2.6;
+```
+
+This was a real bug, not a tuning preference: it only became visible once a mode
+laid down broad soft ink instead of thin lines.
 
 **Four-colour stocks as uniforms, not shader branches.** `c0` ground, `c1`
 shadow, `c2` accent, `c3` highlight, passed as four `vec3`s and applied as one
