@@ -1,7 +1,8 @@
 <title>Patchbay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Chakra+Petch:wght@300;400;500;600&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Chakra+Petch:wght@300;400;500;600&family=Share+Tech+Mono&display=swap">
 <style>
 /* ============================================================
    One committed visual world: a neon screen. No light theme —
@@ -1099,6 +1100,314 @@ const BASE_EDGES = [
 </script>
 
 <script>
+/* ============================================================
+   SECOND WAVE
+   Chosen for density, not headcount: every cluster here lands on a hub the
+   corpus already has (Albini, Sound City, 4AD, Touch and Go, Rubin, Andy
+   Wallace, Moulder, Beinhorn, Lollapalooza) rather than floating beside it.
+   ============================================================ */
+const W2_NODES = [
+/* --- the Melvins axis, which is where Nirvana actually comes from --- */
+["p:osborne","person","Buzz Osborne",1964,"Introduced Krist Novoselic to Kurt Cobain, lent him records, and got him his first shows. The Melvins are the missing first link in every Nirvana chart."],
+["p:crover","person","Dale Crover",1967,"Drummed on Nirvana's 1988 demo and three Bleach tracks before Chad Channing."],
+["p:everman","person","Jason Everman",1967,"Paid the $606.17 for Bleach and is credited on the sleeve, though he did not play on it. Later joined Soundgarden."],
+["b:melvins","band","Melvins",1983,null],
+["a:houdini","album","Houdini",1993,"Cobain is a credited co-producer."],
+["a:bullhead","album","Bullhead",1991,null],
+/* --- Olympia: riot grrrl, K, Kill Rock Stars --- */
+["p:hanna","person","Kathleen Hanna",1968,"Wrote \"Kurt smells like Teen Spirit\" on Cobain's wall. He did not know it was a deodorant."],
+["p:vail","person","Tobi Vail",1969,null],
+["p:wilcox","person","Kathi Wilcox",1969,null],
+["p:karren","person","Billy Karren",1968,null],
+["p:moon","person","Slim Moon",1967,null],
+["p:cjohnson","person","Calvin Johnson",1962,null],
+["p:tucker","person","Corin Tucker",1972,null],
+["p:brownstein","person","Carrie Brownstein",1974,null],
+["p:jweiss","person","Janet Weiss",1965,null],
+["p:goodmanson","person","John Goodmanson",1966,null],
+["b:bikinikill","band","Bikini Kill",1990,null],
+["b:sleaterkinney","band","Sleater-Kinney",1994,null],
+["b:beathappening","band","Beat Happening",1982,null],
+["a:pussywhipped","album","Pussy Whipped",1993,null],
+["a:digmeout","album","Dig Me Out",1997,null],
+["a:onebeat","album","One Beat",2002,null],
+["l:killrockstars","label","Kill Rock Stars",1991,null],
+["l:k","label","K Records",1982,"Cobain had the K logo tattooed on his forearm."],
+["st:jackpot","studio","Jackpot! Recording Studio",1997,"Portland, Oregon."],
+/* --- Hole, and the Boston production pair --- */
+["p:love","person","Courtney Love",1964,null],
+["p:erlandson","person","Eric Erlandson",1963,null],
+["p:schemel","person","Patty Schemel",1967,null],
+["p:aufdermaur","person","Melissa Auf der Maur",1972,"Hole, then the Smashing Pumpkins — one of the few people who played in both."],
+["p:kolderie","person","Paul Q. Kolderie",1961,null],
+["p:slade","person","Sean Slade",1958,null],
+["b:hole","band","Hole",1989,null],
+["a:prettyontheinside","album","Pretty on the Inside",1991,null],
+["a:livethroughthis","album","Live Through This",1994,null],
+["a:celebrityskin","album","Celebrity Skin",1998,null],
+["st:fortapache","studio","Fort Apache Studios",1985,"Cambridge, Massachusetts. Kolderie and Slade's room."],
+["l:caroline","label","Caroline",1973,null],
+/* --- Amherst and the SST end --- */
+["p:mascis","person","J Mascis",1965,null],
+["p:barlow","person","Lou Barlow",1966,null],
+["p:murph","person","Murph",1964,null],
+["b:dinosaurjr","band","Dinosaur Jr",1984,null],
+["b:sebadoh","band","Sebadoh",1986,null],
+["a:bug","album","Bug",1988,null],
+/* --- Chicago and Louisville, the Albini side --- */
+["p:yow","person","David Yow",1960,null],
+["p:denison","person","Duane Denison",1958,null],
+["p:sims","person","David Wm. Sims",1962,null],
+["p:mcneilly","person","Mac McNeilly",1962,null],
+["p:mcmahan","person","Brian McMahan",1971,null],
+["p:pajo","person","David Pajo",1968,null],
+["p:walford","person","Britt Walford",1970,"Drummed on the Breeders' Pod under the name Shannon Doughton."],
+["p:paulson","person","Brian Paulson",1963,null],
+["p:rusk","person","Corey Rusk",1964,null],
+["b:jesuslizard","band","The Jesus Lizard",1987,null],
+["b:slint","band","Slint",1986,null],
+["b:nakedraygun","band","Naked Raygun",1980,null],
+["a:goat","album","Goat",1991,null],
+["a:liar","album","Liar",1992,null],
+["a:spiderland","album","Spiderland",1991,null],
+["a:tweez","album","Tweez",1989,null],
+["i:travisbean","instrument","Travis Bean TB1000",1974,"An aluminium-necked guitar, out of production since 1979 and quietly standard among Chicago noise players."],
+/* --- the British 4AD and Creation wing --- */
+["p:shields","person","Kevin Shields",1963,null],
+["p:butcher","person","Bilinda Butcher",1961,null],
+["p:ocios","person","Colm Ó Cíosóig",1964,null],
+["p:googe","person","Debbie Googe",1962,null],
+["p:guthrie","person","Robin Guthrie",1962,null],
+["p:fraser","person","Elizabeth Fraser",1963,null],
+["p:raymonde","person","Simon Raymonde",1962,null],
+["p:ivo","person","Ivo Watts-Russell",1954,null],
+["b:mbv","band","My Bloody Valentine",1983,null],
+["b:cocteautwins","band","Cocteau Twins",1979,null],
+["b:lush","band","Lush",1987,null],
+["a:loveless","album","Loveless",1991,"Two years and a reputed £250,000 of Creation's money."],
+["a:isntanything","album","Isn't Anything",1988,null],
+["a:heavenorlasvegas","album","Heaven or Las Vegas",1990,null],
+["a:spooky","album","Spooky",1992,null],
+["l:creation","label","Creation",1983,null],
+["s:onlyshallow","song","Only Shallow",1991,null],
+["s:soon","song","Soon",1991,null],
+/* --- Washington DC --- */
+["p:mackaye","person","Ian MacKaye",1962,null],
+["p:picciotto","person","Guy Picciotto",1965,null],
+["p:lally","person","Joe Lally",1963,null],
+["p:canty","person","Brendan Canty",1966,null],
+["p:zientara","person","Don Zientara",1948,null],
+["b:fugazi","band","Fugazi",1986,null],
+["b:minorthreat","band","Minor Threat",1980,null],
+["a:repeater","album","Repeater",1990,null],
+["a:13songs","album","13 Songs",1989,null],
+["l:dischord","label","Dischord",1980,null],
+["st:innerear","studio","Inner Ear Studios",1981,"Arlington, Virginia. Effectively Dischord's house room."],
+/* --- Sound City's own back catalogue, which is why the room matters --- */
+["p:iovine","person","Jimmy Iovine",1953,"Engineered and produced at Sound City in the seventies, then co-founded Interscope — so the desk and the label that put out Songs for the Deaf share a person."],
+["p:buckingham","person","Lindsey Buckingham",1949,null],
+["p:nicks","person","Stevie Nicks",1948,null],
+["p:fleetwood","person","Mick Fleetwood",1947,null],
+["p:cmcvie","person","Christine McVie",1943,null],
+["p:jmcvie","person","John McVie",1945,null],
+["p:caillat","person","Ken Caillat",1946,null],
+["p:dashut","person","Richard Dashut",1951,null],
+["p:petty","person","Tom Petty",1950,null],
+["p:campbell","person","Mike Campbell",1950,null],
+["p:tench","person","Benmont Tench",1953,null],
+["b:fleetwoodmac","band","Fleetwood Mac",1967,null],
+["b:heartbreakers","band","Tom Petty and the Heartbreakers",1976,null],
+["a:rumours","album","Rumours",1977,null],
+["a:damntorpedoes","album","Damn the Torpedoes",1979,null],
+["s:dreams","song","Dreams",1977,null],
+["s:refugee","song","Refugee",1979,null],
+["l:warner","label","Warner Bros.",1958,null],
+/* --- Rubin's other half of the room --- */
+["p:flea","person","Flea",1962,null],
+["p:frusciante","person","John Frusciante",1970,null],
+["p:kiedis","person","Anthony Kiedis",1962,null],
+["p:csmith","person","Chad Smith",1961,null],
+["p:yauch","person","Adam Yauch",1964,null],
+["p:horovitz","person","Adam Horovitz",1966,null],
+["p:mikediamond","person","Michael Diamond",1965,null],
+["p:buckley","person","Jeff Buckley",1966,null],
+["p:cohen","person","Leonard Cohen",1934,null],
+["p:morello","person","Tom Morello",1964,null],
+["p:delarocha","person","Zack de la Rocha",1970,null],
+["p:richardson","person","Garth Richardson",1960,null],
+["b:rhcp","band","Red Hot Chili Peppers",1983,null],
+["b:beastieboys","band","Beastie Boys",1981,null],
+["b:slayer","band","Slayer",1981,null],
+["b:ratm","band","Rage Against the Machine",1991,null],
+["a:bloodsugar","album","Blood Sugar Sex Magik",1991,null],
+["a:licensedtoill","album","Licensed to Ill",1986,null],
+["a:reigninblood","album","Reign in Blood",1986,null],
+["a:grace","album","Grace",1994,null],
+["a:ratmdebut","album","Rage Against the Machine",1992,null],
+["st:mansion","studio","The Mansion",null,"A rented Los Angeles house the Chili Peppers moved into to record."],
+["l:defjam","label","Def Jam",1984,null],
+["s:underthebridge","song","Under the Bridge",1991,null],
+["s:killinginthename","song","Killing in the Name",1992,null],
+["s:hallelujah","song","Hallelujah",1984,null],
+/* --- late Pixies, and the Sonic Youth record that was missing --- */
+["a:bossanova","album","Bossanova",1990,null],
+["a:trompe","album","Trompe le Monde",1991,null],
+["a:daydream","album","Daydream Nation",1988,null],
+["i:jagstang","instrument","Fender Jag-Stang",1994,"Cobain designed it himself, by cutting up photographs of a Jaguar and a Mustang and taping the halves together."],
+["t:lolla93","tour","Lollapalooza 1993",1993,null],
+["a:bikinikillep","album","Bikini Kill",1992,"Cut at Inner Ear with Ian MacKaye producing — the record that ties Olympia to Dischord."],
+["t:ipu91","tour","International Pop Underground Convention",1991,"Six days in Olympia, run by K Records. The invitation asked corporate rock to stay home."]
+];
+
+const W2_EDGES = [
+/* Melvins */
+["p:osborne","b:melvins","member",1983],["p:crover","b:melvins","member",1984],
+["b:melvins","a:houdini","released",1993],["b:melvins","a:bullhead","released",1991],
+["p:cobain","a:houdini","produced",1993],
+["p:crover","a:bleach","performed",1989,"Three tracks"],
+["p:crover","b:nirvana","member",1988,"Drummed the 1988 demo"],
+["p:everman","b:nirvana","member",1989],["p:everman","b:soundgarden","member",1989],
+/* Olympia */
+["p:hanna","b:bikinikill","member",1990],["p:vail","b:bikinikill","member",1990],
+["p:wilcox","b:bikinikill","member",1990],["p:karren","b:bikinikill","member",1990],
+["b:bikinikill","a:pussywhipped","released",1993],
+["a:pussywhipped","l:killrockstars","label",1993],
+["p:moon","l:killrockstars","founded",1991],
+["p:cjohnson","l:k","founded",1982],["p:cjohnson","b:beathappening","member",1982],
+["p:hanna","s:teenspirit","inspired",1991,"She wrote the phrase on his wall; he thought it meant something else"],
+["p:tucker","b:sleaterkinney","member",1994],["p:brownstein","b:sleaterkinney","member",1994],
+["p:jweiss","b:sleaterkinney","member",1996],
+["b:sleaterkinney","a:digmeout","released",1997],["b:sleaterkinney","a:onebeat","released",2002],
+["p:goodmanson","a:digmeout","produced",1997],["p:goodmanson","a:onebeat","produced",2002],
+["a:digmeout","l:killrockstars","label",1997],["a:onebeat","l:killrockstars","label",2002],
+["a:onebeat","st:jackpot","recorded_at",2002],
+/* Hole */
+["p:love","b:hole","member",1989],["p:erlandson","b:hole","member",1989],
+["p:schemel","b:hole","member",1992],["p:aufdermaur","b:hole","member",1994],
+["p:aufdermaur","b:pumpkins","member",1999],
+["b:hole","a:prettyontheinside","released",1991],
+["b:hole","a:livethroughthis","released",1994],
+["b:hole","a:celebrityskin","released",1998],
+["p:gordon","a:prettyontheinside","produced",1991],
+["a:prettyontheinside","l:caroline","label",1991],
+["p:kolderie","a:livethroughthis","produced",1994],["p:slade","a:livethroughthis","produced",1994],
+["a:livethroughthis","l:dgc","label",1994],
+["p:beinhorn","a:celebrityskin","produced",1998],["a:celebrityskin","l:dgc","label",1998],
+["p:kolderie","st:fortapache","founded",1985],["p:slade","st:fortapache","founded",1985],
+["a:gish","l:caroline","label",1991],
+/* Dinosaur Jr */
+["p:mascis","b:dinosaurjr","member",1984],["p:barlow","b:dinosaurjr","member",1984],
+["p:murph","b:dinosaurjr","member",1984],["p:barlow","b:sebadoh","member",1986],
+["b:dinosaurjr","a:bug","released",1988],["a:bug","l:sst","label",1988],
+["p:mascis","i:jazzmaster","plays",1988],
+["b:dinosaurjr","t:lolla93","toured",1993],
+/* Chicago / Louisville */
+["p:yow","b:jesuslizard","member",1987],["p:denison","b:jesuslizard","member",1989],
+["p:sims","b:jesuslizard","member",1989],["p:mcneilly","b:jesuslizard","member",1989],
+["p:sims","b:bigblack","member",1985],
+["b:jesuslizard","a:goat","released",1991],["b:jesuslizard","a:liar","released",1992],
+["p:albini","a:goat","engineered",1991],["p:albini","a:liar","engineered",1992],
+["a:goat","l:touchandgo","label",1991],["a:liar","l:touchandgo","label",1992],
+["p:mcmahan","b:slint","member",1986],["p:pajo","b:slint","member",1987],
+["p:walford","b:slint","member",1986],
+["b:slint","a:spiderland","released",1991],["b:slint","a:tweez","released",1989],
+["p:paulson","a:spiderland","engineered",1991],["p:albini","a:tweez","engineered",1989],
+["a:spiderland","l:touchandgo","label",1991],
+["p:walford","a:pod","performed",1990,"Credited as Shannon Doughton"],
+["p:durango","b:nakedraygun","member",1980],
+["p:rusk","l:touchandgo","founded",1981],
+["p:albini","i:travisbean","plays",1985],["p:denison","i:travisbean","plays",1990],
+["b:jesuslizard","t:lolla95","toured",1995],
+/* 4AD and Creation */
+["p:shields","b:mbv","member",1983],["p:butcher","b:mbv","member",1987],
+["p:ocios","b:mbv","member",1983],["p:googe","b:mbv","member",1984],
+["b:mbv","a:loveless","released",1991],["b:mbv","a:isntanything","released",1988],
+["p:moulder","a:loveless","engineered",1991],
+["a:loveless","l:creation","label",1991],["a:isntanything","l:creation","label",1988],
+["a:loveless","s:onlyshallow","track",1991],["a:loveless","s:soon","track",1991],
+["p:shields","s:onlyshallow","wrote",1991],["p:shields","s:soon","wrote",1991],
+["p:shields","i:jazzmaster","plays",1988],
+["p:guthrie","b:cocteautwins","member",1979],["p:fraser","b:cocteautwins","member",1979],
+["p:raymonde","b:cocteautwins","member",1983],
+["b:cocteautwins","a:heavenorlasvegas","released",1990],
+["a:heavenorlasvegas","l:4ad","label",1990],
+["b:lush","a:spooky","released",1992],["p:guthrie","a:spooky","produced",1992],
+["a:spooky","l:4ad","label",1992],["b:lush","t:lolla92","toured",1992],
+["p:ivo","l:4ad","founded",1980],
+/* DC */
+["p:mackaye","b:fugazi","member",1986],["p:picciotto","b:fugazi","member",1987],
+["p:lally","b:fugazi","member",1986],["p:canty","b:fugazi","member",1986],
+["p:mackaye","b:minorthreat","member",1980],
+["b:fugazi","a:repeater","released",1990],["b:fugazi","a:13songs","released",1989],
+["a:repeater","l:dischord","label",1990],["a:13songs","l:dischord","label",1989],
+["a:repeater","st:innerear","recorded_at",1990],["a:13songs","st:innerear","recorded_at",1989],
+["p:zientara","a:repeater","engineered",1990],["p:zientara","st:innerear","founded",1981],
+["p:mackaye","l:dischord","founded",1980],
+/* Sound City's older tenants */
+["p:buckingham","b:fleetwoodmac","member",1975],["p:nicks","b:fleetwoodmac","member",1975],
+["p:fleetwood","b:fleetwoodmac","member",1967],["p:cmcvie","b:fleetwoodmac","member",1970],
+["p:jmcvie","b:fleetwoodmac","member",1967],
+["b:fleetwoodmac","a:rumours","released",1977],
+["a:rumours","st:soundcity","recorded_at",1976],["a:rumours","l:warner","label",1977],
+["p:caillat","a:rumours","engineered",1977],["p:dashut","a:rumours","engineered",1977],
+["a:rumours","s:dreams","track",1977],["p:nicks","s:dreams","wrote",1977],
+["p:petty","b:heartbreakers","member",1976],["p:campbell","b:heartbreakers","member",1976],
+["p:tench","b:heartbreakers","member",1976],
+["b:heartbreakers","a:damntorpedoes","released",1979],
+["a:damntorpedoes","st:soundcity","recorded_at",1979],
+["p:iovine","a:damntorpedoes","produced",1979],
+["a:damntorpedoes","s:refugee","track",1979],
+["p:petty","s:refugee","wrote",1979],["p:campbell","s:refugee","wrote",1979],
+["p:iovine","l:interscope","founded",1990],
+["p:mccready","i:strat","plays",1991],
+/* Rubin, Wallace, and the Sound City desk again */
+["p:flea","b:rhcp","member",1983],["p:kiedis","b:rhcp","member",1983],
+["p:frusciante","b:rhcp","member",1988],["p:csmith","b:rhcp","member",1988],
+["b:rhcp","a:bloodsugar","released",1991],
+["p:rubin","a:bloodsugar","produced",1991],["a:bloodsugar","st:mansion","recorded_at",1991],
+["a:bloodsugar","l:warner","label",1991],["a:bloodsugar","s:underthebridge","track",1991],
+["p:kiedis","s:underthebridge","wrote",1991],["b:rhcp","t:lolla92","toured",1992],
+["p:yauch","b:beastieboys","member",1981],["p:horovitz","b:beastieboys","member",1982],
+["p:mikediamond","b:beastieboys","member",1981],
+["b:beastieboys","a:licensedtoill","released",1986],
+["p:rubin","a:licensedtoill","produced",1986],["a:licensedtoill","l:defjam","label",1986],
+["b:beastieboys","t:lolla94","toured",1994],
+["b:slayer","a:reigninblood","released",1986],
+["p:rubin","a:reigninblood","produced",1986],["p:wallace","a:reigninblood","mixed",1986],
+["a:reigninblood","l:defjam","label",1986],
+["p:buckley","a:grace","released",1994],["p:wallace","a:grace","produced",1994],
+["a:grace","l:columbia","label",1994],["a:grace","s:hallelujah","track",1994],
+["p:cohen","s:hallelujah","wrote",1984],["p:buckley","s:hallelujah","performed",1994],
+["p:morello","b:ratm","member",1991],["p:delarocha","b:ratm","member",1991],
+["b:ratm","a:ratmdebut","released",1992],
+["a:ratmdebut","st:soundcity","recorded_at",1991],
+["p:richardson","a:ratmdebut","produced",1992],["a:ratmdebut","l:epic","label",1992],
+["a:ratmdebut","s:killinginthename","track",1992],
+["p:delarocha","s:killinginthename","wrote",1992],["p:morello","s:killinginthename","wrote",1992],
+["b:ratm","t:lolla93","toured",1993],["p:obrien","a:ratmdebut","mixed",1992],
+["b:aic","t:lolla93","toured",1993],
+/* late Pixies, Sonic Youth, and Cobain's own guitar */
+["b:pixies","a:bossanova","released",1990],["b:pixies","a:trompe","released",1991],
+["p:norton","a:bossanova","produced",1990],["p:norton","a:trompe","produced",1991],
+["a:bossanova","l:4ad","label",1990],["a:trompe","l:4ad","label",1991],
+["b:sonicyouth","a:daydream","released",1988],
+["p:cobain","i:jagstang","plays",1994],
+["b:bikinikill","a:bikinikillep","released",1992],
+["p:mackaye","a:bikinikillep","produced",1992],
+["a:bikinikillep","st:innerear","recorded_at",1991],
+["a:bikinikillep","l:killrockstars","label",1992],
+["p:zientara","a:bikinikillep","engineered",1991],
+["b:bikinikill","t:ipu91","toured",1991],
+["b:beathappening","t:ipu91","toured",1991],
+["p:cjohnson","t:ipu91","founded",1991],
+["p:wood","b:tod","inspired",1990,"The band existed to mourn him"],
+["p:osborne","b:nirvana","inspired",1985,"Lent Cobain the records and got him his first shows"],["i:jagstang","t:inutero","used_on",1994]
+];
+BASE_NODES.push(...W2_NODES);
+BASE_EDGES.push(...W2_EDGES);
+</script>
+
+<script>
 "use strict";
 /* ============================================================ 1. VOCABULARY */
 const TYPES = [
@@ -1127,6 +1436,7 @@ const RELS = {
   plays:       {label:"plays",       inv:"played by",     style:"dot",   len:58},
   used_on:     {label:"used on",     inv:"gear",          style:"dot",   len:70},
   covered:     {label:"covers",      inv:"covered by",    style:"dot",   len:46},
+  inspired:    {label:"inspired",    inv:"inspired by",   style:"dot",   len:54},
 };
 const REL_KEYS = Object.keys(RELS);
 const YEARS = BASE_NODES.map(n => n[3]).concat(BASE_EDGES.map(e => e[3])).filter(y => y != null);
@@ -1191,7 +1501,7 @@ function buildGraph() {
   adj = new Map(nodes.map(n => [n.id, []]));
   for (const e of edges) { adj.get(e.f).push(e); adj.get(e.t).push(e); }
 
-  const R = 300, cx = 0, cy = 0;
+  const R = 430, cx = 0, cy = 0;
   nodes.forEach((n, i) => {
     n.deg = adj.get(n.id).length;
     n.r = Math.min(15, 3.6 + Math.sqrt(n.deg) * 2.1);
@@ -1284,17 +1594,31 @@ function tick(dt) {
   const REP = 2400 * a;
   /* Timeline pins x to the year, so crowding has to resolve vertically. */
   const XD = S.layout === "time" ? 0.14 : 1;
-  for (let i = 0; i < live.length; i++) {
-    const p = live[i];
-    for (let j = i + 1; j < live.length; j++) {
-      const q = live[j];
-      let dx = q.x - p.x, dy = q.y - p.y;
-      let d2 = dx * dx + dy * dy;
-      if (d2 < 0.01) { dx = (Math.random() - .5); dy = (Math.random() - .5); d2 = 0.01; }
-      if (d2 > 90000) continue;
-      const f = REP / d2, d = Math.sqrt(d2);
-      const fx = (dx / d) * f, fy = (dy / d) * f;
-      p.vx -= fx * XD; p.vy -= fy; q.vx += fx * XD; q.vy += fy;
+  /* Repulsion has a 300-unit cutoff, so bucket into 300-unit cells and only
+     compare within the 3x3 neighbourhood. Every unordered pair is still seen
+     twice, once from each end, so each visit applies the force to one node
+     only — same net result as the symmetric O(n^2) version, near-linear cost.
+     At 373 nodes the naive loop was 69k pairs a tick. */
+  const CELL = 300, grid = new Map();
+  for (const n of live) {
+    const k = Math.floor(n.x / CELL) + ":" + Math.floor(n.y / CELL);
+    const cell = grid.get(k);
+    if (cell) cell.push(n); else grid.set(k, [n]);
+  }
+  for (const p of live) {
+    const cx = Math.floor(p.x / CELL), cy = Math.floor(p.y / CELL);
+    for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) {
+      const cell = grid.get((cx + ox) + ":" + (cy + oy));
+      if (!cell) continue;
+      for (const q of cell) {
+        if (q === p) continue;
+        let dx = q.x - p.x, dy = q.y - p.y;
+        let d2 = dx * dx + dy * dy;
+        if (d2 < 0.01) { dx = Math.random() - .5; dy = Math.random() - .5; d2 = 0.01; }
+        if (d2 > 90000) continue;
+        const f = REP / d2, d = Math.sqrt(d2);
+        p.vx -= (dx / d) * f * XD; p.vy -= (dy / d) * f;
+      }
     }
   }
   for (const e of edges) {
@@ -2681,7 +3005,7 @@ async function connectStore() {
   readColors();
   buildGraph();
   applyFilters();
-  for (let i = 0; i < 280; i++) tick();
+  for (let i = 0; i < 200; i++) tick();
   memoPositions();
   $("yrFromLbl").textContent = "earliest"; $("yrToLbl").textContent = "latest";
   renderFilters(); renderChips(); renderLayoutSeg(); renderInspect(); renderResults(); renderMine();
@@ -2689,7 +3013,9 @@ async function connectStore() {
   resize();
   fit(null);
   renderStat();
-  S.alpha = 0.32; loop();
+  S.alpha = 0.4; loop();
+  /* fonts arrive after first paint now, so re-measure the canvas labels once */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { readColors(); redraw(); });
   connectStore();
 })();
 </script>

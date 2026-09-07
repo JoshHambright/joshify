@@ -41,24 +41,45 @@ assets (D-015).
 
 ## The corpus
 
-233 entities, 376 typed relationships, one fully connected component — no
-orphans, no self-loops. It is a curated slice of the American underground →
-alternative web, roughly 1976–2009, chosen so that **studios, producers and
-session players carry the interesting edges**: the ones you cannot guess from a
-band's own line-up.
+373 entities, 576 typed relationships, one fully connected component — no
+orphans, no self-loops, nothing unreachable. It is a curated slice of the
+American underground → alternative web, roughly 1970–2009, chosen so that
+**studios, producers and session players carry the interesting edges**: the ones
+you cannot guess from a band's own line-up.
 
 | Kind | Count | Kind | Count |
 |---|---:|---|---:|
-| People | 86 | Studios | 10 |
-| Bands | 33 | Gear | 17 |
-| Albums | 45 | Tours | 7 |
-| Songs | 24 | Labels | 11 |
+| People | 153 | Studios | 14 |
+| Bands | 54 | Gear | 19 |
+| Albums | 75 | Tours | 9 |
+| Songs | 31 | Labels | 18 |
 
-Fifteen relationship types, in three visual families:
+The second wave was picked for **density, not headcount**: every cluster lands on
+a hub the corpus already had rather than floating beside it. The Melvins axis
+(which is where Nirvana actually comes from), Olympia and Kill Rock Stars, Hole
+and the Fort Apache pair, Dinosaur Jr, the Chicago/Louisville Albini side, 4AD
+and Creation, Dischord — and Sound City's own back catalogue, which is the one
+that pays off hardest: *Rumours* and *Damn the Torpedoes* came out of the same
+room as *Nevermind*, and Jimmy Iovine went from engineering there to founding the
+label that released *Songs for the Deaf*.
+
+Two additions existed only to close islands. The Dischord and K Records clusters
+were initially unreachable from the rest, which breaks the whole premise, so
+each got a real bridge rather than an invented one: Bikini Kill's first EP, cut
+at Inner Ear with Ian MacKaye producing, and the 1991 convention K Records ran in
+Olympia. Connectivity is now checked, not assumed.
+
+Sixteen relationship types, in three visual families:
 
 - **solid** — structural: `member of`, `released`, `track`, `recorded at`, `played` (a tour)
 - **dashed** — credit: `produced`, `engineered`, `mixed`, `played on`, `wrote`, `issued by`, `founded`
-- **dotted** — gear and derivation: `plays`, `used on`, `covers`
+- **dotted** — gear and derivation: `plays`, `used on`, `covers`, `inspired`
+
+`inspired` was added late, for facts that are real but are not credits: Kathleen
+Hanna writing the phrase on Cobain's wall, Andrew Wood's death being why Temple
+of the Dog exists. Before it existed those got forced into `wrote` and `member`,
+where they read as false. A vocabulary that cannot say a true thing will make you
+say a wrong one.
 
 Edges are otherwise a single neutral colour. Line style encodes something true
 about the relationship; a fifteen-hue edge palette would encode nothing but
@@ -238,6 +259,22 @@ for (const pass of [0, 1])
 plus an always-on set for the selection, its neighbours and any active path.
 Labels get a `--canvas-bg` backplate so they stay legible over edges.
 
+**Repulsion runs on a grid, not on every pair.** Repulsion has a 300-unit
+cutoff, so nodes are bucketed into 300-unit cells and each one only compares
+against its 3×3 neighbourhood. Every unordered pair is still visited twice, once
+from each end, so each visit applies the force to one node only — the same net
+result as the symmetric all-pairs version, at near-linear cost. At 373 nodes the
+naive loop was 69,000 pairs a tick; measured, a tick is 0.97 ms and a full draw
+6.85 ms, so the whole frame is comfortably inside a 60 fps budget.
+
+**A font stylesheet is render-blocking, and CDNs fail.** With Google Fonts
+unreachable, `domInteractive` was **13,039 ms** — the page sat blank while a
+stylesheet timed out. Loading it as `media="print" onload="this.media='all'"`
+drops that to 389 ms under the identical failure, and `document.fonts.ready`
+triggers one redraw so the canvas labels get re-measured with the real metrics
+once they land. This was invisible until the corpus got big enough that boot time
+was worth measuring at all.
+
 **Node size is a world value but a screen measurement.** Radii feed the force
 layout in world units, so they must live there — but drawing with them means a
 zoomed-in node inflates into a blob and a zoomed-out one vanishes. The fix is one
@@ -287,8 +324,14 @@ shared editing, and nothing races to seed a store on load.
 
 ## Known limits
 
-- **O(n²) repulsion.** Fine to roughly 600 nodes. Past that it needs a
-  Barnes–Hut quadtree or a grid.
+- **The grid is uniform, not adaptive.** Fine while the layout stays spread
+  out; a pathological clump would put everything in one cell and hand back the
+  O(n²) cost. A quadtree would fix that and is not needed yet.
+- **The corpus is still hand-curated, and one person's taste.** MusicBrainz has
+  almost exactly this data model and would let a fact arrive with a citation
+  attached, but this environment's network policy denies `musicbrainz.org` (403
+  at the proxy on CONNECT), so it stayed out of reach. Widening the policy is the
+  precondition for that work.
 - **One shortest path.** BFS returns the first route it finds; ties are
   arbitrary and there is no "show me all paths of length 3".
 - **No merge conflict handling.** Two people editing the same entity is
