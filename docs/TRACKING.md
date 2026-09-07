@@ -190,7 +190,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | 🟨 | The mechanism works — the chain cannot tell which scene produced its input — and the six named looks prove the shape. The specific tunnel-plus-glitch combinations want a look at a real screen first |
 | P5-30 | Measure the tunnel on Pi 5 hardware | ⬜ | Folded into the P3-01 measurement |
 | P5-31 | **Theme bundle format**: palette + scene + chain + chrome as one unit | ⬜ | D-017. The Microsoft Plus! model, not the Winamp-skin model |
-| P5-32 | Tokenise UI chrome so themes can reach it | ⬜ | Must land in **Phase 3**, not retrofitted later |
+| P5-32 | Tokenise UI chrome so themes can reach it | ✅ | `lib/chrome.ts` — an allow-list of eight properties, not the whole `--jf-*` half. The inks, the plate substrate, the touch floor and the type scale stay unreachable, because the legibility floor (D-068) was solved for *those* values and a theme that breaks it fails no test (D-073) |
 | P5-33 | `VGA` theme — 16-colour quantise + ordered dither | ⬜ | ~15 lines on top of existing dither; maximally unlike `N2O` |
 | P5-34 | `PLUS!` theme — bevelled chrome + `ambient` scene | ⬜ | **Working title, must be renamed** (D-015). Proves chrome theming works |
 | P5-35 | `ambient` scene — slow geometric solids | ⬜ | The Plus!-era screensaver lineage |

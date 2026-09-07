@@ -1476,3 +1476,41 @@ do what its name says is worse than a missing one.
 **The test of it:** if the honest description makes the effect sound less
 impressive, the name was doing work the implementation was not.
 **Status:** ✅ Accepted.
+
+---
+
+### D-073 · Themes reach the chrome through an allow-list, not the whole `--jf-*` half
+**Context:** D-017 makes a theme a bundle of palette + scene + chain + **chrome**.
+The chrome half is the part that makes a period idiom read as one — a bevelled
+edge, a hard corner, a condensed face — and none of it is expressible while the
+`--jf-*` tokens are constants. So P5-32 makes some of them writable at runtime.
+
+**Chose:** a named roster of eight properties (`lib/chrome.ts`), and nothing
+else. Shape and edge, the three faces, the label tracking, the press timing.
+
+**Rejected:** letting a theme set any custom property. It is one line of code
+and it quietly hands away three guarantees:
+
+- **The legibility floor** (D-068) is a property of `--jf-ink*` composited over
+  `--jf-plate` over `--jf-plate-scrim` over live artwork, solved for *those*
+  values. A theme that darkens the ink or thins the scrim does not fail a test.
+  It produces a wall panel that cannot be read over a white sleeve.
+- **The 48px touch floor** from SCREENS.md.
+- **The type scale**, which is what a 720×1280 panel seen from across a room
+  was laid out against. A theme changes the face; it does not shrink the title.
+
+**The shape of the guard:** the roster is a `const` array with a test that
+asserts the excluded tokens are *not* in it. That is a weaker mechanism than a
+type could be, but it is the one that fails loudly when someone adds `--jf-ink`
+to the list for a theme that looked better dark — which is the actual failure
+mode, not a typo.
+
+**Two smaller calls inside it.** A token in the roster that no CSS rule reads
+is a theme that appears to do nothing, so the test parses `tokens.css` and
+requires every entry to be defined there. And applying a theme's chrome
+*removes* what the last theme set and this one does not mention: an inline
+custom property outranks the stylesheet, so without the removal,
+shuffle-on-track-change (P5-36) accumulates chrome from every theme it has
+passed through — a bug that only appears after the fourth track.
+
+**Status:** ✅ Accepted.
