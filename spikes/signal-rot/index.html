@@ -4,12 +4,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 :root{
-  --ink:#0A0B0F; --ink2:#12141B; --ink3:#1B1E27; --ink4:#262B38;
-  --bone:#E9E5DB; --dust:#767B8A; --line:#242835;
-  --mag:#FF2E7E; --cyan:#25E2E8; --amber:#FFB43A;
+  --ink:#0C0A0D; --ink2:#16131A; --ink3:#1F1B25; --ink4:#2C2733;
+  --bone:#EFE7D6; --dust:#7C7684; --line:#282230;
+  --mag:#FF3D7F; --cyan:#2FDCE4; --amber:#FFB43A;
   --disp:"Martian Mono","IBM Plex Mono",ui-monospace,monospace;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --rack-h:56dvh;
+  --rack-h:58dvh;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(--bone)}
@@ -21,7 +22,22 @@ body{
 }
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;background:var(--ink);z-index:0}
 #scrim{position:fixed;inset:0;z-index:1;pointer-events:none;
-  background:radial-gradient(120% 80% at 50% 20%,transparent 34%,rgba(10,11,15,.42) 100%)}
+  background:radial-gradient(120% 80% at 50% 20%,transparent 36%,rgba(12,10,13,.40) 100%)}
+
+/* ---------- camcorder OSD ---------- */
+#osd{position:fixed;inset:0;z-index:1;pointer-events:none;
+  font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:.14em;
+  color:rgba(255,255,255,.86);
+  text-shadow:0 0 7px rgba(255,255,255,.35),1px 0 0 rgba(255,61,127,.5),-1px 0 0 rgba(47,220,228,.5)}
+#osd.off{display:none}
+#osd .rec{position:absolute;top:62px;left:16px;display:flex;align-items:center;gap:7px}
+#osd .dot{width:9px;height:9px;border-radius:50%;background:#FF3B30;
+  box-shadow:0 0 8px #FF3B30;animation:rec 1.6s steps(1) infinite}
+@keyframes rec{0%,55%{opacity:1}56%,100%{opacity:.15}}
+#osd .stamp{position:absolute;right:16px;text-align:right;line-height:1.7}
+#osd .stamp.a{bottom:calc(var(--rack-h) + 34px)}
+#osd .stamp small{display:block;font-size:9.5px;letter-spacing:.18em;opacity:.8}
+@media (prefers-reduced-motion:reduce){ #osd .dot{animation:none} }
 
 /* ---------- shell ---------- */
 #app{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;pointer-events:none}
@@ -32,12 +48,11 @@ body{
 #bar{
   display:flex;align-items:center;gap:12px;
   padding:10px 12px;border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(10,11,15,.92),rgba(10,11,15,.72));
+  background:linear-gradient(180deg,rgba(12,10,13,.93),rgba(12,10,13,.74));
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 .mark{font-family:var(--disp);font-weight:800;font-size:13px;letter-spacing:.14em;line-height:1;
   text-shadow:1px 0 0 var(--mag),-1px 0 0 var(--cyan);white-space:nowrap}
-.mark b{font-weight:800}
 #bar .spacer{flex:1}
 #readout{font-size:10.5px;letter-spacing:.06em;color:var(--dust);
   font-variant-numeric:tabular-nums;display:flex;gap:10px;white-space:nowrap;overflow:hidden}
@@ -56,14 +71,18 @@ body{
 
 /* ---------- rack ---------- */
 #rack{
+  position:relative;
   height:var(--rack-h);display:flex;flex-direction:column;min-height:0;
   border-top:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(10,11,15,.80),rgba(10,11,15,.95));
+  background:linear-gradient(180deg,rgba(12,10,13,.82),rgba(12,10,13,.96));
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   transition:height .22s cubic-bezier(.2,.8,.2,1);
 }
+#rack::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+  background-image:var(--grain);opacity:.05;mix-blend-mode:overlay}
 body.hud-off #rack{height:0;border-top-color:transparent;overflow:hidden}
 body.hud-off #bar{opacity:.42}
+body.hud-off #osd .stamp.a{bottom:34px}
 
 #tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto}
 #tabs button{
@@ -84,8 +103,8 @@ body.hud-off #bar{opacity:.42}
 #xy{
   position:relative;flex:1 1 auto;min-height:150px;
   border:1px solid var(--line);background:
-    linear-gradient(rgba(37,226,232,.045) 1px,transparent 1px) 0 0/100% 12.5%,
-    linear-gradient(90deg,rgba(255,46,126,.045) 1px,transparent 1px) 0 0/12.5% 100%,
+    linear-gradient(rgba(47,220,228,.045) 1px,transparent 1px) 0 0/100% 12.5%,
+    linear-gradient(90deg,rgba(255,61,127,.045) 1px,transparent 1px) 0 0/12.5% 100%,
     var(--ink2);
   touch-action:none;cursor:crosshair;overflow:hidden;
 }
@@ -93,7 +112,7 @@ body.hud-off #bar{opacity:.42}
 #xy .vline{top:0;bottom:0;width:1px;background:var(--mag);box-shadow:0 0 8px var(--mag)}
 #xy .hline{left:0;right:0;height:1px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 #xy .knob{width:16px;height:16px;margin:-8px 0 0 -8px;border:1px solid var(--bone);
-  background:rgba(233,229,219,.14);border-radius:50%}
+  background:rgba(239,231,214,.14);border-radius:50%}
 #xy .tag{position:absolute;font-size:9px;letter-spacing:.1em;color:var(--dust);pointer-events:none}
 #xy .tag.bl{left:7px;bottom:6px}
 #xy .tag.tl{left:7px;top:6px}
@@ -101,16 +120,16 @@ body.hud-off #bar{opacity:.42}
 #xy .res{position:absolute;right:7px;top:6px;font-size:9px;color:var(--amber);letter-spacing:.08em}
 
 /* ---------- pads ---------- */
-#pads{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:0 0 auto}
+#pads{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;flex:0 0 auto}
 .pad{
-  position:relative;font-family:var(--disp);font-weight:600;font-size:10px;letter-spacing:.1em;
+  font-family:var(--disp);font-weight:600;font-size:9.5px;letter-spacing:.08em;
   background:var(--ink2);color:var(--bone);border:1px solid var(--line);
-  padding:14px 2px;cursor:pointer;touch-action:none;line-height:1;
+  padding:12px 1px;cursor:pointer;touch-action:none;line-height:1;
 }
-.pad small{display:block;font-family:var(--mono);font-weight:400;font-size:8.5px;
-  letter-spacing:.02em;color:var(--dust);margin-top:5px;text-transform:none}
+.pad small{display:block;font-family:var(--mono);font-weight:400;font-size:8px;
+  letter-spacing:0;color:var(--dust);margin-top:5px}
 .pad.hot{background:var(--mag);border-color:var(--mag);color:var(--ink)}
-.pad.hot small{color:rgba(10,11,15,.72)}
+.pad.hot small{color:rgba(12,10,13,.72)}
 .pad:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 
 /* ---------- controls ---------- */
@@ -120,6 +139,7 @@ body.hud-off #bar{opacity:.42}
   font-family:var(--disp);font-size:9px;font-weight:600;letter-spacing:.12em;color:var(--dust)}
 .ctl label i{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--bone);
   font-variant-numeric:tabular-nums;letter-spacing:0}
+.ctl.big label{color:var(--amber);font-size:10px}
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;
   margin:0;cursor:pointer;touch-action:none;
@@ -129,47 +149,55 @@ input[type=range]::-moz-range-track{height:2px;background:var(--ink4)}
 input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;width:10px;height:20px;margin-top:-9px;background:var(--bone);border:0}
 input[type=range]::-moz-range-thumb{width:10px;height:20px;background:var(--bone);border:0;border-radius:0}
+.ctl.big input[type=range]::-webkit-slider-thumb{background:var(--amber)}
+.ctl.big input[type=range]::-moz-range-thumb{background:var(--amber)}
 input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 .seg{display:flex;gap:4px;flex-wrap:wrap}
 .seg button{
-  flex:1 1 auto;min-width:52px;background:var(--ink2);border:1px solid var(--line);color:var(--dust);
+  flex:1 1 auto;min-width:50px;background:var(--ink2);border:1px solid var(--line);color:var(--dust);
   font-family:var(--disp);font-size:9px;font-weight:600;letter-spacing:.1em;padding:9px 4px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
 .seg button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+.seg.warm button[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--ink)}
 
 .hdr{font-family:var(--disp);font-size:9px;font-weight:600;letter-spacing:.16em;color:var(--dust);
   border-bottom:1px solid var(--line);padding-bottom:5px;display:flex;justify-content:space-between}
 .hdr span{color:var(--ink4)}
 
 /* ---------- sequencer ---------- */
-#seq{display:flex;flex-direction:column;gap:5px}
-.trk{display:grid;grid-template-columns:46px repeat(16,1fr);gap:2px;align-items:center}
-.trk .name{font-family:var(--disp);font-size:8.5px;font-weight:600;letter-spacing:.08em;color:var(--dust)}
+#seq{display:flex;flex-direction:column;gap:4px}
+.trk{display:grid;grid-template-columns:44px repeat(16,1fr);gap:2px;align-items:center}
+.trk .name{font-family:var(--disp);font-size:8px;font-weight:600;letter-spacing:.06em;color:var(--dust)}
 .cell{
-  aspect-ratio:1/1;min-height:16px;background:var(--ink2);border:1px solid var(--line);
+  aspect-ratio:1/1;min-height:14px;background:var(--ink2);border:1px solid var(--line);
   cursor:pointer;padding:0;touch-action:manipulation}
 .cell[data-on="1"]{background:var(--bone);border-color:var(--bone)}
 .trk[data-t="0"] .cell[data-on="1"]{background:var(--mag);border-color:var(--mag)}
 .trk[data-t="1"] .cell[data-on="1"]{background:var(--cyan);border-color:var(--cyan)}
 .trk[data-t="3"] .cell[data-on="1"]{background:var(--amber);border-color:var(--amber)}
+.trk[data-t="4"] .cell[data-on="1"]{background:#8E7BD8;border-color:#8E7BD8}
 .cell.play{outline:1px solid var(--bone);outline-offset:1px}
 .cell:focus-visible{outline:2px solid var(--cyan)}
-.beatmark{display:grid;grid-template-columns:46px repeat(16,1fr);gap:2px}
+.beatmark{display:grid;grid-template-columns:44px repeat(16,1fr);gap:2px}
 .beatmark div{height:3px}
 .beatmark div.q{background:var(--ink4)}
 
-.note{font-size:10px;line-height:1.5;color:var(--dust);max-width:60ch}
+.note{font-size:10px;line-height:1.55;color:var(--dust);max-width:60ch}
 .note b{color:var(--bone);font-weight:500}
 
 /* ---------- boot ---------- */
 #boot{
   position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;
-  background:radial-gradient(90% 60% at 50% 45%,rgba(10,11,15,.62),rgba(10,11,15,.93));
+  align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center;
+  background:radial-gradient(90% 60% at 50% 45%,rgba(12,10,13,.60),rgba(12,10,13,.93));
   backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
 }
 #boot.gone{display:none}
+#boot .play{font-family:var(--disp);font-size:10px;font-weight:600;letter-spacing:.34em;
+  color:var(--dust);display:flex;align-items:center;gap:9px}
+#boot .play::before{content:"";width:0;height:0;border-left:8px solid var(--bone);
+  border-top:5px solid transparent;border-bottom:5px solid transparent}
 #boot .big{font-family:var(--disp);font-weight:800;font-size:clamp(28px,11vw,66px);
   letter-spacing:.06em;line-height:.95;text-shadow:3px 0 0 var(--mag),-3px 0 0 var(--cyan);
   animation:jitter 5.5s steps(1) infinite}
@@ -178,7 +206,7 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
   89%{transform:translate(-3px,1px)}90%{transform:translate(2px,-1px)}
   91%{transform:translate(0,0)}96%{transform:translate(1px,1px)}97%{transform:translate(0,0)}
 }
-#boot .sub{font-size:11.5px;letter-spacing:.05em;color:var(--dust);max-width:34ch;line-height:1.65}
+#boot .sub{font-size:11.5px;letter-spacing:.05em;color:var(--dust);max-width:35ch;line-height:1.65}
 #boot .sub b{color:var(--bone);font-weight:500}
 #start{
   font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:.2em;
@@ -200,27 +228,33 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
   :root{--rack-h:auto}
   #app{flex-direction:row}
   #rack{
-    width:400px;flex:0 0 400px;height:100%;border-top:0;border-left:1px solid var(--line);
+    width:410px;flex:0 0 410px;height:100%;border-top:0;border-left:1px solid var(--line);
     transition:width .22s cubic-bezier(.2,.8,.2,1),flex-basis .22s cubic-bezier(.2,.8,.2,1);
   }
   body.hud-off #rack{width:0;flex-basis:0;height:100%}
-  #pads{grid-template-columns:repeat(3,1fr)}
-  #xy{min-height:200px}
+  #osd .stamp.a{bottom:34px;right:calc(410px + 22px)}
+  body.hud-off #osd .stamp.a{right:22px}
+  #xy{min-height:190px}
 }
 </style>
 
 <canvas id="gl"></canvas>
 <div id="scrim"></div>
 
+<div id="osd">
+  <div class="rec"><span class="dot"></span>REC</div>
+  <div class="stamp a"><span id="osdDate">JAN 14 1997</span><small id="osdTime">SP 0:00:00</small></div>
+</div>
+
 <div id="app">
   <div id="shell">
     <header id="bar">
-      <div class="mark">SIGNAL<b> ROT</b></div>
+      <div class="mark">SIGNAL ROT</div>
       <div class="spacer"></div>
       <div id="readout">
-        <span><i id="rBpm">104</i> BPM</span>
+        <span><i id="rBpm">84</i> BPM</span>
         <span class="beat" id="rStep">1.1</span>
-        <span><i id="rKey">A MIN</i></span>
+        <span><i id="rKey">D MIN</i></span>
         <span><i id="rCpu">--</i>%</span>
       </div>
       <button class="icon" id="bTransport" aria-pressed="false" title="Start / stop the clock">RUN</button>
@@ -239,34 +273,42 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
 
     <section class="pane on" data-pane="perform">
       <div id="xy">
-        <div class="cross vline" id="xyV" style="left:60%"></div>
-        <div class="cross hline" id="xyH" style="top:70%"></div>
-        <div class="cross knob" id="xyK" style="left:60%;top:70%"></div>
+        <div class="cross vline" id="xyV" style="left:52%"></div>
+        <div class="cross hline" id="xyH" style="top:82%"></div>
+        <div class="cross knob" id="xyK" style="left:52%;top:82%"></div>
         <div class="tag bl">FILTER →</div>
         <div class="tag tl">↑ ROT</div>
-        <div class="tag br" id="xyRead">2.4k · 30%</div>
+        <div class="tag br" id="xyRead">1.5k · 18%</div>
         <div class="res" id="xyRes"></div>
       </div>
       <div id="pads">
-        <button class="pad" data-fx="stut">STUT<small>buffer repeat</small></button>
-        <button class="pad" data-fx="rev">REV<small>reverse tape</small></button>
-        <button class="pad" data-fx="crsh">CRSH<small>3-bit slam</small></button>
-        <button class="pad" data-fx="drop">DROP<small>kill rhythm</small></button>
-        <button class="pad" data-fx="grain">GRAIN<small>cloud burst</small></button>
+        <button class="pad" data-fx="stut">STUT<small>repeat</small></button>
+        <button class="pad" data-fx="rev">REV<small>reverse</small></button>
+        <button class="pad" data-fx="crsh">CRSH<small>3-bit</small></button>
+        <button class="pad" data-fx="drop">DROP<small>kill beat</small></button>
+        <button class="pad" data-fx="grain">GRAIN<small>cloud</small></button>
         <button class="pad" data-fx="fill">FILL<small>32nd roll</small></button>
+        <button class="pad" data-fx="stop">STOP<small>tape halt</small></button>
+        <button class="pad" data-fx="wobl">WOBL<small>warped</small></button>
       </div>
       <div class="row">
+        <div class="ctl big"><label>AGE<i id="vAge">45</i></label>
+          <input type="range" id="sAge" min="0" max="100" value="45"></div>
         <div class="ctl"><label>SMEAR<i id="vSmear">28</i></label>
           <input type="range" id="sSmear" min="0" max="100" value="28"></div>
-        <div class="ctl"><label>SPACE<i id="vSpace">42</i></label>
-          <input type="range" id="sSpace" min="0" max="100" value="42"></div>
       </div>
       <div class="row">
-        <div class="ctl"><label>DRIVE<i id="vDrive">30</i></label>
-          <input type="range" id="sDrive" min="0" max="100" value="30"></div>
+        <div class="ctl"><label>SPACE<i id="vSpace">46</i></label>
+          <input type="range" id="sSpace" min="0" max="100" value="46"></div>
+        <div class="ctl"><label>DRIVE<i id="vDrive">26</i></label>
+          <input type="range" id="sDrive" min="0" max="100" value="26"></div>
+      </div>
+      <div class="row">
         <div class="ctl"><label>LEVEL<i id="vLevel">72</i></label>
           <input type="range" id="sLevel" min="0" max="100" value="72"></div>
       </div>
+      <div class="hdr">SCENES <span>WHOLE-INSTRUMENT RECALL</span></div>
+      <div class="seg warm" id="presets"></div>
       <div class="seg">
         <button id="bLatch" aria-pressed="false">LATCH</button>
         <button id="bMutate">MUTATE</button>
@@ -278,10 +320,14 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
       <div class="hdr">PATTERN <span>16 STEPS · TAP TO EDIT</span></div>
       <div id="seq"></div>
       <div class="row">
-        <div class="ctl"><label>DENSITY<i id="vDens">50</i></label>
-          <input type="range" id="sDens" min="0" max="100" value="50"></div>
-        <div class="ctl"><label>CHAOS<i id="vChaos">18</i></label>
-          <input type="range" id="sChaos" min="0" max="100" value="18"></div>
+        <div class="ctl"><label>DENSITY<i id="vDens">46</i></label>
+          <input type="range" id="sDens" min="0" max="100" value="46"></div>
+        <div class="ctl"><label>CHAOS<i id="vChaos">14</i></label>
+          <input type="range" id="sChaos" min="0" max="100" value="14"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>SWING<i id="vSwing">28</i></label>
+          <input type="range" id="sSwing" min="0" max="100" value="28"></div>
       </div>
       <div class="seg">
         <button id="bRegen2">REGEN</button>
@@ -290,85 +336,124 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
       </div>
       <p class="note"><b>DENSITY</b> sets how many pulses the Euclidean generator
       distributes across the 16 steps. <b>CHAOS</b> is the per-step chance the engine
-      ignores the pattern — a dropped hit, a ghost note, an octave jump.</p>
+      ignores the pattern — a dropped hit, a ghost note, an octave jump.
+      <b>SWING</b> lengthens the downbeats and shortens the offbeats by the same
+      amount, so the bar stays in time while the groove drags.</p>
     </section>
 
     <section class="pane" data-pane="sound">
       <div class="hdr">CLOCK <span>&amp; TUNING</span></div>
       <div class="row">
-        <div class="ctl"><label>BPM<i id="vBpm">104</i></label>
-          <input type="range" id="sBpm" min="52" max="176" value="104"></div>
-        <div class="ctl"><label>ROOT<i id="vRoot">A</i></label>
-          <input type="range" id="sRoot" min="0" max="11" value="9"></div>
+        <div class="ctl"><label>BPM<i id="vBpm">84</i></label>
+          <input type="range" id="sBpm" min="52" max="176" value="84"></div>
+        <div class="ctl"><label>ROOT<i id="vRoot">D</i></label>
+          <input type="range" id="sRoot" min="0" max="11" value="2"></div>
       </div>
       <div class="seg" id="scales"></div>
+
+      <div class="hdr">TAPE <span>SCALED BY AGE</span></div>
+      <div class="row">
+        <div class="ctl"><label>WOW<i id="vWow">40</i></label>
+          <input type="range" id="sWow" min="0" max="100" value="40"></div>
+        <div class="ctl"><label>HISS<i id="vHiss">32</i></label>
+          <input type="range" id="sHiss" min="0" max="100" value="32"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>DUST<i id="vDust">44</i></label>
+          <input type="range" id="sDust" min="0" max="100" value="44"></div>
+        <div class="ctl"><label>WEAR<i id="vWear">30</i></label>
+          <input type="range" id="sWear" min="0" max="100" value="30"></div>
+      </div>
+
       <div class="hdr">VOICES <span>MIX</span></div>
       <div class="row">
-        <div class="ctl"><label>BASS<i id="vBass">80</i></label>
-          <input type="range" id="sBass" min="0" max="100" value="80"></div>
-        <div class="ctl"><label>LEAD<i id="vLead">55</i></label>
-          <input type="range" id="sLead" min="0" max="100" value="55"></div>
+        <div class="ctl"><label>BASS<i id="vBass">78</i></label>
+          <input type="range" id="sBass" min="0" max="100" value="78"></div>
+        <div class="ctl"><label>LEAD<i id="vLead">40</i></label>
+          <input type="range" id="sLead" min="0" max="100" value="40"></div>
       </div>
       <div class="row">
-        <div class="ctl"><label>PERC<i id="vPerc">62</i></label>
-          <input type="range" id="sPerc" min="0" max="100" value="62"></div>
-        <div class="ctl"><label>DRONE<i id="vDrone">38</i></label>
-          <input type="range" id="sDrone" min="0" max="100" value="38"></div>
+        <div class="ctl"><label>PERC<i id="vPerc">55</i></label>
+          <input type="range" id="sPerc" min="0" max="100" value="55"></div>
+        <div class="ctl"><label>BELL<i id="vBell">62</i></label>
+          <input type="range" id="sBell" min="0" max="100" value="62"></div>
       </div>
+      <div class="row">
+        <div class="ctl"><label>DRONE<i id="vDrone">40</i></label>
+          <input type="range" id="sDrone" min="0" max="100" value="40"></div>
+      </div>
+
       <div class="hdr">DELAY <span>FEEDBACK NETWORK</span></div>
       <div class="seg" id="dtimes"></div>
       <div class="row">
-        <div class="ctl"><label>CRUSH IN LOOP<i id="vDcrush">55</i></label>
-          <input type="range" id="sDcrush" min="0" max="100" value="55"></div>
+        <div class="ctl"><label>CRUSH IN LOOP<i id="vDcrush">58</i></label>
+          <input type="range" id="sDcrush" min="0" max="100" value="58"></div>
       </div>
       <p class="note">The delay line is re-crushed on every pass, so repeats decay in
-      <b>resolution</b> as well as amplitude. Long feedback plus crush is where the
-      rot comes from.</p>
+      <b>resolution</b> as well as amplitude. <b>WOW</b> is a modulated delay line —
+      real pitch drift, not vibrato — so it detunes the repeats against each other.</p>
     </section>
 
     <section class="pane" data-pane="visual">
       <div class="hdr">GENERATOR <span>MODE</span></div>
       <div class="seg" id="vmodes"></div>
+      <div class="hdr">STOCK <span>MEDIA &amp; PALETTE</span></div>
+      <div class="seg warm" id="stocks"></div>
       <div class="row">
-        <div class="ctl"><label>TRAIL<i id="vTrail">62</i></label>
-          <input type="range" id="sTrail" min="0" max="100" value="62"></div>
-        <div class="ctl"><label>CHROMA<i id="vChroma">40</i></label>
-          <input type="range" id="sChroma" min="0" max="100" value="40"></div>
+        <div class="ctl big"><label>FADE<i id="vFade">50</i></label>
+          <input type="range" id="sFade" min="0" max="100" value="50"></div>
+        <div class="ctl"><label>TRACKING<i id="vTrack">35</i></label>
+          <input type="range" id="sTrack" min="0" max="100" value="35"></div>
       </div>
       <div class="row">
+        <div class="ctl"><label>BLEED<i id="vBleed">50</i></label>
+          <input type="range" id="sBleed" min="0" max="100" value="50"></div>
+        <div class="ctl"><label>HALATION<i id="vHalo">40</i></label>
+          <input type="range" id="sHalo" min="0" max="100" value="40"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>CURVE<i id="vCurve">32</i></label>
+          <input type="range" id="sCurve" min="0" max="100" value="32"></div>
         <div class="ctl"><label>SCAN<i id="vScan">45</i></label>
           <input type="range" id="sScan" min="0" max="100" value="45"></div>
-        <div class="ctl"><label>HUE<i id="vHue">50</i></label>
-          <input type="range" id="sHue" min="0" max="100" value="50"></div>
       </div>
       <div class="row">
-        <div class="ctl"><label>DRIFT<i id="vDrift">35</i></label>
-          <input type="range" id="sDrift" min="0" max="100" value="35"></div>
-        <div class="ctl"><label>RENDER<i id="vScale">65</i></label>
-          <input type="range" id="sScale" min="30" max="100" value="65"></div>
+        <div class="ctl"><label>TRAIL<i id="vTrail">64</i></label>
+          <input type="range" id="sTrail" min="0" max="100" value="64"></div>
+        <div class="ctl"><label>CHROMA<i id="vChroma">42</i></label>
+          <input type="range" id="sChroma" min="0" max="100" value="42"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>DRIFT<i id="vDrift">32</i></label>
+          <input type="range" id="sDrift" min="0" max="100" value="32"></div>
+        <div class="ctl"><label>RENDER<i id="vScale">62</i></label>
+          <input type="range" id="sScale" min="30" max="100" value="62"></div>
       </div>
       <div class="seg">
+        <button id="bOsd" aria-pressed="true">OSD</button>
         <button id="bTilt" aria-pressed="false">TILT</button>
-        <button id="bFull">FULLSCREEN</button>
+        <button id="bFull">FULL</button>
         <button id="bHud2">HIDE UI</button>
       </div>
-      <p class="note"><b>RENDER</b> is the internal resolution of the feedback buffer,
-      as a percentage of the display. Drop it if the frame rate sags — low-res
-      feedback is coarser, which mostly reads as more glitch, not less detail.
-      <b>TILT</b> maps device orientation onto drift and chroma; iOS asks permission first.</p>
+      <p class="note"><b>STOCK</b> swaps the four-colour grade the whole image is
+      mapped through; DMG and AMBER also quantise to four tones. <b>FADE</b> lifts
+      the blacks and washes the colour — the single biggest difference between
+      "broken digital" and "old". <b>RENDER</b> is the internal buffer resolution;
+      drop it first if the frame rate sags.</p>
     </section>
   </main>
 </div>
 
 <div id="boot">
+  <div class="play">PLAY</div>
   <div class="big">SIGNAL<br>ROT</div>
-  <p class="sub">A glitch synth and visual generator that lives in a browser tab.
+  <p class="sub">A tape-damaged synth and visual generator that lives in a browser tab.
   Everything is generated live — <b>no samples, no libraries</b>. Best with headphones.</p>
   <button id="start">START</button>
   <p class="fine">
     <b>iPhone:</b> flick the ringer switch off or you get silence<br>
     <b>Anywhere:</b> tap the pads, drag the XY field, hide the UI<br>
-    <b>Desktop:</b> space runs the clock · 1–6 fire pads · Q–T switch visuals
+    <b>Desktop:</b> space runs the clock · 1–8 fire pads · Q–T switch visuals
   </p>
 </div>
 
@@ -384,40 +469,53 @@ const $$ = (s)=>Array.from(document.querySelectorAll(s));
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const lerp=(a,b,t)=>a+(b-a)*t;
 const rnd=Math.random;
+const TAU=6.283185307;
 
 const isTouch = matchMedia('(pointer:coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 /* ------------------------------------------------------------
-   PARAMETERS — every control writes here, the DSP block reads here
+   PARAMETERS
    ------------------------------------------------------------ */
 const P = {
-  bpm:104, root:9, scaleIx:0,
-  density:.50, chaos:.18,
-  cutoff:.60, rot:.30, res:.15,      // XY pad + pinch
-  smear:.28, space:.42, drive:.30, level:.72,
-  bass:.80, lead:.55, perc:.62, drone:.38,
-  delayDiv:3, dcrush:.55,
-  // visual
-  vmode:0, trail:.62, chroma:.40, scan:.45, hue:.50, drift:.35, rscale:.65,
-  // momentary
-  fx:{stut:0,rev:0,crsh:0,drop:0,grain:0,fill:0},
-  latch:false, running:false
+  bpm:84, root:2, scaleIx:1,
+  density:.46, chaos:.14, swing:.28,
+  cutoff:.52, rot:.18, res:.15,
+  age:.45, wow:.40, hiss:.32, dust:.44, wear:.30,
+  smear:.28, space:.46, drive:.26, level:.72,
+  bass:.78, lead:.40, perc:.55, bell:.62, drone:.40,
+  delayDiv:3, dcrush:.58,
+  vmode:0, stock:1,
+  trail:.64, chroma:.42, scan:.45, drift:.32, rscale:.62,
+  fade:.50, track:.35, bleed:.50, halo:.40, curve:.32,
+  fx:{stut:0,rev:0,crsh:0,drop:0,grain:0,fill:0,stop:0,wobl:0},
+  latch:false, running:false, osd:true
 };
 
 const SCALES = [
   {n:'PHRYG', s:[0,1,3,5,7,8,10]},
   {n:'MINOR', s:[0,2,3,5,7,8,10]},
   {n:'PENTA', s:[0,3,5,7,10]},
-  {n:'WHOLE', s:[0,2,4,6,8,10]},
-  {n:'CHROM', s:[0,1,2,3,4,5,6,7,8,9,10,11]}
+  {n:'DORIAN',s:[0,2,3,5,7,9,10]},
+  {n:'WHOLE', s:[0,2,4,6,8,10]}
 ];
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const DIVS=[{n:'1/16',v:1},{n:'1/8',v:2},{n:'3/16',v:3},{n:'1/4',v:4},{n:'3/8',v:6}];
 const VMODES=['BARS','TUNNEL','MOSH','SCOPE','RASTER'];
 
+/* Media stocks: four grade colours plus the defaults that come with each look.
+   c0 = ground, c1 = shadow, c2 = accent, c3 = highlight. */
+const STOCKS = [
+  {n:'CHROME', poster:0, fade:.10, c:[[.035,.039,.055],[.090,.050,.170],[1.00,.180,.490],[.920,.900,.860]]},
+  {n:'VHS',    poster:0, fade:.52, c:[[.078,.062,.072],[.210,.105,.215],[.930,.345,.560],[.965,.925,.845]]},
+  {n:'BETA',   poster:0, fade:.34, c:[[.042,.056,.078],[.060,.165,.290],[.360,.780,.930],[.900,.950,.985]]},
+  {n:'SUPER8', poster:0, fade:.62, c:[[.082,.058,.042],[.270,.135,.062],[.950,.560,.210],[.995,.945,.815]]},
+  {n:'DMG',    poster:1, fade:.30, c:[[.058,.078,.048],[.190,.310,.160],[.440,.600,.260],[.760,.850,.430]]},
+  {n:'AMBER',  poster:1, fade:.26, c:[[.048,.036,.026],[.230,.115,.020],[.790,.430,.055],[1.00,.790,.330]]}
+];
+
 /* ------------------------------------------------------------
-   PATTERN — Euclidean generation + mutation
+   PATTERN
    ------------------------------------------------------------ */
 function euclid(steps,pulses){
   pulses=clamp(pulses|0,0,steps);
@@ -437,43 +535,40 @@ function euclid(steps,pulses){
   for(const g of a.concat(b)) for(const v of g) out.push(v);
   return out;
 }
+function rot(a,n){ n=((n%a.length)+a.length)%a.length; return a.slice(n).concat(a.slice(0,n)); }
 
-const TRACKS=['BASS','LEAD','PERC','GRAIN'];
-const pat  = {bass:[],lead:[],perc:[],grain:[]};
-const deg  = {bass:[],lead:[]};          // scale-degree per step
-const keys = ['bass','lead','perc','grain'];
+const TRACKS=['BASS','LEAD','PERC','BELL','GRAIN'];
+const keys=['bass','lead','perc','bell','grain'];
+const pat={bass:[],lead:[],perc:[],bell:[],grain:[]};
+const deg={bass:[],lead:[],bell:[]};
 
 function regen(){
   const d=P.density;
   pat.bass  = euclid(16, Math.round(lerp(2, 9,d)));
-  pat.lead  = euclid(16, Math.round(lerp(3,11,d)));
+  pat.lead  = rot(euclid(16, Math.round(lerp(2, 9,d))), 3);
   pat.perc  = euclid(16, Math.round(lerp(4,13,d)));
-  pat.grain = euclid(16, Math.round(lerp(0, 6,d)));
-  // rotate so they don't all land on 1
-  pat.lead  = rot(pat.lead, 3);
-  pat.grain = rot(pat.grain, 5);
-  deg.bass=[];deg.lead=[];
+  pat.bell  = rot(euclid(16, Math.round(lerp(2, 6,d))), 6);
+  pat.grain = rot(euclid(16, Math.round(lerp(0, 5,d))), 5);
+  deg.bass=[];deg.lead=[];deg.bell=[];
   for(let i=0;i<16;i++){
     deg.bass[i] = (rnd()<.72?0:(rnd()<.5?3:4));
-    deg.lead[i] = (Math.random()*7|0);
+    deg.lead[i] = (rnd()*7|0);
+    // bells favour the upper extensions — 7ths and 9ths, where the nostalgia is
+    deg.bell[i] = [2,4,6,7,9][rnd()*5|0];
   }
   drawSeq();
 }
-function rot(a,n){ n=((n%a.length)+a.length)%a.length; return a.slice(n).concat(a.slice(0,n)); }
-
 function mutate(){
   for(const k of keys){
     const n = 1 + (rnd()*3|0);
     for(let i=0;i<n;i++){ const s=rnd()*16|0; pat[k][s] = pat[k][s]?0:1; }
   }
   for(let i=0;i<3;i++){ const s=rnd()*16|0; deg.lead[s]=(rnd()*7|0); }
+  for(let i=0;i<2;i++){ const s=rnd()*16|0; deg.bell[s]=[2,4,6,7,9][rnd()*5|0]; }
   if(rnd()<.4) deg.bass[rnd()*16|0] = rnd()<.5?0:4;
   drawSeq();
 }
-function clearPat(){
-  for(const k of keys) pat[k]=new Array(16).fill(0);
-  drawSeq();
-}
+function clearPat(){ for(const k of keys) pat[k]=new Array(16).fill(0); drawSeq(); }
 regen();
 
 /* ------------------------------------------------------------
@@ -482,7 +577,6 @@ regen();
 const BUF = isTouch ? 2048 : 1024;
 const AU = { ctx:null, node:null, an:null, gain:null, ready:false };
 
-// --- persistent DSP state ---
 let sr=44100;
 let stepAcc=0, step=15, bar=0, stepLen=1, fillAcc=0;
 
@@ -490,38 +584,44 @@ let stepAcc=0, step=15, bar=0, stepLen=1, fillAcc=0;
 let bPh=0,bInc=0,bEnv=0,bLow=0,bBand=0;
 let lPh=0,lInc=0,lEnv=0,lPw=.5;
 let pEnv=0,pLow=0,pBand=0,pTone=0,pPitch=0;
-let dPh1=0,dPh2=0,dPh3=0,dLow=0,dBand=0;
+let dPh1=0,dPh2=0,dPh3=0,dLow=0,dBand=0,dLfo=0;
+let fcPh=0,fmPh=0,fcInc=0,fmInc=0,fAmp=0,fIdx=0;   // 2-op FM bell
 
-// fx state
-let fLow=0,fBand=0;                       // master filter
-let ringPh=0;
-let shCnt=0,shHold=0;
-let cutSm=1000, rotSm=0, resSm=.15, drvSm=.3, lvlSm=0;
-
-// delay
+// master fx
+let fLow=0,fBand=0;
+let ringPh=0, shCnt=0, shHold=0;
+let cutSm=1000, resSm=.15, drvSm=.3, lvlSm=0;
 let dl=null,dlPos=0,dlHP=0;
-// stutter buffer
 let st=null,stPos=0,stPlay=0,stLen=1,stOn=0;
-// grain source buffer
 let gb=null,gbPos=0;
 const grains=[];
 
-// meter
+// tape / media decay
+let tp=null,tpPos=0,wowPh=0,flutPh=0,flut2Ph=0;
+let tpLP=0, hissLP=0;
+let crkEnv=0, crkSgn=1;
+let wearTimer=0, wearDepth=0, wearSm=0;
+let stopRamp=0;
+
 let peak=0, cpuEMA=0;
 
 function initBuffers(){
   dl = new Float32Array(Math.ceil(sr*1.2));
   st = new Float32Array(Math.ceil(sr*0.75));
   gb = new Float32Array(Math.ceil(sr*2.0));
+  tp = new Float32Array(Math.ceil(sr*0.09));
 }
 
 function midiHz(m){ return 440*Math.pow(2,(m-69)/12); }
 function scaleNote(base, degree, oct){
   const s = SCALES[P.scaleIx].s;
   const i = ((degree%s.length)+s.length)%s.length;
-  const o = Math.floor(degree/s.length)+ (oct||0);
+  const o = Math.floor(degree/s.length)+(oct||0);
   return base + s[i] + 12*o;
 }
+/* 2*sin(pi*x) by Taylor — the filters only ever need small x, and this saves
+   three transcendentals per sample in the inner loop. */
+function svfF(x){ const u=3.14159265*x; return clamp(2*u - u*u*u*0.3333333, 0, 1.45); }
 
 function spawnGrain(amp){
   if(grains.length>22) grains.shift();
@@ -530,25 +630,22 @@ function spawnGrain(amp){
   const rates=[0.5,0.5,1,1,1,2,-1,-2,1.5];
   grains.push({
     pos:(gbPos-back+gb.length)%gb.length, ph:0, len:len,
-    rate:rates[rnd()*rates.length|0],
-    amp:amp*lerp(.4,1,rnd()),
-    pan:rnd()
+    rate:rates[rnd()*rates.length|0], amp:amp*lerp(.4,1,rnd()), pan:rnd()
   });
 }
 
 function onStep(s){
   const drop = P.fx.drop;
-  const base = 33 + P.root;                       // A1-ish
+  const base = 33 + P.root;
   const chaos = P.chaos;
 
-  // BASS
   let hit = pat.bass[s];
   if(rnd()<chaos*0.45) hit = hit?0:1;
   if(hit && !drop){
     const n = scaleNote(base, deg.bass[s], (rnd()<chaos*.5)?1:0);
     bInc = midiHz(n)/sr; bEnv = 1;
   }
-  // LEAD
+
   hit = pat.lead[s];
   if(rnd()<chaos*0.55) hit = hit?0:1;
   if(hit){
@@ -557,17 +654,25 @@ function onStep(s){
     const n = scaleNote(base+24, d, (rnd()<chaos*.6)?1:0);
     lInc = midiHz(n)/sr; lEnv = 1; lPw = lerp(.15,.6,rnd());
   }
-  // PERC
+
   hit = pat.perc[s];
   if(rnd()<chaos*0.4) hit = hit?0:1;
   if(hit && !drop){
     pEnv=1; pPitch=1;
     pTone = (s%4===0)?lerp(140,320,rnd()) : lerp(2200,9000,rnd());
   }
-  // GRAIN
-  if(pat.grain[s] && P.smear>0.02) spawnGrain(0.5*P.smear);
 
-  // stutter re-arm on beat while held
+  // BELL — 2-op FM. Ratio 2 reads as electric piano, 3.51 as a struck bell.
+  hit = pat.bell[s];
+  if(rnd()<chaos*0.3) hit = hit?0:1;
+  if(hit){
+    const n = scaleNote(base+24, deg.bell[s], rnd()<.35?1:0);
+    fcInc = midiHz(n)/sr;
+    fmInc = fcInc*(rnd()<.5 ? 2.0 : 3.51);
+    fAmp = 1; fIdx = 1;
+  }
+
+  if(pat.grain[s] && P.smear>0.02) spawnGrain(0.5*P.smear);
   if(P.fx.stut && s%4===0) stArm();
 }
 
@@ -578,7 +683,6 @@ function stArm(){
   stPlay = 0; stOn = 1;
 }
 
-/* soft clip — Padé approximation of tanh, cheap and smooth */
 function sat(x){
   if(x<-3)return -1; if(x>3)return 1;
   const x2=x*x; return x*(27+x2)/(27+9*x2);
@@ -592,14 +696,11 @@ function process(ev){
 
   if(!P.running){ L.fill(0); R.fill(0); return; }
 
-  // A resonant SVF pushed hard can go non-finite; catch it once per block
-  // rather than testing every sample.
   if(!isFinite(fLow)||!isFinite(fBand)){ fLow=fBand=0; }
   if(!isFinite(bLow)||!isFinite(bBand)){ bLow=bBand=0; }
   if(!isFinite(dLow)||!isFinite(dBand)){ dLow=dBand=0; }
   if(!isFinite(pLow)||!isFinite(pBand)){ pLow=pBand=0; }
 
-  // ---- per-block parameter resolution ----
   stepLen = sr*60/P.bpm/4;
   const fx = P.fx;
   const crush = fx.crsh;
@@ -615,105 +716,122 @@ function process(ev){
   const fbAmt    = P.space*0.86;
   const dLevels  = Math.pow(2, lerp(15,3.2,P.dcrush)-1);
   const grainMix = P.smear*1.1;
-  const vB=P.bass*P.bass, vL=P.lead*P.lead, vP=P.perc*P.perc, vD=P.drone*P.drone;
+  const vB=P.bass*P.bass, vL=P.lead*P.lead, vP=P.perc*P.perc,
+        vBell=P.bell*P.bell, vD=P.drone*P.drone;
   const drop = fx.drop;
+
+  // --- media decay, all scaled by AGE ---
+  const age    = P.age;
+  const wowDep = (P.wow*age + (fx.wobl?0.85:0)) * sr * 0.0038;
+  const hissA  = P.hiss*age*0.055;
+  const dustA  = P.dust*age;
+  const wearA  = P.wear*age;
+  const lpCoef = lerp(1.0, 0.085, age*Math.max(P.wow,0.35));
+  const tpBase = sr*0.030;
+  const wowInc = 0.55/sr, flutInc = 7.3/sr, flut2Inc = 11.9/sr;
+  const crkDec = Math.exp(-1/(sr*0.0016));
+  const swing  = P.swing*0.6;
 
   const bDec = Math.exp(-1/(sr*0.22));
   const lDec = Math.exp(-1/(sr*0.09));
   const pDec = Math.exp(-1/(sr*0.055));
   const pPDec= Math.exp(-1/(sr*0.012));
+  const fDec = Math.exp(-1/(sr*1.30));    // bell body — long
+  const fIDec= Math.exp(-1/(sr*0.16));    // FM index — short, that's the strike
 
   const droneA = midiHz(33+P.root)/sr;
+  dLfo += n/sr*0.35;
+  const droneF = svfF(Math.min(0.45,(300+900*(0.5+0.5*Math.sin(dLfo)))/sr));
 
   let pk=0;
 
   for(let i=0;i<n;i++){
-    // ---------- clock ----------
-    stepAcc++;
-    if(stepAcc >= stepLen){
-      stepAcc -= stepLen;
+    // ---------- tape stop: everything slows together ----------
+    if(fx.stop) stopRamp += (1-stopRamp)*0.000042;
+    else        stopRamp += (0-stopRamp)*0.00012;
+    const pitch = 1 - stopRamp*0.985;
+
+    // ---------- clock (swung) ----------
+    stepAcc += pitch;
+    const dur = stepLen * ((step & 1) ? (1-swing) : (1+swing));
+    if(stepAcc >= dur){
+      stepAcc -= dur;
       step = (step+1)%16;
       if(step===0) bar++;
       onStep(step);
       fillAcc = 0;
     }
-    // FILL lays a 32nd-note ghost between the 16ths, phase-locked to the step
-    if(fx.fill && ++fillAcc >= stepLen*0.5){
+    if(fx.fill && (fillAcc+=pitch) >= stepLen*0.5){
       fillAcc = 0;
       pEnv = 0.72; pPitch = 1; pTone = lerp(3200,11000,rnd());
     }
 
-    // ---------- voices ----------
     let sig=0;
 
-    // bass: saw + sub, own lowpass
+    // bass
     bEnv*=bDec;
     if(bEnv>1e-4){
-      bPh+=bInc; if(bPh>=1)bPh-=1;
-      const saw=2*bPh-1;
-      const sub=Math.sin(6.28318531*bPh*0.5);
-      let bs = saw*0.45+sub*0.85;
-      const bf = clamp(2*Math.sin(Math.PI*Math.min(0.45,(220+2400*bEnv*bEnv)/sr)),0,1.4);
+      bPh+=bInc*pitch; if(bPh>=1)bPh-=1;
+      const bs = (2*bPh-1)*0.45 + Math.sin(TAU*bPh*0.5)*0.85;
+      const bf = svfF(Math.min(0.45,(220+2400*bEnv*bEnv)/sr));
       bLow += bf*bBand; bBand += bf*(bs - bLow - 0.9*bBand);
       sig += bLow*bEnv*bEnv*vB*0.9;
     }
 
-    // lead: pulse
+    // lead
     lEnv*=lDec;
     if(lEnv>1e-4){
-      lPh+=lInc; if(lPh>=1)lPh-=1;
-      const pw = lPh < lPw ? 1 : -1;
-      sig += pw*lEnv*lEnv*vL*0.22;
+      lPh+=lInc*pitch; if(lPh>=1)lPh-=1;
+      sig += (lPh<lPw?1:-1)*lEnv*lEnv*vL*0.22;
     }
 
-    // perc: noise + pitch env
+    // perc
     pEnv*=pDec; pPitch*=pPDec;
     if(pEnv>1e-4 && !drop){
       const nz = rnd()*2-1;
-      const pf = clamp(2*Math.sin(Math.PI*Math.min(0.45,(pTone*(0.4+pPitch*1.9))/sr)),0,1.4);
+      const pf = svfF(Math.min(0.45,(pTone*(0.4+pPitch*1.9))/sr));
       pLow += pf*pBand; pBand += pf*(nz - pLow - 0.55*pBand);
       sig += pBand*pEnv*pEnv*vP*0.6;
     }
 
-    // drone: three detuned saws
+    // bell (FM)
+    fAmp*=fDec; fIdx*=fIDec;
+    if(fAmp>1e-4 && vBell>1e-4){
+      fmPh += fmInc*pitch; if(fmPh>=1)fmPh-=1;
+      fcPh += fcInc*pitch; if(fcPh>=1)fcPh-=1;
+      sig += Math.sin(TAU*fcPh + Math.sin(TAU*fmPh)*fIdx*3.4)*fAmp*fAmp*vBell*0.42;
+    }
+
+    // drone
     if(vD>1e-4){
-      dPh1+=droneA;              if(dPh1>=1)dPh1-=1;
-      dPh2+=droneA*1.4983;       if(dPh2>=1)dPh2-=1;
-      dPh3+=droneA*2.0021;       if(dPh3>=1)dPh3-=1;
-      let dr = (2*dPh1-1)*0.5 + (2*dPh2-1)*0.3 + (2*dPh3-1)*0.22;
-      const df = clamp(2*Math.sin(Math.PI*Math.min(0.45,(300+900*(0.5+0.5*Math.sin(bar*0.1+i/sr*0.35)))/sr)),0,1.4);
-      dLow += df*dBand; dBand += df*(dr - dLow - 0.8*dBand);
+      dPh1+=droneA*pitch;         if(dPh1>=1)dPh1-=1;
+      dPh2+=droneA*1.4983*pitch;  if(dPh2>=1)dPh2-=1;
+      dPh3+=droneA*2.0021*pitch;  if(dPh3>=1)dPh3-=1;
+      const dr = (2*dPh1-1)*0.5 + (2*dPh2-1)*0.3 + (2*dPh3-1)*0.22;
+      dLow += droneF*dBand; dBand += droneF*(dr - dLow - 0.8*dBand);
       sig += dLow*vD*0.5;
     }
 
     // ---------- master fx ----------
-    // drive
     drvSm += (drvTarget-drvSm)*0.0006;
     sig = sat(sig*drvSm)*(1/Math.sqrt(drvSm));
 
-    // state-variable filter
     cutSm += (cutTarget-cutSm)*0.0009;
     resSm += (P.res-resSm)*0.0009;
-    const f = clamp(2*Math.sin(Math.PI*Math.min(0.47,cutSm/sr)),0,1.45);
-    const q = clamp(1.35 - resSm*1.22, 0.09, 1.4);
+    const f = svfF(Math.min(0.47,cutSm/sr));
+    const q = clamp(1.35 - resSm*1.22, 0.12, 1.4);
     fLow += f*fBand;
-    const hi = sig - fLow - q*fBand;
-    fBand += f*hi;
+    fBand += f*(sig - fLow - q*fBand);
     sig = fLow;
 
-    // ring mod
     if(ringAmt>0){
       ringPh += ringInc; if(ringPh>=1)ringPh-=1;
-      sig *= (1-ringAmt) + ringAmt*Math.sin(6.28318531*ringPh);
+      sig *= (1-ringAmt) + ringAmt*Math.sin(TAU*ringPh);
     }
-
-    // sample & hold downsample
     if(shTarget>1){
       if(++shCnt>=shTarget){ shCnt=0; shHold=sig; }
       sig = shHold;
     }
-
-    // bitcrush
     if(levels<32768) sig = Math.round(sig*levels)/levels;
 
     // delay with crushed, high-passed feedback
@@ -726,48 +844,86 @@ function process(ev){
     if(++dlPos>=dl.length) dlPos=0;
     sig = sig + dOut*0.62;
 
-    // stutter / reverse capture
+    // stutter / reverse
     st[stPos]=sig;
     if(++stPos>=st.length) stPos=0;
     if(fx.stut || fx.rev){
       if(!stOn) stArm();
-      let idx;
-      if(fx.rev){ idx = stPos - 1 - stPlay; }        // newest sample first, walking back
-      else      { idx = stPos - stLen + stPlay; }
+      let idx = fx.rev ? (stPos-1-stPlay) : (stPos-stLen+stPlay);
       idx %= st.length; if(idx<0) idx += st.length;
       sig = st[idx|0];
       if(++stPlay>=stLen) stPlay=0;
     } else stOn=0;
 
-    // granular smear, reading the output history
+    // ---------- tape transport: wow and flutter ----------
+    // A modulated fractional delay line. This is real pitch drift — the read
+    // pointer moves relative to the write pointer — not amplitude vibrato.
+    tp[tpPos] = sig;
+    if(wowDep>0.5){
+      wowPh+=wowInc; if(wowPh>=1)wowPh-=1;
+      flutPh+=flutInc; if(flutPh>=1)flutPh-=1;
+      flut2Ph+=flut2Inc; if(flut2Ph>=1)flut2Ph-=1;
+      const mod = (Math.sin(TAU*wowPh) + Math.sin(TAU*flutPh)*0.22
+                                       + Math.sin(TAU*flut2Ph)*0.11) * wowDep;
+      let rpos = tpPos - tpBase - mod;
+      while(rpos<0) rpos += tp.length;
+      while(rpos>=tp.length) rpos -= tp.length;
+      const i0=rpos|0, fr=rpos-i0, i1=(i0+1)%tp.length;
+      sig = tp[i0]*(1-fr) + tp[i1]*fr;
+    }
+    if(++tpPos>=tp.length) tpPos=0;
+
+    // hiss, then azimuth rolloff so the noise sits under the same lid
+    if(hissA>0){
+      const w = rnd()*2-1;
+      hissLP += (w - hissLP)*0.28;
+      sig += (w*0.4 + hissLP*0.9)*hissA;
+    }
+    if(lpCoef<0.999){ tpLP += (sig-tpLP)*lpCoef; sig = tpLP; }
+
+    // dropouts
+    if(wearTimer>0){ wearTimer--; }
+    else {
+      wearSm += (0-wearSm)*0.0022;
+      if(wearA>0 && rnd() < wearA*0.000014){
+        wearTimer = sr*lerp(0.03,0.30,rnd()); wearDepth = lerp(0.35,0.95,rnd());
+      }
+    }
+    if(wearTimer>0) wearSm += (wearDepth-wearSm)*0.0022;
+    if(wearSm>1e-4) sig *= (1-wearSm);
+
+    // vinyl: crackle impulses over a bed of surface noise
+    if(dustA>0){
+      crkEnv*=crkDec;
+      if(rnd() < dustA*0.0009){ crkEnv = lerp(0.25,1,rnd()); crkSgn = rnd()<.5?-1:1; }
+      sig += crkSgn*crkEnv*crkEnv*0.55*dustA + (rnd()*2-1)*dustA*0.006;
+    }
+
+    // granular smear
     let gL=0,gR=0;
     if(fx.grain && rnd()<0.0022) spawnGrain(0.55);
     for(let k=grains.length-1;k>=0;k--){
       const g=grains[k];
       let p = g.pos + g.ph*g.rate;
       p %= gb.length; if(p<0)p+=gb.length;
-      const w = 0.5-0.5*Math.cos(6.28318531*(g.ph/g.len));
+      const w = 0.5-0.5*Math.cos(TAU*(g.ph/g.len));
       const v = gb[p|0]*w*g.amp;
       gL += v*(1-g.pan); gR += v*g.pan;
       if(++g.ph>=g.len) grains.splice(k,1);
     }
 
-    // record post-fx for the grain engine
     gb[gbPos] = sat(sig*0.9);
     if(++gbPos>=gb.length) gbPos=0;
 
-    // sum, limit, level
     lvlSm += (lvlTarget-lvlSm)*0.0008;
-    let oL = sat((sig + gL*grainMix*2.0)*1.05)*lvlSm;
-    let oR = sat((sig + gR*grainMix*2.0)*1.05)*lvlSm;
+    const oL = sat((sig + gL*grainMix*2.0)*1.05)*lvlSm;
+    const oR = sat((sig + gR*grainMix*2.0)*1.05)*lvlSm;
     L[i]=oL; R[i]=oR;
     const a=oL>0?oL:-oL; if(a>pk)pk=a;
   }
 
   peak = pk;
-  const dt = performance.now()-t0;
-  const budget = n/sr*1000;
-  cpuEMA = cpuEMA*0.9 + (dt/budget*100)*0.1;
+  cpuEMA = cpuEMA*0.9 + ((performance.now()-t0)/(n/sr*1000)*100)*0.1;
 }
 
 async function startAudio(){
@@ -789,7 +945,6 @@ async function startAudio(){
   AU.an = AU.ctx.createAnalyser();
   AU.an.fftSize = 512;
   AU.an.smoothingTimeConstant = 0.62;
-
   AU.gain = AU.ctx.createGain();
   AU.gain.gain.value = 1;
 
@@ -804,7 +959,7 @@ async function startAudio(){
 }
 
 /* ------------------------------------------------------------
-   VISUAL ENGINE — WebGL1, ping-pong feedback
+   VISUAL ENGINE
    ------------------------------------------------------------ */
 const cv = $('#gl');
 const gl = cv.getContext('webgl',{alpha:false,antialias:false,depth:false,
@@ -824,23 +979,20 @@ precision highp float;
 varying vec2 vUv;
 uniform sampler2D uPrev, uAud;
 uniform vec2 uRes;
-uniform float uTime,uBass,uMid,uHigh,uLevel,uGlitch,uX,uY,uTrail,uDrift,uMode,uTiltX,uTiltY;
+uniform float uTime,uBass,uMid,uHigh,uLevel,uGlitch,uTrail,uDrift,uMode,uTiltX,uTiltY;
 
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
 float fq(float t){ return texture2D(uAud, vec2(clamp(t,0.0,1.0),0.25)).r; }
-float wv(float t){ return texture2D(uAud, vec2(fract(t),0.75)).r*2.0-1.0; }
 
 void main(){
   vec2 uv = vUv;
   vec2 c  = uv-0.5;
   c.x *= uRes.x/uRes.y;
 
-  /* ---- warp the previous frame: zoom, rotate, block-displace ---- */
   float dr   = 0.004 + uDrift*0.028 + uBass*0.030;
-  float zoom = 1.0 - dr;
-  float rot  = (uDrift*0.020+0.001)*sin(uTime*0.17) + uTiltX*0.02;
-  mat2 R = mat2(cos(rot),-sin(rot),sin(rot),cos(rot));
-  vec2 pc = R*(vUv-0.5)*zoom;
+  float rota = (uDrift*0.020+0.001)*sin(uTime*0.17) + uTiltX*0.02;
+  mat2 R = mat2(cos(rota),-sin(rota),sin(rota),cos(rota));
+  vec2 pc = R*(vUv-0.5)*(1.0-dr);
   pc.y += uTiltY*0.004;
   vec2 puv = pc+0.5;
 
@@ -851,20 +1003,16 @@ void main(){
     puv.x += (hash(bid*1.7+3.1)-0.5)*0.22*uGlitch;
     puv.y += (hash(bid*2.3+7.7)-0.5)*0.05*uGlitch;
   }
-  float decay = mix(0.74, 0.985, uTrail);
-  vec3 col = texture2D(uPrev, puv).rgb * decay;
+  vec3 col = texture2D(uPrev, puv).rgb * mix(0.74, 0.985, uTrail);
 
-  /* ---- new ink ---- */
   vec3 ink = vec3(0.0);
   float m = uMode;
-
-  if(m < 0.5){                                   // BARS
+  if(m < 0.5){
     float t  = abs(uv.x*2.0-1.0);
-    float h  = pow(fq(t*0.85),1.5)*0.92;
-    float d  = h - uv.y;
+    float d  = pow(fq(t*0.85),1.5)*0.92 - uv.y;
     ink += vec3(smoothstep(0.0,0.012,d)*0.55);
     ink += vec3(smoothstep(0.028,0.0,abs(d)))*vec3(1.0,0.55,0.85)*1.5;
-  } else if(m < 1.5){                            // TUNNEL
+  } else if(m < 1.5){
     float r = length(c)+0.0001;
     float a = atan(c.y,c.x)/6.2831853+0.5;
     float z = fract(0.24/r + uTime*(0.22+uBass*0.9));
@@ -872,16 +1020,14 @@ void main(){
     float spokes = 0.5+0.5*sin(a*6.2831853*8.0 + uTime*0.7);
     ink += vec3(ring*(0.35+fq(a)*1.4)*(0.4+spokes*0.6));
     ink += vec3(smoothstep(0.10,0.0,r))*uHigh*1.4;
-  } else if(m < 2.5){                            // MOSH
+  } else if(m < 2.5){
     vec2 g = floor(uv*vec2(24.0,14.0));
     float k = hash(g+floor(uTime*3.0));
-    float on = step(1.0-(0.06+uHigh*0.30), k);
-    ink += vec3(on)*vec3(0.9,0.35,0.7)*mix(0.4,1.4,uLevel);
-    float band = step(0.985, hash(vec2(floor(uv.y*90.0), floor(uTime*8.0))));
-    ink += vec3(band)*0.6;
-  } else if(m < 3.5){                            // SCOPE — ink comes from line geometry
-    ink += vec3(0.0);
-  } else {                                       // RASTER
+    ink += vec3(step(1.0-(0.06+uHigh*0.30), k))*vec3(0.9,0.35,0.7)*mix(0.4,1.4,uLevel);
+    ink += vec3(step(0.985, hash(vec2(floor(uv.y*90.0), floor(uTime*8.0)))))*0.6;
+  } else if(m < 3.5){
+    ink += vec3(0.0);                       // SCOPE draws line geometry instead
+  } else {
     float rows = 34.0;
     float row = floor(uv.y*rows);
     float off = sin(row*1.7 + uTime*(0.5+uMid*3.0))*0.5+0.5;
@@ -907,47 +1053,87 @@ precision highp float;
 varying vec2 vUv;
 uniform sampler2D uSrc;
 uniform vec2 uRes;
-uniform float uTime,uChroma,uScan,uHue,uGlitch,uHigh;
+uniform float uTime,uChroma,uScan,uGlitch,uHigh;
+uniform float uTrack,uBleed,uHalo,uCurve,uFade,uPoster;
+uniform vec3 uC0,uC1,uC2,uC3;
 
-vec3 ramp(float t, float h){
-  t = clamp(t,0.0,1.0);
-  vec3 c0 = vec3(0.039,0.043,0.059);
-  vec3 c1 = mix(vec3(0.055,0.13,0.26), vec3(0.20,0.05,0.16), h);
-  vec3 c2 = mix(vec3(0.145,0.886,0.910), vec3(1.000,0.180,0.494), h);
-  vec3 c3 = vec3(0.914,0.898,0.859);
-  vec3 a = mix(c0,c1,smoothstep(0.0 ,0.20,t));
-  vec3 b = mix(a ,c2,smoothstep(0.16,0.56,t));
-  return mix(b ,c3,smoothstep(0.58,0.96,t));
-}
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
+float lum(vec2 p){ return dot(texture2D(uSrc,clamp(p,0.0,1.0)).rgb, vec3(0.333)); }
+
+vec3 ramp(float t){
+  t = clamp(t,0.0,1.0);
+  vec3 a = mix(uC0,uC1,smoothstep(0.0 ,0.20,t));
+  vec3 b = mix(a ,uC2,smoothstep(0.16,0.56,t));
+  return mix(b ,uC3,smoothstep(0.58,0.96,t));
+}
 
 void main(){
-  vec2 uv = vUv;
+  /* CRT geometry — barrel out from centre, black past the glass */
+  vec2 p = vUv*2.0-1.0;
+  float r2 = dot(p,p);
+  p *= 1.0 + uCurve*(0.16*r2 + 0.05*r2*r2);
+  vec2 uv = p*0.5+0.5;
+  if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){ gl_FragColor=vec4(uC0*0.45,1.0); return; }
 
-  /* horizontal tear */
-  float tear = step(0.995 - uGlitch*0.02, hash(vec2(floor(uv.y*120.0), floor(uTime*11.0))));
+  /* head-switching noise: the torn band at the bottom of every VHS frame */
+  float hs = smoothstep(0.040, 0.0, uv.y);
+  uv.x += hs*(hash(vec2(floor(uv.y*500.0), floor(uTime*28.0)))-0.5)*0.55*uTrack;
+
+  /* tracking bar rolling slowly up the frame */
+  float bandY = fract(uTime*0.07);
+  float band  = smoothstep(0.075,0.0,abs(fract(uv.y-bandY+0.5)-0.5));
+  uv.x += band*(hash(vec2(floor(uv.y*220.0),floor(uTime*15.0)))-0.5)*0.075*uTrack;
+
+  /* digital tear, from the glitch macro rather than the tape */
+  float tear = step(0.995-uGlitch*0.02, hash(vec2(floor(uv.y*120.0), floor(uTime*11.0))));
   uv.x += tear*(hash(vec2(floor(uv.y*120.0),7.0))-0.5)*0.18*uGlitch;
 
-  float ca = (0.0012 + uChroma*0.010 + uHigh*0.004);
-  vec2 dir = vec2(1.0,0.22);
+  /* Colour-under: chroma carries less bandwidth than luma and lags to the
+     right. Four taps rightward for red and blue, luma sampled clean. */
+  float ca = 0.0012 + uChroma*0.010 + uHigh*0.004;
+  float lg = lum(uv);
+  float lr = 0.0, lb = 0.0;
+  for(int i=0;i<4;i++){
+    float o = float(i)*uBleed*0.006;
+    lr += lum(uv + vec2(o + ca, 0.0));
+    lb += lum(uv + vec2(o*1.7 - ca, 0.0));
+  }
+  lr *= 0.25; lb *= 0.25;
 
-  float lr = dot(texture2D(uSrc, uv+dir*ca).rgb, vec3(0.33));
-  float lg = dot(texture2D(uSrc, uv       ).rgb, vec3(0.33));
-  float lb = dot(texture2D(uSrc, uv-dir*ca).rgb, vec3(0.33));
+  if(uPoster > 0.5){                     /* four-tone stocks */
+    lg = floor(lg*4.0+0.5)*0.25; lr = lg; lb = lg;
+  }
 
-  vec3 col = vec3(ramp(lr,uHue).r, ramp(lg,uHue).g, ramp(lb,uHue).b);
+  vec3 col = vec3(ramp(lr).r, ramp(lg).g, ramp(lb).b);
 
-  /* scanlines + shadow mask */
-  float sl = 1.0 - uScan*0.30*(0.5+0.5*sin(vUv.y*uRes.y*3.14159));
-  col *= sl;
-  col *= 1.0 - uScan*0.10*(0.5+0.5*sin(vUv.x*uRes.x*2.0));
+  /* halation — light blooming into the emulsion around it */
+  if(uHalo > 0.01){
+    float h = 0.0;
+    h += lum(uv+vec2( 0.010, 0.013));
+    h += lum(uv+vec2(-0.011, 0.009));
+    h += lum(uv+vec2( 0.008,-0.012));
+    h += lum(uv+vec2(-0.009,-0.010));
+    col += ramp(h*0.25)*uHalo*0.32;
+  }
 
-  /* grain */
-  col += (hash(vUv*uRes + fract(uTime)*137.0)-0.5)*0.045;
+  /* tracking band lifts the whole area, like gain riding on a bad transport */
+  col += band*uTrack*0.10*(0.5+hash(vec2(uv.y*300.0,floor(uTime*20.0)))*0.9);
+  col += hs*uTrack*0.16;
 
-  /* vignette */
+  /* FADE — lifted milky blacks and washed colour. The difference between
+     "broken" and "old". */
+  float gy = dot(col, vec3(0.333));
+  col = mix(col, vec3(gy), uFade*0.34);
+  col = col*(1.0-uFade*0.30) + uC1*uFade*0.42 + uC3*uFade*0.045;
+
+  /* phosphor: scanlines plus a coarse vertical triad mask */
+  col *= 1.0 - uScan*0.28*(0.5+0.5*sin(vUv.y*uRes.y*3.14159));
+  col *= 1.0 - uScan*0.11*(0.5+0.5*sin(vUv.x*uRes.x*2.0));
+
+  col += (hash(vUv*uRes + fract(uTime)*137.0)-0.5)*(0.040+uFade*0.05);
+
   vec2 v = vUv-0.5;
-  col *= 1.0 - dot(v,v)*0.85;
+  col *= 1.0 - dot(v,v)*(0.72+uCurve*0.5);
 
   gl_FragColor = vec4(max(col,vec3(0.0)),1.0);
 }`;
@@ -967,7 +1153,7 @@ function prog(vs,fs){
   return {p,u};
 }
 
-let pFeed,pPres,pLine,quadBuf,lineBuf,audTex,fbo=[null,null],tex=[null,null],cur=0;
+let pFeed,pPres,pLine,quadBuf,lineBuf,audTex,fbo=[null,null],cur=0;
 let RW=1,RH=1,DW=1,DH=1;
 const linePts = new Float32Array(AUDN*2);
 
@@ -1044,7 +1230,6 @@ function frame(now){
   const dt=now-lastFrame; lastFrame=now;
   fps = fps*0.92 + (1000/Math.max(1,dt))*0.08;
 
-  // ---- audio -> uniforms ----
   let bass=0,mid=0,high=0,lvl=0;
   if(AU.ready && P.running){
     AU.an.getByteFrequencyData(freqData);
@@ -1057,7 +1242,6 @@ function frame(now){
     bass/=(N*0.08); mid/=(N*0.27); high/=(N*0.65);
     lvl = peak;
   } else {
-    // idle: the generator runs before the audio does
     bass = 0.25+0.25*Math.sin(t*1.3);
     mid  = 0.20+0.16*Math.sin(t*0.71+1.0);
     high = 0.12+0.10*Math.sin(t*2.3+2.0);
@@ -1067,12 +1251,12 @@ function frame(now){
   bassE=lerp(bassE,bass,0.22); midE=lerp(midE,mid,0.22);
   highE=lerp(highE,high,0.30); lvlE=lerp(lvlE,lvl,0.25);
 
+  updateOsd(now);
   if(!gl) return;
 
-  // ---- audio texture ----
-  // A procedural bed sits under the analyser data and fades out as real signal
-  // arrives, so the field never flatlines to black — on DROP, between hits, in
-  // the gaps of a sparse pattern, or before the clock is running at all.
+  // A procedural bed under the analyser data, fading out as real signal
+  // arrives — without it the field goes black on DROP, between hits, or before
+  // the clock is running.
   const live = clamp(lvlE*2.4, 0, 1);
   const bed  = 0.06 + 0.44*(1-live);
   for(let i=0;i<AUDN;i++){
@@ -1083,8 +1267,8 @@ function frame(now){
     let wvv = waveData[Math.min(i,waveData.length-1)];
     if(bF > fv) fv = bF;
     if(Math.abs(bW-128) > Math.abs(wvv-128)) wvv = bW;
-    let o=i*4;              audPix[o]=fv; audPix[o+1]=fv; audPix[o+2]=fv; audPix[o+3]=255;
-    o=(AUDN+i)*4;           audPix[o]=wvv;audPix[o+1]=wvv;audPix[o+2]=wvv;audPix[o+3]=255;
+    let o=i*4;      audPix[o]=fv; audPix[o+1]=fv; audPix[o+2]=fv; audPix[o+3]=255;
+    o=(AUDN+i)*4;   audPix[o]=wvv;audPix[o+1]=wvv;audPix[o+2]=wvv;audPix[o+3]=255;
   }
   gl.bindTexture(gl.TEXTURE_2D,audTex);
   gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,AUDN,2,gl.RGBA,gl.UNSIGNED_BYTE,audPix);
@@ -1107,8 +1291,6 @@ function frame(now){
   gl.uniform1f(pFeed.u.uHigh,highE);
   gl.uniform1f(pFeed.u.uLevel,lvlE);
   gl.uniform1f(pFeed.u.uGlitch,glitch);
-  gl.uniform1f(pFeed.u.uX,P.cutoff);
-  gl.uniform1f(pFeed.u.uY,P.rot);
   gl.uniform1f(pFeed.u.uTrail,reduceMotion?P.trail*0.6:P.trail);
   gl.uniform1f(pFeed.u.uDrift,reduceMotion?P.drift*0.4:P.drift);
   gl.uniform1f(pFeed.u.uMode,P.vmode);
@@ -1116,10 +1298,9 @@ function frame(now){
   gl.uniform1f(pFeed.u.uTiltY,tiltY);
   drawQuad(pFeed);
 
-  // ---- SCOPE mode draws real geometry from the waveform ----
   if(P.vmode===3){
     const N=AUDN;
-    const lis = (Math.floor(t*0.12)%2)===1;   // alternate: trace / lissajous
+    const lis = (Math.floor(t*0.12)%2)===1;
     for(let i=0;i<N;i++){
       const a=(waveData[Math.min(i,waveData.length-1)]-128)/128;
       const b=(waveData[Math.min((i+64)%N,waveData.length-1)]-128)/128;
@@ -1132,8 +1313,7 @@ function frame(now){
     const la=gl.getAttribLocation(pLine.p,'aPos');
     gl.enableVertexAttribArray(la);
     gl.vertexAttribPointer(la,2,gl.FLOAT,false,0,0);
-    // keep the lissajous square in a wide buffer
-    gl.uniform1f(pLine.u.uAsp, lis ? Math.min(1, RH/RW) : 1.0);
+    gl.uniform1f(pLine.u.uAsp, lis ? Math.min(1,RH/RW) : 1.0);
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
     gl.uniform3f(pLine.u.uCol,0.10,0.62,0.66); gl.drawArrays(gl.LINE_STRIP,0,N);
     gl.uniform3f(pLine.u.uCol,0.66,0.10,0.34); gl.drawArrays(gl.POINTS,0,N);
@@ -1143,6 +1323,7 @@ function frame(now){
   cur = 1-cur;
 
   // ---- present ----
+  const stk = STOCKS[P.stock];
   gl.bindFramebuffer(gl.FRAMEBUFFER,null);
   gl.viewport(0,0,DW,DH);
   gl.useProgram(pPres.p);
@@ -1152,9 +1333,18 @@ function frame(now){
   gl.uniform1f(pPres.u.uTime,t);
   gl.uniform1f(pPres.u.uChroma,P.chroma);
   gl.uniform1f(pPres.u.uScan,P.scan);
-  gl.uniform1f(pPres.u.uHue,P.hue);
   gl.uniform1f(pPres.u.uGlitch,glitch);
   gl.uniform1f(pPres.u.uHigh,highE);
+  gl.uniform1f(pPres.u.uTrack,P.track);
+  gl.uniform1f(pPres.u.uBleed,P.bleed);
+  gl.uniform1f(pPres.u.uHalo,P.halo);
+  gl.uniform1f(pPres.u.uCurve,P.curve);
+  gl.uniform1f(pPres.u.uFade,P.fade);
+  gl.uniform1f(pPres.u.uPoster,stk.poster);
+  gl.uniform3fv(pPres.u.uC0,stk.c[0]);
+  gl.uniform3fv(pPres.u.uC1,stk.c[1]);
+  gl.uniform3fv(pPres.u.uC2,stk.c[2]);
+  gl.uniform3fv(pPres.u.uC3,stk.c[3]);
   drawQuad(pPres);
 
   updateReadout();
@@ -1163,37 +1353,72 @@ function frame(now){
 /* ------------------------------------------------------------
    UI
    ------------------------------------------------------------ */
-function bindSlider(id,vid,key,fmt,scale){
+const CTLS={}, SEGS={};
+function bindSlider(id,vid,key,fmt,raw){
   const el=$(id), out=$(vid);
-  const apply=()=>{
-    const raw=+el.value;
-    P[key] = scale ? scale(raw) : raw/100;
-    out.textContent = fmt ? fmt(raw) : raw;
-  };
-  el.addEventListener('input',apply);
-  apply();
-  return el;
+  const read=()=>{ const v=+el.value; P[key]= raw ? v : v/100; out.textContent = fmt?fmt(v):v; };
+  el.addEventListener('input',read);
+  CTLS[key]={el,out,fmt,raw};
+  read();
+}
+function syncCtl(key){
+  const c=CTLS[key]; if(!c) return;
+  const v = c.raw ? P[key] : Math.round(P[key]*100);
+  c.el.value = v;
+  c.out.textContent = c.fmt ? c.fmt(v) : v;
+}
+function syncSeg(key){
+  const s=SEGS[key]; if(!s) return;
+  Array.from(s.el.children).forEach((c,j)=>c.setAttribute('aria-pressed', j===P[key]?'true':'false'));
+}
+function segment(host,items,key,cb){
+  const el=$(host); el.innerHTML='';
+  items.forEach((it,i)=>{
+    const b=document.createElement('button');
+    b.textContent=it;
+    b.addEventListener('click',()=>{ P[key]=i; syncSeg(key); cb&&cb(i); });
+    el.appendChild(b);
+  });
+  SEGS[key]={el};
+  syncSeg(key);
+}
+function syncAll(){
+  for(const k in CTLS) syncCtl(k);
+  for(const k in SEGS) syncSeg(k);
+  updateKeyLabel();
 }
 
+bindSlider('#sAge','#vAge','age');
 bindSlider('#sSmear','#vSmear','smear');
 bindSlider('#sSpace','#vSpace','space');
 bindSlider('#sDrive','#vDrive','drive');
 bindSlider('#sLevel','#vLevel','level');
 bindSlider('#sDens','#vDens','density');
 bindSlider('#sChaos','#vChaos','chaos');
+bindSlider('#sSwing','#vSwing','swing');
+bindSlider('#sWow','#vWow','wow');
+bindSlider('#sHiss','#vHiss','hiss');
+bindSlider('#sDust','#vDust','dust');
+bindSlider('#sWear','#vWear','wear');
 bindSlider('#sBass','#vBass','bass');
 bindSlider('#sLead','#vLead','lead');
 bindSlider('#sPerc','#vPerc','perc');
+bindSlider('#sBell','#vBell','bell');
 bindSlider('#sDrone','#vDrone','drone');
 bindSlider('#sDcrush','#vDcrush','dcrush');
 bindSlider('#sTrail','#vTrail','trail');
 bindSlider('#sChroma','#vChroma','chroma');
 bindSlider('#sScan','#vScan','scan');
-bindSlider('#sHue','#vHue','hue');
 bindSlider('#sDrift','#vDrift','drift');
-bindSlider('#sBpm','#vBpm','bpm',null,(v)=>v);
-bindSlider('#sRoot','#vRoot','root',(v)=>NOTE_NAMES[v],(v)=>v);
+bindSlider('#sFade','#vFade','fade');
+bindSlider('#sTrack','#vTrack','track');
+bindSlider('#sBleed','#vBleed','bleed');
+bindSlider('#sHalo','#vHalo','halo');
+bindSlider('#sCurve','#vCurve','curve');
+bindSlider('#sBpm','#vBpm','bpm',null,true);
+bindSlider('#sRoot','#vRoot','root',(v)=>NOTE_NAMES[v],true);
 $('#sRoot').addEventListener('input',updateKeyLabel);
+$('#sBpm').addEventListener('input',updateKeyLabel);
 
 const sScale=$('#sScale');
 sScale.addEventListener('input',()=>{
@@ -1201,31 +1426,75 @@ sScale.addEventListener('input',()=>{
   clearTimeout(sScale._t); sScale._t=setTimeout(resize,180);
 });
 
-// scale + delay-div + visual-mode segmented controls
-function segment(host, items, get, set){
-  const el=$(host);
-  el.innerHTML='';
-  items.forEach((it,i)=>{
-    const b=document.createElement('button');
-    b.textContent=it;
-    b.setAttribute('aria-pressed', get()===i ? 'true':'false');
-    b.addEventListener('click',()=>{
-      set(i);
-      Array.from(el.children).forEach((c,j)=>c.setAttribute('aria-pressed', j===i?'true':'false'));
-    });
-    el.appendChild(b);
-  });
-}
-segment('#scales', SCALES.map(s=>s.n), ()=>P.scaleIx, i=>{P.scaleIx=i;updateKeyLabel();});
-segment('#dtimes', DIVS.map(d=>d.n),   ()=>P.delayDiv, i=>{P.delayDiv=i;});
-segment('#vmodes', VMODES,             ()=>P.vmode,    i=>{P.vmode=i;});
+segment('#scales', SCALES.map(s=>s.n), 'scaleIx', updateKeyLabel);
+segment('#dtimes', DIVS.map(d=>d.n),   'delayDiv');
+segment('#vmodes', VMODES,             'vmode');
+segment('#stocks', STOCKS.map(s=>s.n), 'stock', (i)=>{
+  // each stock carries the wash it was born with; the slider still overrides
+  P.fade = STOCKS[i].fade; syncCtl('fade');
+});
 
 function updateKeyLabel(){
   $('#rKey').textContent = NOTE_NAMES[P.root]+' '+SCALES[P.scaleIx].n;
 }
-updateKeyLabel();
 
-// --- XY pad, multi-touch: 2nd finger spread controls resonance ---
+/* ---- scenes ---- */
+const PRESETS=[
+  {n:'SUNDAY', p:{bpm:72,swing:.38,scaleIx:1,root:2,density:.34,chaos:.08,
+    bass:.70,lead:.20,perc:.38,bell:.82,drone:.46,
+    age:.58,wow:.44,hiss:.36,dust:.56,wear:.20,
+    cutoff:.44,rot:.08,smear:.34,space:.56,drive:.18,delayDiv:3,dcrush:.50,
+    vmode:0,stock:3,trail:.72,chroma:.30,scan:.40,drift:.22,
+    fade:.66,track:.16,bleed:.60,halo:.52,curve:.36}},
+
+  {n:'BASEMENT', p:{bpm:88,swing:.26,scaleIx:0,root:9,density:.58,chaos:.24,
+    bass:.86,lead:.44,perc:.62,bell:.40,drone:.34,
+    age:.46,wow:.32,hiss:.30,dust:.42,wear:.34,
+    cutoff:.50,rot:.26,smear:.32,space:.44,drive:.40,delayDiv:2,dcrush:.62,
+    vmode:1,stock:1,trail:.66,chroma:.44,scan:.48,drift:.34,
+    fade:.48,track:.32,bleed:.50,halo:.34,curve:.30}},
+
+  {n:'TRACKING', p:{bpm:96,swing:.10,scaleIx:0,root:7,density:.66,chaos:.42,
+    bass:.74,lead:.56,perc:.70,bell:.26,drone:.30,
+    age:.72,wow:.62,hiss:.44,dust:.50,wear:.78,
+    cutoff:.62,rot:.52,smear:.46,space:.60,drive:.46,delayDiv:1,dcrush:.78,
+    vmode:2,stock:1,trail:.78,chroma:.66,scan:.52,drift:.48,
+    fade:.44,track:.92,bleed:.72,halo:.30,curve:.42}},
+
+  {n:'ARCADE', p:{bpm:132,swing:.04,scaleIx:2,root:4,density:.62,chaos:.20,
+    bass:.72,lead:.72,perc:.60,bell:.54,drone:.16,
+    age:.24,wow:.16,hiss:.20,dust:.18,wear:.10,
+    cutoff:.70,rot:.40,smear:.16,space:.30,drive:.34,delayDiv:0,dcrush:.72,
+    vmode:4,stock:4,trail:.52,chroma:.24,scan:.62,drift:.40,
+    fade:.30,track:.10,bleed:.20,halo:.22,curve:.44}},
+
+  {n:'RUINED', p:{bpm:64,swing:.32,scaleIx:4,root:11,density:.40,chaos:.52,
+    bass:.66,lead:.34,perc:.40,bell:.58,drone:.56,
+    age:1.0,wow:.88,hiss:.62,dust:.80,wear:.86,
+    cutoff:.34,rot:.60,smear:.62,space:.74,drive:.30,delayDiv:4,dcrush:.90,
+    vmode:3,stock:5,trail:.86,chroma:.72,scan:.44,drift:.52,
+    fade:.72,track:.60,bleed:.66,halo:.58,curve:.38}}
+];
+function applyPreset(i){
+  const p = PRESETS[i].p;
+  for(const k in p) P[k] = p[k];
+  syncAll();
+  regen();
+}
+(function buildPresets(){
+  const el=$('#presets');
+  PRESETS.forEach((pr,i)=>{
+    const b=document.createElement('button');
+    b.textContent=pr.n;
+    b.addEventListener('click',()=>{
+      applyPreset(i);
+      Array.from(el.children).forEach((c,j)=>c.setAttribute('aria-pressed', j===i?'true':'false'));
+    });
+    el.appendChild(b);
+  });
+})();
+
+/* ---- XY pad ---- */
 const xy=$('#xy'), xyV=$('#xyV'), xyH=$('#xyH'), xyK=$('#xyK');
 const active=new Map();
 function xyUpdate(){
@@ -1260,7 +1529,7 @@ xy.addEventListener('pointerup',xyEnd);
 xy.addEventListener('pointercancel',xyEnd);
 xyUpdate();
 
-// --- momentary / latching pads ---
+/* ---- pads ---- */
 function setFx(name,on,el){
   P.fx[name]= on?1:0;
   el.classList.toggle('hot',!!on);
@@ -1277,14 +1546,13 @@ $$('.pad').forEach(el=>{
   el.addEventListener('pointercancel',up);
   el.addEventListener('pointerleave',e=>{ if(e.buttons) up(); });
 });
-
 $('#bLatch').addEventListener('click',e=>{
   P.latch=!P.latch;
   e.currentTarget.setAttribute('aria-pressed',P.latch?'true':'false');
   if(!P.latch) $$('.pad').forEach(el=>setFx(el.dataset.fx,false,el));
 });
 
-// --- sequencer grid ---
+/* ---- sequencer ---- */
 function drawSeq(){
   const host=$('#seq'); if(!host) return;
   if(!host.children.length){
@@ -1321,7 +1589,7 @@ $('#bMutate').addEventListener('click',mutate);
 $('#bMutate2').addEventListener('click',mutate);
 $('#bClear').addEventListener('click',clearPat);
 
-// --- transport / hud ---
+/* ---- transport / hud / osd ---- */
 async function toggleRun(force){
   const want = force===undefined ? !P.running : force;
   if(want){ await startAudio(); P.running=true; }
@@ -1340,13 +1608,34 @@ function toggleHud(){
 $('#bHud').addEventListener('click',toggleHud);
 $('#bHud2').addEventListener('click',toggleHud);
 
+$('#bOsd').addEventListener('click',e=>{
+  P.osd=!P.osd;
+  $('#osd').classList.toggle('off',!P.osd);
+  e.currentTarget.setAttribute('aria-pressed',P.osd?'true':'false');
+});
+
 $('#bFull').addEventListener('click',()=>{
   if(document.fullscreenElement) document.exitFullscreen?.();
   else (document.documentElement.requestFullscreen?.() ||
         document.documentElement.webkitRequestFullscreen?.())?.catch?.(()=>{});
 });
 
-// --- tabs ---
+// A date somewhere in the tape era, fixed for the session; the counter runs real time.
+const MONTHS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const osdDate = (()=> {
+  const y=1994+(rnd()*10|0), m=rnd()*12|0, d=1+(rnd()*28|0);
+  return MONTHS[m]+' '+(d<10?'0':'')+d+' '+y;
+})();
+$('#osdDate').textContent = osdDate;
+let osdT0=performance.now();
+function updateOsd(now){
+  if(!P.osd) return;
+  const s=Math.floor((now-osdT0)/1000);
+  const hh=Math.floor(s/3600), mm=Math.floor(s/60)%60, ss=s%60;
+  $('#osdTime').textContent = 'SP '+hh+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+
+/* ---- tabs ---- */
 $$('#tabs button').forEach(b=>{
   b.addEventListener('click',()=>{
     $$('#tabs button').forEach(x=>x.setAttribute('aria-selected','false'));
@@ -1355,7 +1644,7 @@ $$('#tabs button').forEach(b=>{
   });
 });
 
-// --- tilt ---
+/* ---- tilt ---- */
 $('#bTilt').addEventListener('click',async e=>{
   const btn=e.currentTarget;
   if(tiltOn){ tiltOn=false; tiltX=tiltY=0; btn.setAttribute('aria-pressed','false'); return; }
@@ -1363,7 +1652,7 @@ $('#bTilt').addEventListener('click',async e=>{
     const DOE=window.DeviceOrientationEvent;
     if(DOE && typeof DOE.requestPermission==='function'){
       const r=await DOE.requestPermission();
-      if(r!=='granted'){ btn.textContent='TILT DENIED'; return; }
+      if(r!=='granted'){ btn.textContent='DENIED'; return; }
     }
     addEventListener('deviceorientation',onTilt);
     tiltOn=true; btn.setAttribute('aria-pressed','true');
@@ -1373,11 +1662,10 @@ function onTilt(e){
   if(!tiltOn) return;
   tiltX = clamp((e.gamma||0)/45,-1,1);
   tiltY = clamp(((e.beta||0)-40)/45,-1,1);
-  P.chroma = clamp(P.chroma*0.985 + Math.abs(tiltX)*0.015*2, 0, 1);
 }
 
-// --- keyboard (desktop) ---
-const PADKEYS=['1','2','3','4','5','6'];
+/* ---- keyboard ---- */
+const PADKEYS=['1','2','3','4','5','6','7','8'];
 addEventListener('keydown',e=>{
   if(e.repeat) return;
   const tag=(e.target.tagName||'').toLowerCase();
@@ -1386,7 +1674,7 @@ addEventListener('keydown',e=>{
   const pi=PADKEYS.indexOf(e.key);
   if(pi>=0){ const el=$$('.pad')[pi]; if(el) setFx(el.dataset.fx,true,el); return; }
   const vi='qwert'.indexOf(e.key.toLowerCase());
-  if(vi>=0){ P.vmode=vi; segment('#vmodes',VMODES,()=>P.vmode,i=>{P.vmode=i;}); }
+  if(vi>=0){ P.vmode=vi; syncSeg('vmode'); }
   if(e.key==='h') toggleHud();
   if(e.key==='m') mutate();
 });
@@ -1395,7 +1683,7 @@ addEventListener('keyup',e=>{
   if(pi>=0 && !P.latch){ const el=$$('.pad')[pi]; if(el) setFx(el.dataset.fx,false,el); }
 });
 
-// --- readout ---
+/* ---- readout ---- */
 let lastStep=-1;
 function updateReadout(){
   $('#rBpm').textContent = P.bpm;
@@ -1403,14 +1691,11 @@ function updateReadout(){
   if(s!==lastStep){
     lastStep=s;
     $('#rStep').textContent = (1+Math.floor(s/4))+'.'+(1+s%4);
-    if(gl){
-      $$('#seq .cell').forEach(c=>c.classList.toggle('play', +c.dataset.s===s && P.running));
-    }
+    $$('#seq .cell').forEach(c=>c.classList.toggle('play', +c.dataset.s===s && P.running));
   }
   $('#rCpu').textContent = P.running ? Math.round(clamp(cpuEMA,0,999)) : '--';
 }
 
-// --- lifecycle ---
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden && AU.ctx && AU.ctx.state==='running') AU.ctx.suspend();
   else if(!document.hidden && P.running && AU.ctx) AU.ctx.resume();
@@ -1418,13 +1703,14 @@ document.addEventListener('visibilitychange',()=>{
 
 $('#start').addEventListener('click',async()=>{
   $('#boot').classList.add('gone');
+  osdT0 = performance.now();
   await toggleRun(true);
   if(navigator.wakeLock?.request){ navigator.wakeLock.request('screen').catch(()=>{}); }
 });
 
-// stop iOS double-tap zoom on the control surfaces
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
+updateKeyLabel();
 initGL();
 requestAnimationFrame(frame);
 </script>
