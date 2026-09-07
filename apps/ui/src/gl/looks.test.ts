@@ -25,6 +25,9 @@ describe('the shipped looks', () => {
       'datamosh',
       'newsprint',
       'vapor',
+      'cel',
+      'cascade',
+      'wall',
       'tunnel',
     ]);
   });

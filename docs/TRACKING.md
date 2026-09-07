@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 39 | 17 | 🟨 In progress (3 cut) |
+| 5 | **Visualizer + librespot** | 39 | 18 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **123** | **89** | |
+| | **Total** | **123** | **90** | |
 
 ---
 
@@ -167,7 +167,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-07 | Effect family B — glitch (RGB split, block displace, pixel sort, tear, dropout, bit crush) | ✅ | Six passes, 16 fetches for the family. "Pixel sort" is named `smear` and is honestly a thresholded running maximum — a real sort needs scatter and a data-dependent loop, neither of which a fragment shader on a tiler has. `dropout` punches through to `uArt`, so corruption *reveals the cover* rather than replacing it with noise |
 | P5-08 | Effect family C — analog lofi (VHS wobble, CRT, grain, dither, posterize, bloom, halftone) | ✅ | Every pass documents what it does to contrast, for P5-16. The CRT scanline is `1 + sin(πy)k`, which averages to exactly 1.0 across two rows — the naive `0.5 + 0.5sin` everyone writes is a 50% luminance cut. Bloom is a single-pass two-ring Kawase gather: 9 fetches read 33 texels, because the 6-pass budget and three targets rule out a real pyramid |
 | P5-09 | Effect family D — Winamp classics (spectrum bars, oscilloscope, kaleidoscope, particles) | ✅ | Bars and scope are **overlays** — a 1px bar edge through a half-res upscale is a bar chart seen through a wet window. Kaleido cannot be one: it re-samples what is beneath it, so with no `uTexture` it has nothing to mirror. The scope is honestly a **resynthesis** — sixteen harmonics at the band amplitudes, i.e. the waveform *of a signal with this spectrum*, not of the track, because a magnitude spectrum carries no phase (D-069) |
-| P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
+| P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ✅ | Plus `edge` and `matrix`. `cycle`'s palette is a **Vogel sunflower over the cover** — a real extraction needs a readback the engine forbids, and consecutive sunflower entries are never neighbours, so rotating the table reads as a cycle rather than a slow pan. `slitscan` is honestly a per-row one-pole filter, not a tap delay: there is one frame of history (D-061), so no row corresponds to an exact frame and the docblock says so (D-072) |
 | P5-11 | Tap-tempo / nudge-phase touch control | ✅ | Three controls, not one: phase takes **one** tap, tempo takes **four**, nudge moves 1/16 of a beat. Estimator is least-squares through (beat number, instant) — the mean interval telescopes to `(last−first)/(n−1)` and throws the middle taps away. A bounced touch is rejected; a *missed* beat is not, because it is a good observation two beats along (D-064) |
 | P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ✅ | Six looks — `Ghost`, `VHS`, `Datamosh`, `Newsprint`, `Vapor`, `Tunnel` — each a scene id, an ordered list of pass ids and some numbers. No code path per look, which is the test of whether "presets are data" was true or merely asserted. A look naming a pass somebody renamed is dropped with a reason rather than taking the visualiser down |
 | P5-43 | **Flash floor** — beat-driven luminance capped below the photosensitivity threshold | ✅ | WCAG 2.2 §2.3.1 is three flashes a second, which is **180 BPM** — drum and bass, not an exotic tempo. `REEF` was described as "no strobe" as a property of one theme; nothing stopped `N2O` or `SURGE` crossing the line on ordinary music, on a wall, unattended. Enforced on `uBeat` in the uniform build, so no effect can bypass it and effects nobody has written are covered (D-071) |

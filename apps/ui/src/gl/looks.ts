@@ -97,6 +97,44 @@ const LOOKS: readonly LookSpec[] = [
     ],
   },
   {
+    // The thing that was actually asked for: flat bands from the quantiser,
+    // plus the cover's own line work. `edge` takes its gradient from `uArt`
+    // rather than the chain, so it finds the artwork's contours instead of
+    // whatever the pass before it did to them.
+    id: 'cel',
+    name: 'Cel',
+    scene: 'flat',
+    chain: [
+      ['posterize', { levels: 4, tint: 0.4 }],
+      ['edge', { width: 1, threshold: 0.1, ink: 0, amount: 0.9 }],
+      ['grain', { amount: 0.06 }],
+    ],
+  },
+  {
+    // Indexed palette cycling under an ordered dither: the most
+    // period-correct pairing in the library, and nearly free.
+    id: 'cascade',
+    name: 'Cascade',
+    scene: 'flat',
+    chain: [
+      ['cycle', { levels: 8, speed: 1, tone: 0.4, amount: 1 }],
+      ['dither', { levels: 6, amount: 1 }],
+      ['crt', { curve: 0.25, scan: 0.35, mask: 0.15, vignette: 0.35 }],
+    ],
+  },
+  {
+    // The 2m look. A coarse emissive grid reads at distance where fine detail
+    // does not — this one is a legibility argument that happens to look period.
+    id: 'wall',
+    name: 'Wall',
+    scene: 'flat',
+    chain: [
+      ['matrix', { pitch: 12, fill: 0.8, gain: 0.8, pulse: 0.5 }],
+      ['bloom', { threshold: 0.55, radius: 1, amount: 0.5 }],
+      ['bars', { gain: 1, tilt: 0.6, gap: 0.26, height: 0.26, cap: 0.01 }],
+    ],
+  },
+  {
     // P5-26. The tunnel with its era's artefacts, and nothing else — the scene
     // is already doing the work, and stacking post over it wastes budget the
     // geometry needs.

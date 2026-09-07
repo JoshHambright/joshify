@@ -1454,3 +1454,25 @@ to check the pulse against it would be policing a number we made up.
 sitting on it is sitting on the hazard — and effects stack, so two beat-driven
 passes each swinging 9% is not 9%.
 **Status:** ✅ Accepted.
+
+---
+
+### D-072 · An effect is named for what it does, not for what it evokes
+**Chose:** three passes in the library carry a name that is deliberately *not*
+the technique they resemble, with a docblock saying what they actually are.
+
+| Named | Not called | Because |
+|---|---|---|
+| `smear` | pixel sort | A real sort permutes pixels within luminance-thresholded runs. A fragment shader has no scatter and no cross-pixel state, and finding a run's extent is a data-dependent loop. It is a thresholded running maximum |
+| `scope` | oscilloscope / waveform | There is no PCM on Tiers 0–1 (D-010). It sums sixteen harmonics at the band amplitudes — the waveform *of a signal with this spectrum*, with invented phases |
+| `slitscan` | (kept the name, corrected the claim) | A true slit-scan holds N frames and shows row *i* of frame *t−i*. The engine has one frame of history and three targets (D-061), so it is a per-row one-pole filter: no row corresponds to an exact frame, and a moving highlight leaves a decaying trail rather than a sharp copy per row |
+
+**Why this is a rule and not three coincidences:** a name is a claim about
+behaviour, and the person who reads it next is deciding whether to reach for it.
+Calling a running maximum a pixel sort costs an afternoon the first time someone
+expects rows to be permuted. It is the same principle as not drawing a volume
+slider for a device that reports no volume (D-047) — an affordance that cannot
+do what its name says is worse than a missing one.
+**The test of it:** if the honest description makes the effect sound less
+impressive, the name was doing work the implementation was not.
+**Status:** ✅ Accepted.

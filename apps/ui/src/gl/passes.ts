@@ -20,6 +20,7 @@ import { GLITCH_PASSES } from './effects/glitch.js';
 import { LOFI_PASSES } from './effects/lofi.js';
 import { CLASSIC_PASSES } from './effects/classics.js';
 import { PS1_PASSES } from './effects/ps1.js';
+import { ART_PASSES } from './effects/art.js';
 import { TUNNEL_SCENE } from './scenes/tunnel.js';
 
 export interface PassParam {
@@ -361,6 +362,7 @@ export const BUILT_IN_CATALOGUE: Catalogue = {
     ...LOFI_PASSES,
     ...CLASSIC_PASSES,
     ...PS1_PASSES,
+    ...ART_PASSES,
   ],
 };
 
