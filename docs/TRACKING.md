@@ -40,11 +40,11 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
 | 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 38 | 16 | 🟨 In progress (3 cut) |
+| 5 | **Visualizer + librespot** | 39 | 17 | 🟨 In progress (3 cut) |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **122** | **88** | |
+| | **Total** | **123** | **89** | |
 
 ---
 
@@ -170,6 +170,7 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-10 | Effect family E — art-derived (shatter, palette cycle, slit-scan, displacement) | ⬜ | The cover is the *source texture*, not a backdrop |
 | P5-11 | Tap-tempo / nudge-phase touch control | ✅ | Three controls, not one: phase takes **one** tap, tempo takes **four**, nudge moves 1/16 of a beat. Estimator is least-squares through (beat number, instant) — the mean interval telescopes to `(last−first)/(n−1)` and throws the middle taps away. A bounced touch is rejected; a *missed* beat is not, because it is a good observation two beats along (D-064) |
 | P5-12 | Preset system: named looks, touch switching, shuffle-on-track-change | ✅ | Six looks — `Ghost`, `VHS`, `Datamosh`, `Newsprint`, `Vapor`, `Tunnel` — each a scene id, an ordered list of pass ids and some numbers. No code path per look, which is the test of whether "presets are data" was true or merely asserted. A look naming a pass somebody renamed is dropped with a reason rather than taking the visualiser down |
+| P5-43 | **Flash floor** — beat-driven luminance capped below the photosensitivity threshold | ✅ | WCAG 2.2 §2.3.1 is three flashes a second, which is **180 BPM** — drum and bass, not an exotic tempo. `REEF` was described as "no strobe" as a property of one theme; nothing stopped `N2O` or `SURGE` crossing the line on ordinary music, on a wall, unattended. Enforced on `uBeat` in the uniform build, so no effect can bypass it and effects nobody has written are covered (D-071) |
 | P5-13 | Half-resolution render + upscale, exposed as a "grain" slider | ✅ | A scale factor, not a boolean — `uResolution` is the size *that stage* renders at, not the panel |
 | P5-14 | Auto-degrade on missed frames (drop scale, then passes) | ✅ | 45-frame window, degrade above 20% missed, recover below 2% after 3s. **The window is cleared on every change** — without it one bad second walks the ladder to the floor before the first step has been measured. Dwell is counted in frames, so a backgrounded tab cannot wait it out. Scene is never dropped; overlays go last |
 | P5-15 | Visualizer modes: Now Playing / Ambient / Full / auto-enter on idle | 🟨 | State machine done; wiring into the panel waits on the effect families. **The touch that wakes it is swallowed** — delivering it means a tap meant to bring the controls back also lands on whatever control was under the finger (D-067). Ambient keeps the chrome; that is the whole difference between it and Full |

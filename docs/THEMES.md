@@ -199,3 +199,57 @@ theme architecture is real, by being maximally *unlike* each other:
    system rather than just effects. If the architecture survives that, it works.
 
 The rest are content, addable one file at a time once the system holds.
+
+---
+
+## Effect ideas, triaged
+
+A round of suggestions, sorted by what actually applies. Recorded here rather
+than in the tracker, per D-019 — these are theme-backlog until one of them
+closes a gap in the *product*.
+
+### Already built
+
+| Idea | Where |
+|---|---|
+| Particles | `particles`, family D (P5-09) |
+| Kaleidoscope | `kaleido`, family D — a mirror *is* a kaleidoscope with two segments, so a separate mirror pass is a parameter, not a feature |
+| Cel shading | `posterize` (family C) supplies the flat bands; `edge` (family E) supplies the ink line. Together they are the look |
+
+### Already decided
+
+**Autostereograms** were considered and cut (P5-39/P5-40), on the grounds
+recorded above: technically interesting, off-vision, and they serve the effect
+rather than the music. Nothing has changed that. Reopening it is a decision, not
+an addition.
+
+### Trademarked — the idiom, never the artefact (D-015)
+
+| Suggested | The problem | What we can build |
+|---|---|---|
+| Flying toasters | *After Dark*, Berkeley Systems. The toaster is the trademark | **`FLYBY`** — objects on parallax layers drifting across a dark field. Make the objects the **album covers themselves**: on-thesis, since the artwork is the source material, and it belongs to nobody else |
+| 3D Pipes | The Windows 95 screensaver, Microsoft | **`PLUMBING`** — additive extruded geometry growing through space, jointed on the beat, coloured from the album palette. The *technique* is 1994 OpenGL demo, not anyone's asset |
+| "Magic Eye" | Trademark of Magic Eye Inc. | Use "autostereogram" — and see above, it is cut anyway |
+
+### Worth building, ranked
+
+| Idea | Why it earns a place | Cost |
+|---|---|---|
+| **Orbit-trap fractal** (`scene`) | The strongest of the new ones. A Julia/Mandelbrot orbit that uses the **album as the trap texture** — so the cover is genuinely the source material rather than a palette donor. Zoom and rotation on `uBeat`. Pure fragment, no geometry | One scene, moderate |
+| **Voxel heightfield** (`scene`) | The cover's *luminance as terrain*, flown over. Uses the artwork as data, which almost nothing else does, and the voxel-terrain look is exactly 1993–96. Reads well at 2m | One scene, moderate |
+| **Starfield** (`scene`) | The other canonical period screensaver, and it is nobody's IP — it predates all of them. Cheap, calm, and a good `REEF`-adjacent resting scene | Low |
+| **LED / dot matrix** (`matrix`, family E) | Not nostalgia: the panel is read at ~2m (PRODUCT.md §5.3), and a coarse emissive grid **reads at distance where fine detail does not**. This is a legibility argument that happens to look period | Low |
+
+### Considered and not recommended
+
+**Anaglyph (red/blue 3D).** Cheap to implement and genuinely fun — but it needs
+the viewer to be wearing glasses, and this is a device on a wall that nobody is
+standing in front of. It would be a novelty preset that is wrong 99.9% of the
+time, and actively unpleasant the rest. Two further problems: the chain's targets
+carry no depth (D-070), so it would have to fake depth from luminance; and
+red-blue anaglyph destroys the colour that the whole theme system is built on.
+If it ever ships it should be an explicit toy, not part of the shuffle.
+
+**True stereoscopic.** Same glasses problem, and the display is not stereo
+capable.
+

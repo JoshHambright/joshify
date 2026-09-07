@@ -52,6 +52,8 @@ export const UNIT_PREV = 2;
  * between them is `channel / 255`, and doing it in the wrong direction gives a
  * white screen rather than an error.
  */
+import { limitBeat } from './flash.js';
+
 export type ShaderRgb = readonly [number, number, number];
 
 export interface Size {
@@ -89,6 +91,15 @@ export interface Reactivity {
 
 export interface FrameContext {
   readonly reactivity: Reactivity;
+  /**
+   * The tempo driving the pulse, or `null` on Tier 0.
+   *
+   * Present only so the flash floor can be applied here rather than in every
+   * effect (D-071). A rule each pass has to remember is a rule the twenty-third
+   * pass forgets, and `uBeat` is the one channel every beat-driven effect
+   * reads.
+   */
+  readonly bpm?: number | null | undefined;
   readonly accent: ShaderRgb;
   readonly foreground: ShaderRgb;
   readonly intensity: number;
@@ -159,7 +170,9 @@ export const buildFrameUniforms = (context: FrameContext): UniformSet => {
     // Not clamped: time is monotonic and unbounded by design, and a shader
     // that wants it wrapped can wrap it.
     uTime: float(finite(reactivity.timeSeconds)),
-    uBeat: float(clamp01(reactivity.beat)),
+    // Attenuated above 180 BPM so a beat-driven pulse cannot become a
+    // photosensitivity hazard on a panel nobody is standing next to (D-071).
+    uBeat: float(limitBeat(clamp01(reactivity.beat), context.bpm ?? null)),
     uPhase: float(clamp01(reactivity.phase)),
     uEnergy: float(clamp01(reactivity.energy)),
     uBands: floats(normaliseBands(reactivity.bands)),

@@ -195,6 +195,8 @@ export const planFrame = (input: PlanInput): RenderPlan => {
 
 export interface RenderInputs {
   readonly reactivity: Reactivity;
+  /** The tempo, when one is known. Drives the flash floor (D-071). */
+  readonly bpm?: number | null | undefined;
   readonly accent: ShaderRgb;
   readonly foreground: ShaderRgb;
   readonly intensity: number;

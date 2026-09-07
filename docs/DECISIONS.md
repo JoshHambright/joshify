@@ -1423,3 +1423,34 @@ apart silently.
 `depthTest: false` the draw order is the only thing deciding what is in front.
 Indices are emitted far ring first.
 **Status:** ✅ Accepted.
+
+---
+
+### D-071 · Beat-driven flashing is capped, centrally
+**Chose:** `uBeat` is attenuated in the uniform build whenever the tempo would
+put a full-depth pulse over three flashes a second. Above 180 BPM the amplitude
+is capped at 6% relative luminance — under WCAG 2.2 §2.3.1's 10% flash
+threshold, with margin.
+**Why this is not theoretical:** three flashes a second *is* 180 BPM. That is
+drum and bass, a great deal of hardcore, and any track whose beat lands on
+eighths at 90. The visualiser would cross the line on ordinary music, on a
+device mounted on a wall, running unattended, quite possibly in a room with a
+child in it. `REEF` was described as "slow, dark, no strobe" — but as a property
+of *one theme*. Nothing stopped `N2O` or `SURGE`, both of which are explicitly
+beat-flashing, from crossing it.
+**Why centrally, not per effect:** the same argument as the legibility floor
+(D-068). A rule each effect has to remember is a rule the twenty-third effect
+forgets. `uBeat` is the single channel every beat-driven effect reads, so
+attenuating it covers every effect that exists and every effect nobody has
+written yet.
+**Why attenuate rather than drop beats:** skipping beats above the threshold
+puts the visualiser out of time with the music, which is both worse and far
+more noticeable than a shallower pulse. At 200 BPM the panel still moves on
+every beat; it stops moving hard enough to count as a flash.
+**Tier 0 passes through untouched.** There is no tempo to police against, the
+procedural pulse is slow by construction (D-063), and inventing a BPM in order
+to check the pulse against it would be policing a number we made up.
+**Margin, not the line.** The threshold is where a change *becomes* a flash, so
+sitting on it is sitting on the hazard — and effects stack, so two beat-driven
+passes each swinging 9% is not 9%.
+**Status:** ✅ Accepted.

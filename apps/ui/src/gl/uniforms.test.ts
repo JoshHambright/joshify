@@ -157,3 +157,39 @@ describe('preset parameters reaching their shader', () => {
     expect(paramUniforms({})).toEqual({});
   });
 });
+
+/**
+ * The flash floor, applied where no effect can bypass it (D-071).
+ *
+ * `flash.test.ts` proves the arithmetic over the whole tempo range; this
+ * proves the arithmetic is actually reaching the shader.
+ */
+describe('the flash floor', () => {
+  const beatAt = (bpm: number | null): number => {
+    const uniforms = buildFrameUniforms(
+      context({
+        reactivity: { timeSeconds: 1, beat: 1, phase: 0, energy: 0.5, bands: [] },
+        ...(bpm === null ? {} : { bpm }),
+      }),
+    );
+    const value = uniforms['uBeat'];
+    return value?.kind === 'float' ? value.value : Number.NaN;
+  };
+
+  it('leaves ordinary tempos at full depth', () => {
+    expect(beatAt(128)).toBe(1);
+    expect(beatAt(174)).toBe(1);
+  });
+
+  // 200 BPM is drum and bass, not an exotic case.
+  it('attenuates a pulse that would flash more than three times a second', () => {
+    expect(beatAt(200)).toBeLessThan(0.1);
+    expect(beatAt(200)).toBeGreaterThan(0);
+  });
+
+  // Tier 0 has no tempo to police against, and its pulse is slow by
+  // construction (D-063).
+  it('passes a procedural pulse through when no tempo is known', () => {
+    expect(beatAt(null)).toBe(1);
+  });
+});
