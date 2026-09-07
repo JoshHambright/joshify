@@ -120,6 +120,29 @@ export const THEMES: readonly ThemeSpec[] = [
       '--jf-press': '160ms',
     },
   },
+  {
+    // P5-34, under a name of its own. The tracker carried a working title
+    // borrowed from the Microsoft product this is an homage to; D-015 does not
+    // allow a theme named after a trademark, so it is named for the thing it
+    // actually does to the chrome.
+    //
+    // Pins nothing, like `reef` and for the same reason: the scene uses the
+    // cover as both the field behind the solids and the crop on every facet,
+    // so the record is already supplying the colour.
+    id: 'bevel',
+    name: 'Bevel',
+    look: 'solids',
+    chrome: {
+      // 1995 had no glass. A near-square corner, no blur, and a hard bright
+      // top edge — which is the entire visual grammar of a raised control.
+      '--jf-plate-radius': '4px',
+      '--jf-plate-blur': '0px',
+      '--jf-plate-edge': 'rgb(255 255 255 / 0.5)',
+      // A bevel snaps. The absence of a transition is the period detail.
+      '--jf-press': '0ms',
+      '--jf-track-label': '0.04em',
+    },
+  },
 ];
 
 export interface BuiltThemes {

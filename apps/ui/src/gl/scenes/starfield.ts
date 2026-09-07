@@ -299,7 +299,9 @@ void main() {
   // the field. uIntensity at 0 leaves a slow drift rather than a frozen sky.
   float advance = uSpeed * (0.35 + 0.65 * uIntensity) * rate;
   float depth = fract(aStar.z - mod(uTime * advance, 1.0));
-  float distance = kNear + depth * kRange;
+  // Named 'dist' because 'distance' is a GLSL built-in, and shadowing one is
+  // legal, unnecessary and exactly the kind of thing a driver gets grumpy about.
+  float dist = kNear + depth * kRange;
 
   // The star's own block of the cover: a 32 x 32 lattice over the sleeve.
   vec3 art = texture(uArt, aStar.xy * 0.5 + 0.5).rgb;
@@ -323,14 +325,14 @@ void main() {
   // The perspective divide is done here rather than by the rasteriser, so the
   // quad is built in screen space around an already-projected centre. A star is
   // always square-on to the camera; there is nothing to orient.
-  vec2 view = aStar.xy * uSpread * kFocal / distance;
+  vec2 view = aStar.xy * uSpread * kFocal / dist;
   float radius = length(view);
   // Radially outward, with a defined answer at the vanishing point.
   vec2 along = radius > 0.0001 ? view / radius : vec2(0.0, 1.0);
   vec2 across = vec2(-along.y, along.x);
 
   float stretch = 1.0 + uWarp * uBeat * uIntensity * 7.0;
-  float size = uSize * bulk / distance;
+  float size = uSize * bulk / dist;
   vec2 corner = across * (aCorner.x * size) + along * (aCorner.y * size * stretch);
 
   vec2 point = view + corner;

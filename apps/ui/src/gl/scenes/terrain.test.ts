@@ -292,7 +292,9 @@ describe('the index buffer', () => {
       );
       const near = Math.min(...corners);
 
-      expect(corners).toEqual(new Set([near, near + 1, near + perRow, near + perRow + 1]));
+      expect(corners).toEqual(
+        new Set([near, near + 1, near + perRow, near + perRow + 1]),
+      );
     }
   });
 
@@ -418,7 +420,9 @@ describe('the terrain scene', () => {
   it('uses no reserved word as an identifier', () => {
     for (const source of sources) {
       for (const reserved of ['half', 'input', 'output', 'sizeof', 'union']) {
-        expect(source).not.toMatch(new RegExp(`\\b(?:float|vec[234]|int)\\s+${reserved}\\b`));
+        expect(source).not.toMatch(
+          new RegExp(`\\b(?:float|vec[234]|int)\\s+${reserved}\\b`),
+        );
       }
     }
   });

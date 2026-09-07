@@ -24,6 +24,7 @@ import { ART_PASSES } from './effects/art.js';
 import { TUNNEL_SCENE } from './scenes/tunnel.js';
 import { FRACTAL_SCENE } from './scenes/fractal.js';
 import { REEF_SCENE } from './scenes/reef.js';
+import { AMBIENT_SCENE } from './scenes/ambient.js';
 
 export interface PassParam {
   readonly default: number;
@@ -356,7 +357,7 @@ void main() {
  * parallel without touching the same file.
  */
 export const BUILT_IN_CATALOGUE: Catalogue = {
-  scenes: [FLAT_SCENE, TUNNEL_SCENE, FRACTAL_SCENE, REEF_SCENE],
+  scenes: [FLAT_SCENE, TUNNEL_SCENE, FRACTAL_SCENE, REEF_SCENE, AMBIENT_SCENE],
   passes: [
     FEEDBACK_PASS,
     GRAIN_PASS,

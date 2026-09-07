@@ -194,6 +194,33 @@ const LOOKS: readonly LookSpec[] = [
       ['crt', { curve: 0.15, scan: 0.12, mask: 0.05, vignette: 0.45 }],
     ],
   },
+  {
+    // P5-35. Five solids drifting over the cover, each facet a crop of that
+    // same cover — the wallpaper and the screensaver at once, which is what
+    // the 1995 desktop-theme idiom actually was.
+    //
+    // The chain is the era's colour depth and nothing else. No `crt`: this is
+    // a desktop, not a console. Nothing that softens an edge either — the
+    // whole appeal is clean hard facets, and bloom or blur throws that away.
+    id: 'solids',
+    name: 'Solids',
+    scene: 'ambient',
+    sceneParams: {
+      spin: 1,
+      drift: 1,
+      size: 1,
+      swell: 0.12,
+      light: 0.75,
+      tint: 0.3,
+      backdrop: 0.22,
+      haze: 0.7,
+    },
+    chain: [
+      ['posterize', { levels: 6, tint: 0.25 }],
+      ['dither', { levels: 6, amount: 0.35 }],
+      ['grain', { amount: 0.05 }],
+    ],
+  },
 ];
 
 /**

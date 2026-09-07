@@ -32,6 +32,7 @@ describe('the shipped looks', () => {
       'tunnel',
       'orbit',
       'reef',
+      'solids',
     ]);
   });
 

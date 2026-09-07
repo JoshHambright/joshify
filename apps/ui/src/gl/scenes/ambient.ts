@@ -650,10 +650,11 @@ const float kFieldZoom = 0.94;
 // black — the album is on these faces and unlit black would throw it away.
 const float kFloor = 0.25;
 
-// Rodrigues, column-major. One matrix per vertex is more arithmetic than one
-// per solid would be, but the uniform contract has no matrices and no place to
-// put per-object data, so the per-solid constants ride in the attributes and
-// the rotation is rebuilt here. It is five vertices' worth of work per face.
+// Rodrigues, column-major. Rebuilding the rotation per vertex is more
+// arithmetic than doing it once per solid, but the uniform contract carries no
+// matrices and no per-object slot to put one in, so the per-solid constants
+// ride in the attributes instead. The whole mesh is 96 solid vertices, so this
+// is 96 small matrix builds a frame — nothing, next to one screen of fill.
 mat3 turn(vec3 axis, float angle) {
   float c = cos(angle);
   float s = sin(angle);

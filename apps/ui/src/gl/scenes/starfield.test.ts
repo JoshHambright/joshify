@@ -162,7 +162,10 @@ describe('where the stars are', () => {
       expect(x).toBeLessThanOrEqual(1);
       expect(y).toBeGreaterThanOrEqual(-1);
       expect(y).toBeLessThanOrEqual(1);
-      const column = Math.min(small.lattice - 1, Math.floor(((x + 1) / 2) * small.lattice));
+      const column = Math.min(
+        small.lattice - 1,
+        Math.floor(((x + 1) / 2) * small.lattice),
+      );
       const row = Math.min(small.lattice - 1, Math.floor(((y + 1) / 2) * small.lattice));
       seen.add(`${String(column)}:${String(row)}`);
     }
