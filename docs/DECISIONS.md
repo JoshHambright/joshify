@@ -1562,3 +1562,35 @@ resolves to the order indices are emitted in, which nothing can turn off. That
 is the honest entry, and it is what the era's hardware actually did.
 
 **Status:** ✅ Accepted.
+
+---
+
+### D-075 · A pipeline setter that changes nothing does nothing
+**Context:** `setPreset` and `setGrain` both reset the degrader — deliberately.
+P5-14's window is cleared on every configuration change so that one bad second
+cannot walk the quality ladder to the floor before the new configuration has
+been measured at all.
+
+**The bug that fell out of it:** a render loop naturally holds "the current
+look" and pushes it every frame — that is what a pull model looks like, and it
+is what the demo harness and the panel driver both do. Pushing an *unchanged*
+preset cleared the 45-frame window on every frame, so the window could never
+fill, so auto-degrade could never fire. The feature was implemented, tested in
+isolation, and unreachable from any real loop.
+
+**Chose:** both setters return early when the value is unchanged. Identity for
+the preset, not id: presets are immutable data, so the same object is the same
+preset, and a rebuilt preset carrying the same id genuinely is a change.
+
+**Why this is the right place for the guard rather than the caller's:** the
+alternative is every caller remembering to diff before it calls, which is a rule
+that holds until the second caller. The demo harness had already got it wrong,
+and it was written by the same person in the same week as the code it was
+calling.
+
+**How it was found:** by a test in the *consumer* — a loop that runs sixty
+frames at 40ms each and asserts the scale drops. It did not. Nothing in the
+degrader's own tests could have caught it, because in those tests nobody was
+calling the setters.
+
+**Status:** ✅ Accepted.

@@ -251,6 +251,13 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
   let outputSize = options.outputSize;
   let previousFinal: TargetId | null = null;
   let hasArt = false;
+  /**
+   * The last value handed to `setGrain`, so an unchanged one is a no-op. Null
+   * until the first call rather than seeded with the degrader's default: the
+   * degrader may have been injected, and guessing its ceiling here would make
+   * the first real `setGrain` silently do nothing.
+   */
+  let grain: number | null = null;
 
   /**
    * Everything is compiled up front, not on first use. A shader compile on a
@@ -449,7 +456,23 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
 
   return {
     render,
+    /*
+     * Both setters no-op when nothing changed, and that is load-bearing rather
+     * than an optimisation.
+     *
+     * `setChain` and `setCeiling` both reset the degrader — deliberately, so
+     * that one bad second cannot walk the ladder to the floor before the new
+     * configuration has been measured (P5-14). But a caller holding "the
+     * current look" and pushing it every frame is the natural shape for a
+     * render loop, and doing that cleared the 45-frame window on every frame:
+     * it could never fill, so auto-degrade could never fire. The feature was
+     * present, tested in isolation, and unreachable from a real loop.
+     *
+     * Identity, not id: presets are immutable data, so the same object is the
+     * same preset, and a rebuilt one with the same id genuinely is a change.
+     */
     setPreset: (next) => {
+      if (next === preset) return;
       preset = next;
       degrader.setChain(next.chain.length);
     },
@@ -461,6 +484,8 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
       outputSize = size;
     },
     setGrain: (scale) => {
+      if (scale === grain) return;
+      grain = scale;
       degrader.setCeiling(scale);
     },
     dispose: () => {

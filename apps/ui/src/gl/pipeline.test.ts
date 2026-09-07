@@ -622,6 +622,40 @@ describe('the engine reacting to a slow Pi', () => {
     expect(drawn.chain.map((step) => step.pass)).toEqual(['grain']);
   });
 
+  /*
+   * The bug this pair exists for. Both setters reset the degrader on purpose,
+   * so that one bad second cannot walk the ladder to the floor before the new
+   * configuration has been measured. But a render loop holding "the current
+   * look" and pushing it every frame is the natural way to use them — and that
+   * cleared the 45-frame window on every frame, so it could never fill and
+   * auto-degrade could never fire. The feature was present, tested in
+   * isolation, and unreachable from a real loop.
+   */
+  it('degrades even when the caller pushes the same preset every frame', () => {
+    const pipeline = struggling();
+    const current = preset(['feedback', 'grain']);
+
+    let last = pipeline.render(frame({ elapsedMs: 100 }));
+    for (let index = 0; index < 4; index += 1) {
+      pipeline.setPreset(current);
+      last = pipeline.render(frame({ elapsedMs: 100 }));
+    }
+
+    expect(last.scale).toBeLessThan(1);
+  });
+
+  it('degrades even when the caller pushes the same grain every frame', () => {
+    const pipeline = struggling();
+
+    let last = pipeline.render(frame({ elapsedMs: 100 }));
+    for (let index = 0; index < 4; index += 1) {
+      pipeline.setGrain(1);
+      last = pipeline.render(frame({ elapsedMs: 100 }));
+    }
+
+    expect(last.scale).toBeLessThan(1);
+  });
+
   it('draws to the new panel size when the surface is resized', () => {
     const pipeline = struggling();
 
