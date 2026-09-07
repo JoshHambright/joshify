@@ -118,6 +118,7 @@ type:album,song          entity kind, comma = or
 rel:produced             participates in an edge of this kind
 year:1991..1994          also year:>1990, year:<1980, year:1991
 deg:>7                   connection count
+src:claude               provenance - corpus, you, or claude
 name:albini              substring on the name
 near:"Steve Albini"~2    within N hops (default 1)
 path:"Kurt Cobain"->"Josh Homme"    shortest route, drawn on the graph
@@ -127,6 +128,42 @@ path:"Kurt Cobain"->"Josh Homme"    shortest route, drawn on the graph
 left rail, so turning off `issued by` stops routes tunnelling through record
 labels — which is usually what you want, because a label connects everything to
 everything.
+
+## Growing the graph with Claude
+
+The corpus is one person's slice of one scene. **Expand**, on any entity, asks
+Claude for that entity's other connections *in this schema* and shows them as a
+list you approve row by row. Nothing is written until you tick and keep. Searching
+a name that isn't here offers the same thing, so you can start from a band you
+care about rather than one I picked.
+
+Three things make it a tool rather than a slot machine:
+
+**The prompt hands over the graph, not just the name.** It sends the focus
+entity, every connection already recorded for it (with "do not repeat these"),
+the full list of entity kinds and relationships, and every name currently in the
+graph with an instruction to reuse them character-for-character. That last part is
+what stops a second "Sound City" appearing beside the first.
+
+**Everything is validated before you see it.** In testing, six proposed edges came
+back and two survived: one duplicated a fact already in the corpus, one pointed at
+an entity that resolves to nothing, one invented a relationship name, one was a
+self-loop. Proposed entities that no surviving edge references are dropped too, so
+the review list has no orphans in it. What you approve is the intersection of what
+Claude said and what the schema can actually hold.
+
+**Provenance is permanent.** Anything kept is stamped `src: "claude"` — a dashed
+ring on the graph, "suggested" in Your changes, `src:claude` as a query, a
+`source` field in the export. A generated fact never quietly becomes a curated
+one, and `src:corpus`, `src:you` and `src:claude` are three separately filterable
+populations. Suggested rows are ordinary overlay rows otherwise: editable,
+revertable, exportable.
+
+Ticking an edge pulls in the entities it needs even if you left their rows
+unticked — an edge without both ends is not a thing you can keep.
+
+The page declares the `sample` capability; where it isn't granted, `claude.use`
+returns null and the Expand control simply does not render.
 
 ## Editing, and getting data in and out
 
@@ -257,6 +294,10 @@ shared editing, and nothing races to seed a store on load.
 - **No merge conflict handling.** Two people editing the same entity is
   last-writer-wins, like everything else in the store. Fine for a few people,
   wrong for a crowd.
+- **Suggestions are unverified.** Validation checks that a row *fits the schema
+  and is not a duplicate*, which is not the same as checking it is true. The
+  review list is the verification step, and `src:claude` exists so you can always
+  ask what you have not checked yet.
 - **Import trusts the file's relationship vocabulary.** An unknown `rel` is
   skipped rather than mapped or created, so a graph built with different
   relationship names imports as entities with no connections.

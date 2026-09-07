@@ -271,6 +271,23 @@ input[type=range]::-moz-range-thumb{width:9px;height:16px;border-radius:0;backgr
 .lkwrap{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px}
 .lkx{background:none;border:0;color:var(--ink-3);cursor:pointer;padding:5px 9px;font-size:15px;line-height:1}
 .lkx:hover{color:#ff4d6d}
+.grow{padding:13px 15px 16px;border-bottom:1px solid var(--rule-soft);background:rgba(0,240,255,.055)}
+.grow h4{
+  margin:0 0 4px;font-family:var(--ui);font-size:10px;font-weight:600;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--cyan);
+}
+.grow h4.later{margin-top:14px}
+.growstat{margin:0 0 6px;font-family:var(--mono);font-size:10.5px;color:var(--ink-2);letter-spacing:.05em;line-height:1.6}
+.growstat.bad{color:#ff4d6d}
+.growrow{display:grid;grid-template-columns:15px 1fr;gap:10px;align-items:start;padding:5px 0;cursor:pointer}
+.growrow input{margin:3px 0 0;accent-color:var(--cyan);width:14px;height:14px}
+.growrow .gn{font-size:12.5px;color:var(--ink);line-height:1.35}
+.growrow .gn b{font-weight:500;color:var(--cyan)}
+.growrow .gm{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.08em;margin-top:2px;text-transform:uppercase}
+.growrow .gnote{display:block;font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.5}
+.growbtns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:13px}
+.growcav{margin:11px 0 0;font-size:11.5px;color:var(--ink-3);line-height:1.6;border-left:1px solid var(--rule);padding-left:9px}
+.growhint{margin:9px 0 0;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.05em;line-height:1.6}
 .form.editing{background:rgba(255,47,185,.055);border-bottom:1px solid var(--rule-soft)}
 .importbox{display:none;flex-direction:column;gap:9px;margin-top:11px}
 .importbox.on{display:flex}
@@ -1124,12 +1141,13 @@ const S = {
   rels: new Set(REL_KEYS),
   yFrom: SMIN, yTo: SMAX, keepUndated: true,
   hideOrphans: false, showLabels: true, freeze: false, dim: true, layout: "web",
-  sel: null, hover: null, matched: null, path: null, armPath: false, editing: null,
+  sel: null, hover: null, matched: null, path: null, armPath: false, editing: null, grow: null,
   k: 1, tx: 0, ty: 0, alpha: 1,
 };
 const OV_NODES = new Map();   // overlay: id -> {…, deleted?}
 const OV_EDGES = new Map();
-let db = null, downloads = null, storeLive = false;
+let db = null, downloads = null, sampler = null, storeLive = false;
+let growAbort = null;
 
 let nodes = [], edges = [], byId = new Map(), adj = new Map();
 const posMemo = new Map();
@@ -1144,26 +1162,26 @@ function buildGraph() {
   byId = new Map();
   const push = (a) => {
     const [id, type, name, year, note] = a;
-    byId.set(id, { id, type, name, year: year ?? null, note: note ?? null, own: false });
+    byId.set(id, { id, type, name, year: year ?? null, note: note ?? null, own: false, src: "corpus" });
   };
   BASE_NODES.forEach(push);
   for (const [id, d] of OV_NODES) {
     if (d.deleted) { byId.delete(id); continue; }
     const prev = byId.get(id) || {};
     byId.set(id, { ...prev, id, type: d.type, name: d.name, year: d.year ?? null,
-                   note: d.note ?? null, own: true,
+                   note: d.note ?? null, own: true, src: d.src || "you",
                    added: !BASE_NODE_IDS.has(id), edited: BASE_NODE_IDS.has(id) });
   }
   const em = new Map();
   for (const a of BASE_EDGES) {
     const [f, t, r, y, note] = a;
     em.set(edgeKey(f, t, r), { id: edgeKey(f, t, r), f, t, rel: r, year: y ?? null,
-                               note: note ?? null, own: false });
+                               note: note ?? null, own: false, src: "corpus" });
   }
   for (const [id, d] of OV_EDGES) {
     if (d.deleted) { em.delete(id); continue; }
     em.set(id, { id, f: d.f, t: d.t, rel: d.rel, year: d.year ?? null,
-                 note: d.note ?? null, own: true,
+                 note: d.note ?? null, own: true, src: d.src || "you",
                  added: !BASE_EDGE_IDS.has(id), edited: BASE_EDGE_IDS.has(id) });
   }
 
@@ -1483,7 +1501,13 @@ function draw() {
     ctx.beginPath(); ctx.arc(n.x, n.y, rr * 2, 0, 6.2832); ctx.fill();
     ctx.globalAlpha = al;
     ctx.beginPath(); ctx.arc(n.x, n.y, rr, 0, 6.2832); ctx.fill();
-    if (n.own) { ctx.lineWidth = 1.6 / S.k; ctx.strokeStyle = C.bg; ctx.stroke(); }
+    if (n.own) {
+      ctx.lineWidth = 1.6 / S.k;
+      ctx.strokeStyle = n.src === "claude" ? C.lamp : C.bg;
+      if (n.src === "claude") ctx.setLineDash([2.5 / S.k, 2.5 / S.k]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     if (n.id === S.sel || (pathIds && pathIds.has(n.id))) {
       ctx.strokeStyle = C.hot; ctx.globalAlpha = 0.3; ctx.lineWidth = 5 / S.k;
       ctx.beginPath(); ctx.arc(n.x, n.y, rr + 4 / S.k, 0, 6.2832); ctx.stroke();
@@ -1562,6 +1586,7 @@ function fit(ids) {
 
 <script>
 /* ============================================================ 7. QUERY */
+const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
 const strip = (s) => s.replace(/^"|"$/g, "");
 const findByName = (q) => {
   const s = q.toLowerCase();
@@ -1648,6 +1673,7 @@ function runQuery(raw) {
       const a = findByName(val); if (!a) return { ok: false, msg: "No entity named " + val };
       const set = neighbourSet(a.id, Math.min(6, depth)); fn = (n) => set.has(n.id);
     }
+    else if (key === "src") { const set = new Set(val.toLowerCase().split(",")); fn = (n) => set.has(n.src || "corpus"); }
     else if (key === "name" || key === "") { const s = val.toLowerCase(); fn = (n) => n.name.toLowerCase().includes(s); }
     else return { ok: false, msg: "Unknown filter: " + key + ":" };
     preds.push(neg ? (n) => !fn(n) : fn);
@@ -1747,6 +1773,7 @@ const PRESETS = [
   ["Cobain to Josh Homme", 'path:"Kurt Cobain"->"Josh Homme"'],
   ["Gear, and what it made", "type:instrument,album,song rel:plays,used_on"],
   ["The connectors", "deg:>7 type:person"],
+  ["Anything Claude suggested", "src:claude"],
 ];
 function renderChips() {
   const c = $("chips"); c.textContent = "";
@@ -1780,7 +1807,7 @@ function renderInspect() {
     e.innerHTML = "<b>Click any node</b> to read its credits and jump around the graph." +
       "<br><br>Drag the background to pan, scroll to zoom, drag a node to pull it out of the tangle." +
       "<br><br>The search bar takes a query language: <code>type:album year:1991..1994</code>, " +
-      "<code>near:\"Sound City\"~2</code>, <code>rel:produced</code>, " +
+      "<code>near:\"Sound City\"~2</code>, <code>rel:produced</code>, <code>src:claude</code>, " +
       "<code>path:\"Kim Deal\"-&gt;\"Dave Grohl\"</code>. Bare words match names.";
     p.append(e); return;
   }
@@ -1804,9 +1831,11 @@ function renderInspect() {
   }));
   btns.append(mk(S.editing === n.id ? "Done" : "Edit", S.editing === n.id ? "hot" : "",
     () => { S.editing = S.editing === n.id ? null : n.id; renderInspect(); }));
+  if (sampler) btns.append(mk("Expand", "", () => startGrow(n)));
   card.append(btns);
   p.append(card);
   if (S.editing === n.id) p.append(editForm(n));
+  if (S.grow && S.grow.focus === n.id) p.append(growPanel());
 
   const groups = relRows(n);
   const order = [...groups.keys()];
@@ -1878,8 +1907,19 @@ function editForm(n) {
   return box;
 }
 
+function askRow(name) {
+  const wrap = el("div", "grow");
+  wrap.append(el("h4", null, "Not in the graph"));
+  wrap.append(el("p", "growstat", "\u201c" + name + "\u201d isn't here. Claude can propose who and what it connects to, in this schema, for you to review."));
+  const b = el("button", "go", "Ask Claude about it"); b.type = "button";
+  b.onclick = () => startGrow(name);
+  wrap.append(b);
+  return wrap;
+}
+
 function renderResults(msg) {
   const p = $("paneResults"); p.textContent = "";
+  if (S.grow && S.grow.focus === null) { p.append(growPanel()); return; }
   if (msg) { const e = el("div", "empty"); e.innerHTML = "<b>" + msg + "</b>"; p.append(e); return; }
   if (!S.matched) {
     const e = el("div", "empty");
@@ -1906,7 +1946,12 @@ function renderResults(msg) {
   }
   const byType = new Map();
   for (const id of S.matched) { const n = byId.get(id); if (!n) continue; if (!byType.has(n.type)) byType.set(n.type, []); byType.get(n.type).push(n); }
-  if (!byType.size) { p.append(el("div", "empty", "No matches.")); return; }
+  if (!byType.size) {
+    p.append(el("div", "empty", "No matches."));
+    const q = $("q").value.trim();
+    if (sampler && q && !/[:~>]/.test(q)) p.append(askRow(q));
+    return;
+  }
   for (const [k, label] of TYPES.map(t => [t[0], t[1]])) {
     const list = byType.get(k); if (!list) continue;
     const g = el("div", "grp");
@@ -1995,7 +2040,7 @@ function submitQuery() {
   } else if (r.n == null) {
     c.textContent = ""; c.classList.remove("on"); renderResults();
   } else {
-    c.textContent = r.path ? (r.n - 1) + " hops" : r.n + " hits"; c.classList.add("on");
+    c.textContent = r.path ? plural(r.n - 1, "hop", "hops") : plural(r.n, "hit", "hits"); c.classList.add("on");
     renderResults(); showPane("paneResults", true);
   }
   applyFilters(); renderStat(); renderPathbar(); renderInspect(); renderPeek();
@@ -2246,10 +2291,11 @@ function renderMine() {
   const box = $("mineList"); box.textContent = "";
   const rows = [];
   for (const n of nodes) if (n.own) rows.push({ kind: "n", id: n.id, type: n.type,
-    label: n.name, tag: n.added ? "added" : "edited", go: () => select(n.id, true) });
+    label: n.name, tag: n.src === "claude" ? "suggested" : n.added ? "added" : "edited",
+    go: () => select(n.id, true) });
   for (const e of edges) if (e.own) rows.push({ kind: "e", id: e.id, type: "label",
     label: (byId.get(e.f) || {}).name + " " + RELS[e.rel].label + " " + (byId.get(e.t) || {}).name,
-    tag: e.added ? "added" : "edited", go: () => select(e.f, true) });
+    tag: e.src === "claude" ? "suggested" : e.added ? "added" : "edited", go: () => select(e.f, true) });
   for (const [id, v] of OV_NODES) if (v.deleted) rows.push({ kind: "n", id, type: v.type || "label",
     label: v.name || id, tag: "removed", go: null });
   for (const [id, v] of OV_EDGES) if (v.deleted) rows.push({ kind: "e", id, type: "label",
@@ -2286,7 +2332,6 @@ function renderMine() {
 const CORPUS_N = new Map(BASE_NODES.map(a => [a[0], { type: a[1], name: a[2], year: a[3] ?? null, note: a[4] ?? null }]));
 const CORPUS_E = new Map(BASE_EDGES.map(a => [edgeKey(a[0], a[1], a[2]),
   { f: a[0], t: a[1], rel: a[2], year: a[3] ?? null, note: a[4] ?? null }]));
-const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
 const same = (a, b, keys) => !!a && !!b && keys.every(k => (a[k] ?? null) === (b[k] ?? null));
 
 async function importJSON(text) {
@@ -2307,7 +2352,8 @@ async function importJSON(text) {
     const given = typeof r.id === "string" && DOC_ID.test(r.id) ? r.id : null;
     const id = given || byName.get(name.toLowerCase()) || newId();
     const body = { id, type: r.type, name, year: Number.isFinite(r.year) ? r.year : null,
-                   note: typeof r.note === "string" && r.note ? r.note : null };
+                   note: typeof r.note === "string" && r.note ? r.note : null,
+                   src: r.source === "claude" ? "claude" : "you" };
     byName.set(name.toLowerCase(), id); minted.add(id);
     if (same(CORPUS_N.get(id), body, ["type", "name", "year", "note"])) { matched++; continue; }
     writes.push(["n", id, body]);
@@ -2323,7 +2369,8 @@ async function importJSON(text) {
     if (!f || !t || f === t || !RELS[r.rel]) { skipped++; continue; }
     const id = edgeKey(f, t, r.rel);
     const body = { id, f, t, rel: r.rel, year: Number.isFinite(r.year) ? r.year : null,
-                   note: typeof r.note === "string" && r.note ? r.note : null };
+                   note: typeof r.note === "string" && r.note ? r.note : null,
+                   src: r.source === "claude" ? "claude" : "you" };
     if (same(CORPUS_E.get(id), body, ["f", "t", "rel", "year", "note"])) { matched++; continue; }
     writes.push(["e", id, body]);
   }
@@ -2368,11 +2415,229 @@ $("importFile").onchange = (ev) => {
   fr.readAsText(f);
 };
 
+/* ---- growing the graph -------------------------------------------------
+   The corpus is one person's slice of one scene. This asks Claude for an
+   entity's other connections, in this schema, and shows them as a list you
+   approve row by row — nothing is written until you say so, and everything
+   accepted is stamped `src: "claude"` so a generated fact never quietly passes
+   for a curated one. */
+function growPrompt(name, meta, existing) {
+  return [
+    "You extend a hand-curated graph of music credits. Reply with STRICT JSON only — no prose, no markdown fence.",
+    "",
+    "FOCUS: " + name + (meta ? " (" + meta + ")" : " — not yet in the graph; define it in `nodes`."),
+    "",
+    "ALREADY RECORDED for the focus. Do not repeat any of these:",
+    existing.length ? existing.map(x => "- " + x).join("\n") : "- (nothing yet)",
+    "",
+    "ENTITY KINDS: " + TYPES.map(t => t[0]).join(", "),
+    "RELATIONSHIPS, read as `from <rel> to`: " + REL_KEYS.map(k => k + " = " + RELS[k].label).join("; "),
+    "",
+    "ENTITIES ALREADY IN THE GRAPH. Reuse these names character-for-character wherever they apply:",
+    nodes.map(n => n.name).join(" | "),
+    "",
+    "TASK: propose up to 12 new connections for the focus, plus any new entities those need.",
+    "Favour what a discography does not show: producers, engineers, studios, session players, instruments, tours, labels.",
+    "Rules: only well-documented facts. Unsure of a date, use null. Unsure of a fact, omit it entirely — a short accurate list beats a long shaky one.",
+    "Every edge's `from` and `to` must be the focus, a name from the list above, or a name you define in `nodes`.",
+    "Put anything you were unsure about in `caveat`.",
+    "",
+    'SHAPE: {"nodes":[{"name":string,"type":kind,"year":int|null,"note":string|null}],',
+    ' "edges":[{"from":string,"to":string,"rel":relationship,"year":int|null,"note":string|null}],',
+    ' "caveat":string|null}',
+  ].join("\n");
+}
+
+function normalizeSuggestions(raw, focusName) {
+  const out = { nodes: [], edges: [], caveat: null };
+  if (!raw || typeof raw !== "object") return out;
+  const here = new Map(nodes.map(n => [n.name.toLowerCase(), n]));
+  const prop = new Map();
+  for (const r of (Array.isArray(raw.nodes) ? raw.nodes : [])) {
+    const name = typeof r.name === "string" ? r.name.trim() : "";
+    const key = name.toLowerCase();
+    if (!name || !TYPE_LABEL[r.type] || here.has(key) || prop.has(key)) continue;
+    const row = { name, type: r.type, year: Number.isFinite(r.year) ? r.year : null,
+                  note: typeof r.note === "string" && r.note.trim() ? r.note.trim() : null };
+    prop.set(key, row); out.nodes.push(row);
+  }
+  const find = (v) => {
+    if (typeof v !== "string") return null;
+    const k = v.trim().toLowerCase();
+    return here.has(k) ? { node: here.get(k) } : prop.has(k) ? { row: prop.get(k) } : null;
+  };
+  const seen = new Set();
+  for (const r of (Array.isArray(raw.edges) ? raw.edges : [])) {
+    if (!RELS[r.rel]) continue;
+    const a = find(r.from), b = find(r.to);
+    if (!a || !b) continue;
+    const an = (a.node || a.row).name, bn = (b.node || b.row).name;
+    if (an === bn) continue;
+    const k = an.toLowerCase() + "|" + bn.toLowerCase() + "|" + r.rel;
+    if (seen.has(k)) continue;
+    if (a.node && b.node && edges.some(e => e.id === edgeKey(a.node.id, b.node.id, r.rel))) continue;
+    seen.add(k);
+    out.edges.push({ from: an, to: bn, rel: r.rel,
+      year: Number.isFinite(r.year) ? r.year : null,
+      note: typeof r.note === "string" && r.note.trim() ? r.note.trim() : null });
+  }
+  const used = new Set(out.edges.flatMap(e => [e.from.toLowerCase(), e.to.toLowerCase()]));
+  out.nodes = out.nodes.filter(n => used.has(n.name.toLowerCase()) ||
+    n.name.toLowerCase() === String(focusName || "").toLowerCase());
+  out.caveat = typeof raw.caveat === "string" && raw.caveat.trim() ? raw.caveat.trim() : null;
+  return out;
+}
+
+function paintGrow() { renderInspect(); renderResults(); }
+
+async function startGrow(target) {
+  if (!sampler) return;
+  const node = typeof target === "string" ? null : target;
+  const name = node ? node.name : String(target).trim();
+  if (!name) return;
+  if (growAbort) growAbort.abort();
+  growAbort = new AbortController();
+  S.grow = { focus: node ? node.id : null, name, status: "loading",
+             nodes: [], edges: [], picked: new Set(), caveat: null, msg: "" };
+  paintGrow();
+  showPane(node ? "paneInspect" : "paneResults", true);
+
+  const existing = node ? (adj.get(node.id) || []).map(e => {
+    const other = byId.get(e.f === node.id ? e.t : e.f);
+    const verb = e.f === node.id ? RELS[e.rel].label : RELS[e.rel].inv;
+    return verb + " " + (other ? other.name : "?");
+  }) : [];
+  const meta = node ? TYPE_LABEL[node.type] + (node.year != null ? ", " + node.year : "") : "";
+
+  try {
+    const raw = await sampler.json(growPrompt(name, meta, existing),
+      { modelTier: "complex", signal: growAbort.signal });
+    if (!S.grow || S.grow.name !== name) return;
+    const g = normalizeSuggestions(raw, name);
+    S.grow.nodes = g.nodes; S.grow.edges = g.edges; S.grow.caveat = g.caveat;
+    S.grow.picked = new Set([...g.nodes.map((_, i) => "n" + i), ...g.edges.map((_, i) => "e" + i)]);
+    S.grow.status = (g.nodes.length || g.edges.length) ? "review" : "empty";
+  } catch (err) {
+    if (!S.grow) return;
+    const code = err && err.code;
+    if (code === "cancelled") { S.grow = null; paintGrow(); return; }
+    S.grow.status = "error";
+    S.grow.msg = code === "not_granted" ? "This view is not allowed to ask Claude."
+      : code === "rate_limited" ? "Too many requests just now. Give it a minute."
+      : code === "invalid_json" || err instanceof SyntaxError ? "Claude's answer wasn't valid JSON. Try again."
+      : (err && err.message) || "That didn't work.";
+  }
+  paintGrow();
+}
+
+function growPanel() {
+  const g = S.grow, box = el("div", "grow");
+  box.append(el("h4", null, "Expanding " + g.name));
+  if (g.status === "loading") {
+    box.append(el("p", "growstat", "Asking Claude for connections not already in the graph…"));
+    const stop = el("button", "go ghost", "Cancel"); stop.type = "button";
+    stop.onclick = () => { if (growAbort) growAbort.abort(); S.grow = null; paintGrow(); };
+    box.append(stop);
+    return box;
+  }
+  if (g.status === "error" || g.status === "empty") {
+    box.append(el("p", "growstat" + (g.status === "error" ? " bad" : ""),
+      g.status === "empty" ? "Nothing new came back — the graph may already hold what Claude knows here." : g.msg));
+    const row = el("div", "growbtns");
+    const again = el("button", "go", "Try again"); again.type = "button";
+    again.onclick = () => startGrow(g.focus ? byId.get(g.focus) : g.name);
+    const close = el("button", "go ghost", "Close"); close.type = "button";
+    close.onclick = () => { S.grow = null; paintGrow(); };
+    row.append(again, close); box.append(row);
+    return box;
+  }
+
+  box.append(el("p", "growstat", g.edges.length + " proposed, " + g.nodes.length + " new to the graph. Untick anything you don't believe."));
+  const line = (key, main, meta, note) => {
+    const l = el("label", "growrow");
+    const cb = document.createElement("input"); cb.type = "checkbox";
+    cb.checked = g.picked.has(key);
+    cb.onchange = () => { cb.checked ? g.picked.add(key) : g.picked.delete(key); };
+    const t = el("span");
+    t.append(main);
+    if (meta) t.append(el("span", "gm", meta));
+    if (note) t.append(el("span", "gnote", note));
+    l.append(cb, t); return l;
+  };
+  if (g.edges.length) {
+    box.append(el("h4", "later", "Connections"));
+    g.edges.forEach((e, i) => {
+      const main = el("span", "gn");
+      main.append(e.from + " ", el("b", null, RELS[e.rel].label), " " + e.to);
+      box.append(line("e" + i, main, e.year != null ? String(e.year) : "no date", e.note));
+    });
+  }
+  if (g.nodes.length) {
+    box.append(el("h4", "later", "New entities"));
+    g.nodes.forEach((n, i) => {
+      const main = el("span", "gn"); main.textContent = n.name;
+      box.append(line("n" + i, main,
+        TYPE_LABEL[n.type] + (n.year != null ? " · " + n.year : ""), n.note));
+    });
+  }
+  if (g.caveat) box.append(el("p", "growcav", g.caveat));
+
+  const row = el("div", "growbtns");
+  const ok = el("button", "go", "Keep the ticked"); ok.type = "button";
+  ok.onclick = () => applyGrow();
+  const no = el("button", "go ghost", "Discard"); no.type = "button";
+  no.onclick = () => { S.grow = null; paintGrow(); };
+  row.append(ok, no); box.append(row);
+  box.append(el("p", "growhint", "Kept rows are marked as suggested — dashed ring on the graph, `src:claude` in a query — and can be edited or reverted like anything else."));
+  return box;
+}
+
+async function applyGrow() {
+  const g = S.grow; if (!g) return;
+  const nameToId = new Map(nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const pickedEdges = g.edges.filter((_, i) => g.picked.has("e" + i));
+  const needed = new Set(pickedEdges.flatMap(e => [e.from.toLowerCase(), e.to.toLowerCase()]));
+  const writes = [];
+  g.nodes.forEach((r, i) => {
+    const key = r.name.toLowerCase();
+    if (!g.picked.has("n" + i) && !needed.has(key)) return;
+    if (nameToId.has(key)) return;
+    const id = newId(); nameToId.set(key, id);
+    writes.push(["n", id, { id, type: r.type, name: r.name, year: r.year, note: r.note, src: "claude" }]);
+  });
+  for (const e of pickedEdges) {
+    const f = nameToId.get(e.from.toLowerCase()), t = nameToId.get(e.to.toLowerCase());
+    if (!f || !t || f === t) continue;
+    const id = edgeKey(f, t, e.rel);
+    writes.push(["e", id, { id, f, t, rel: e.rel, year: e.year, note: e.note, src: "claude" }]);
+  }
+  const focusName = g.name, focusId = g.focus;
+  S.grow = null;
+  if (!writes.length) { paintGrow(); return say("sayIO", "Nothing ticked, so nothing kept."); }
+
+  for (const [kind, id, body] of writes) (kind === "n" ? OV_NODES : OV_EDGES).set(id, body);
+  rebuild();
+  let failed = 0;
+  if (db) {
+    for (let i = 0; i < writes.length; i += 20) {
+      await Promise.all(writes.slice(i, i + 20).map(([kind, id, body]) =>
+        db.collection(kind === "n" ? "graph_nodes" : "graph_edges").doc(id).set(body).catch(() => { failed++; })));
+    }
+  }
+  const nn = writes.filter(w => w[0] === "n").length;
+  const landed = focusId || nameToId.get(focusName.toLowerCase());
+  if (landed && byId.has(landed)) select(landed, true);
+  say("sayIO", "Kept " + plural(writes.length - nn, "connection", "connections") +
+    (nn ? " and " + plural(nn, "new entity", "new entities") : "") + " around " + focusName + "." +
+    (failed ? " " + failed + " could not be saved." : db ? "" : " This browser only."), failed ? "bad" : "ok");
+  paintGrow();
+}
+
 $("exportBtn").onclick = async () => {
   const payload = JSON.stringify({
     generated: new Date().toISOString(),
-    nodes: nodes.map(n => ({ id: n.id, type: n.type, name: n.name, year: n.year, note: n.note, added: n.own || undefined })),
-    edges: edges.map(e => ({ from: e.f, to: e.t, rel: e.rel, year: e.year, note: e.note, added: e.own || undefined })),
+    nodes: nodes.map(n => ({ id: n.id, type: n.type, name: n.name, year: n.year, note: n.note, source: n.src })),
+    edges: edges.map(e => ({ from: e.f, to: e.t, rel: e.rel, year: e.year, note: e.note, source: e.src })),
   }, null, 1);
   if (downloads) {
     try { await downloads.save({ filename: "patchbay-graph.json", data: payload }); say("sayIO", "Saved.", "ok"); return; }
@@ -2383,8 +2648,11 @@ $("exportBtn").onclick = async () => {
 };
 
 async function connectStore() {
-  db = await (window.claude && window.claude.use ? window.claude.use("db") : Promise.resolve(null));
-  downloads = await (window.claude && window.claude.use ? window.claude.use("downloads") : Promise.resolve(null));
+  const use = (n) => (window.claude && window.claude.use ? window.claude.use(n) : Promise.resolve(null));
+  db = await use("db");
+  downloads = await use("downloads");
+  sampler = await use("sample");
+  if (sampler) renderInspect();          /* the Expand control only exists if it can work */
   const box = $("storeState"), lbl = $("storeLbl");
   if (!db) { lbl.textContent = "Local view — additions live in this browser only"; return; }
   storeLive = true; box.classList.add("live"); lbl.textContent = "Shared store connected — edits are live for everyone";
