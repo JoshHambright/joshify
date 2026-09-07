@@ -14,6 +14,7 @@ import {
   themeCssVariables,
   type PixelData,
 } from './theme.js';
+import { themeContrastProblems } from '@joshify/core';
 
 const imageOf = (colours: readonly Rgb[], alpha = 255): PixelData => {
   const data = new Uint8Array(colours.length * 4);
@@ -42,26 +43,14 @@ const YELLOW: Rgb = { r: 255, g: 255, b: 0 };
 const BLUE: Rgb = { r: 0, g: 0, b: 255 };
 
 /** Every token, checked against the surface it is actually drawn on. */
+/**
+ * The four pairings live in core (`themeContrastProblems`) because a theme
+ * bundle may pin a fixed palette instead of a derived one, and both paths have
+ * to be held to the same rule from the same place. Restating them here would
+ * make this test pass while a hand-written palette failed, or the reverse.
+ */
 const expectLegible = (pixels: PixelData, label: string): void => {
-  const tokens = extractTheme(pixels);
-  const surface = hexToRgb(tokens.surface);
-  const accent = hexToRgb(tokens.accent);
-
-  expect(
-    contrastRatio(hexToRgb(tokens.foreground), surface),
-    `foreground on ${label}`,
-  ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MIN);
-  expect(contrastRatio(accent, surface), `accent on ${label}`).toBeGreaterThanOrEqual(
-    TEXT_CONTRAST_MIN,
-  );
-  expect(
-    contrastRatio(hexToRgb(tokens.onAccent), accent),
-    `onAccent on ${label}`,
-  ).toBeGreaterThanOrEqual(TEXT_CONTRAST_MIN);
-  expect(
-    contrastRatio(hexToRgb(tokens.controlTint), surface),
-    `controlTint on ${label}`,
-  ).toBeGreaterThanOrEqual(UI_CONTRAST_MIN);
+  expect(themeContrastProblems(extractTheme(pixels)), label).toEqual([]);
 };
 
 describe('extractTheme', () => {

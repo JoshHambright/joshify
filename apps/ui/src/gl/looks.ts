@@ -135,6 +135,22 @@ const LOOKS: readonly LookSpec[] = [
     ],
   },
   {
+    // P5-33. Two stops per channel is eight colours; the ordered dither is what
+    // makes eight look like more, which is the whole technique of the era. The
+    // posterize in front of it does the remap through the album's (or the
+    // theme's pinned) palette, so the eight stops are *that* palette's.
+    //
+    // One real pass and a cheap one: deliberately the least expensive look in
+    // the library, and the one to fall back to if the Pi cannot hold a budget.
+    id: 'vga',
+    name: 'VGA',
+    scene: 'flat',
+    chain: [
+      ['posterize', { levels: 4, tint: 0.9 }],
+      ['dither', { levels: 2, amount: 0.9 }],
+    ],
+  },
+  {
     // P5-26. The tunnel with its era's artefacts, and nothing else — the scene
     // is already doing the work, and stacking post over it wastes budget the
     // geometry needs.

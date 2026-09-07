@@ -28,6 +28,7 @@ describe('the shipped looks', () => {
       'cel',
       'cascade',
       'wall',
+      'vga',
       'tunnel',
     ]);
   });

@@ -8,6 +8,13 @@
  * *derivation* is what lets the UI hold the type without dragging an image
  * decoder into the bundle.
  */
+import {
+  contrastRatio,
+  parseHex,
+  TEXT_CONTRAST_MIN,
+  UI_CONTRAST_MIN,
+} from '../colour/contrast.js';
+
 export interface ThemeTokens {
   /** The scrimmed backdrop the chrome sits on. Always dark, tinted by the art. */
   readonly surface: string;
@@ -47,3 +54,53 @@ export const themeCssVariables = (tokens: ThemeTokens): Record<string, string> =
   '--joshify-on-accent': tokens.onAccent,
   '--joshify-control-tint': tokens.controlTint,
 });
+
+/**
+ * The four pairings a theme has to survive, and the floor each one sits on.
+ *
+ * The extractor *produces* tokens that meet these (it clamps until they do),
+ * so on the derived path this is a restatement. It exists because there is a
+ * second path: a theme bundle may pin a fixed palette instead of the album's
+ * (D-017), and a hand-written palette has nothing clamping it. Both paths are
+ * then held to the same rule from the same place, which is the only way the
+ * guarantee stays one guarantee.
+ */
+const PAIRINGS = [
+  ['foreground', 'surface', TEXT_CONTRAST_MIN, 'body text on the backdrop'],
+  ['accent', 'surface', TEXT_CONTRAST_MIN, 'the album colour used as text'],
+  ['onAccent', 'accent', TEXT_CONTRAST_MIN, 'a label on a filled button'],
+  ['controlTint', 'surface', UI_CONTRAST_MIN, 'slider tracks and icon strokes'],
+] as const satisfies readonly (readonly [
+  keyof ThemeTokens,
+  keyof ThemeTokens,
+  number,
+  string,
+])[];
+
+/**
+ * Every pairing that falls short, said in full — which colours, what ratio,
+ * what was needed, and what the pairing is *for*.
+ *
+ * A list rather than a boolean: "this theme is illegible" sends someone back
+ * to a five-token object with no idea which two of them fight.
+ */
+export const themeContrastProblems = (tokens: ThemeTokens): readonly string[] => {
+  const problems: string[] = [];
+
+  for (const [front, back, floor, purpose] of PAIRINGS) {
+    const a = parseHex(tokens[front]);
+    const b = parseHex(tokens[back]);
+    if (a === null || b === null) {
+      problems.push(`${a === null ? front : back} is not a hex colour`);
+      continue;
+    }
+    const ratio = contrastRatio(a, b);
+    if (ratio < floor) {
+      problems.push(
+        `${front} on ${back} is ${ratio.toFixed(2)}:1, below ${floor.toFixed(1)}:1 — ${purpose}`,
+      );
+    }
+  }
+
+  return problems;
+};

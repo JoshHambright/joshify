@@ -189,9 +189,9 @@ Design: [VISUALIZER.md](./VISUALIZER.md) · [PS1_MODE.md](./PS1_MODE.md) · [THE
 | P5-28 | Original attract / boot sequence | ⬜ | Also covers the P7-05 boot handoff |
 | P5-29 | Combination presets: tunnel + datamosh / VHS / pixel sort | 🟨 | The mechanism works — the chain cannot tell which scene produced its input — and the six named looks prove the shape. The specific tunnel-plus-glitch combinations want a look at a real screen first |
 | P5-30 | Measure the tunnel on Pi 5 hardware | ⬜ | Folded into the P3-01 measurement |
-| P5-31 | **Theme bundle format**: palette + scene + chain + chrome as one unit | ⬜ | D-017. The Microsoft Plus! model, not the Winamp-skin model |
+| P5-31 | **Theme bundle format**: palette + scene + chain + chrome as one unit | ✅ | `gl/themes.ts`. A theme resolves a look id, an allow-listed chrome set, and *optionally* a pinned palette — pinning is the exception a theme justifies in a comment, since the album's colour arriving on the panel is the product. A pinned palette is held to the same four pairings the extractor's output is (`themeContrastProblems`, now shared from core) and a theme that fails is dropped rather than shown |
 | P5-32 | Tokenise UI chrome so themes can reach it | ✅ | `lib/chrome.ts` — an allow-list of eight properties, not the whole `--jf-*` half. The inks, the plate substrate, the touch floor and the type scale stay unreachable, because the legibility floor (D-068) was solved for *those* values and a theme that breaks it fails no test (D-073) |
-| P5-33 | `VGA` theme — 16-colour quantise + ordered dither | ⬜ | ~15 lines on top of existing dither; maximally unlike `N2O` |
+| P5-33 | `VGA` theme — 16-colour quantise + ordered dither | ✅ | Zero new shader lines in the end: a `vga` look (`posterize` → `dither` at two stops a channel) plus the first pinned palette and the first chrome override set. Eight stops cannot absorb an arbitrary sleeve hue, which is *why* it pins |
 | P5-34 | `PLUS!` theme — bevelled chrome + `ambient` scene | ⬜ | **Working title, must be renamed** (D-015). Proves chrome theming works |
 | P5-35 | `ambient` scene — slow geometric solids | ⬜ | The Plus!-era screensaver lineage |
 | P5-36 | Theme switching UI + shuffle-on-track-change | ⬜ | |
