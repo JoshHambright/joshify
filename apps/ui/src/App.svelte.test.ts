@@ -11,8 +11,8 @@
  * hides a slider. It asserts that the right component gets the right slice of
  * state, which is the only thing this file can get wrong.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import {
   IDLE_PANEL,
   type JoshifyError,
@@ -220,6 +220,8 @@ interface Harness {
   search?: ReturnType<typeof fakeSearch>;
   client?: ReturnType<typeof fakeClient>;
   theme?: ReturnType<typeof fakeThemeTarget>;
+  /** The visualiser's clock. A box so a test can move it forward by hand. */
+  monotonic?: () => number;
 }
 
 const mountApp = (harness: Harness = {}) => {
@@ -237,9 +239,26 @@ const mountApp = (harness: Harness = {}) => {
     search: find.source,
     themeTarget: theme.target,
     now: at(21, 47),
+    ...(harness.monotonic === undefined ? {} : { monotonic: harness.monotonic }),
   });
   return { ...rendered, conn, devs, cmd, theme, q, find };
 };
+
+/*
+ * Say "this browser has no WebGL2" explicitly, once, for the whole file.
+ *
+ * Every mount here builds the panel, and the panel mounts the visualiser. jsdom
+ * has no canvas implementation and answers by logging an unimplemented-method
+ * error, which is the right answer buried in the wrong channel. Stubbing it
+ * puts the reason the panel is on its fallback path in the test instead — and
+ * the fallback path is a supported product, not a broken one.
+ */
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 afterEach(cleanup);
 
@@ -722,5 +741,151 @@ describe('dismissing a grown surface by gesture', () => {
     await vi.waitFor(() => {
       expect(screen.getByText('Velocity Division')).toBeDefined();
     });
+  });
+});
+
+/*
+ * The visualiser mode (P5-15).
+ *
+ * jsdom has no WebGL2, so the canvas reports itself unavailable on mount and
+ * the panel falls back to the CSS wash — which is the fallback path, and it is
+ * worth knowing these still pass through it. What is asserted here is the part
+ * that has nothing to do with GL: when the chrome goes away, when it comes
+ * back, and what happens to the touch that brings it back.
+ */
+describe('the visualiser mode', () => {
+  const clock = () => {
+    let value = 0;
+    return {
+      monotonic: () => value,
+      advance: (ms: number) => {
+        value += ms;
+      },
+    };
+  };
+
+  const chromeShown = (): boolean =>
+    document.querySelector('.plate')?.getAttribute('data-chrome') === 'true';
+
+  it('keeps the controls on screen while the panel is being used', () => {
+    mountApp();
+
+    expect(chromeShown()).toBe(true);
+  });
+
+  it('gives the panel over to the visualiser once it has been left alone', async () => {
+    vi.useFakeTimers();
+    try {
+      const time = clock();
+      mountApp({ monotonic: time.monotonic });
+
+      time.advance(60_000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(chromeShown()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * The tick has to happen while the render loop is *stopped*, which is the
+   * resting state. If only the loop ticked the machine, a panel at rest could
+   * never go idle — and at rest is the only place it ever needs to.
+   */
+  it('does not need the render loop running in order to go idle', async () => {
+    vi.useFakeTimers();
+    try {
+      const time = clock();
+      mountApp({ monotonic: time.monotonic });
+      // Nothing has started a frame loop: jsdom has no context at all.
+      time.advance(60_000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(chromeShown()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('brings the controls back on any touch', async () => {
+    vi.useFakeTimers();
+    try {
+      const time = clock();
+      mountApp({ monotonic: time.monotonic });
+      time.advance(60_000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      await fireEvent.pointerDown(screen.getByText('Queue'));
+
+      expect(chromeShown()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * D-067. The touch that wakes the panel is swallowed: delivering it means a
+   * tap intended to bring the controls back also lands on whichever control
+   * was under the finger — skipping a track because somebody wanted to see
+   * what was playing.
+   */
+  it('swallows the touch that woke it rather than acting on it', async () => {
+    vi.useFakeTimers();
+    try {
+      const time = clock();
+      const { cmd } = mountApp({ monotonic: time.monotonic });
+      time.advance(60_000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const pause = screen.getByRole('button', { name: 'Pause' });
+      await fireEvent.pointerDown(pause);
+      await fireEvent.click(pause);
+
+      expect(cmd.sent).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('delivers an ordinary touch, so the panel is not unusable', async () => {
+    const time = clock();
+    const { cmd } = mountApp({ monotonic: time.monotonic });
+
+    const pause = screen.getByRole('button', { name: 'Pause' });
+    await fireEvent.pointerDown(pause);
+    await fireEvent.click(pause);
+
+    expect(cmd.sent.map((entry) => entry.command.kind)).toEqual(['pause']);
+  });
+
+  // The swallow is one tap, not a mode. A second tap has to work, or waking
+  // the panel costs two taps for everything.
+  it('delivers the tap after the one it swallowed', async () => {
+    vi.useFakeTimers();
+    try {
+      const time = clock();
+      const { cmd } = mountApp({ monotonic: time.monotonic });
+      time.advance(60_000);
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const pause = screen.getByRole('button', { name: 'Pause' });
+      await fireEvent.pointerDown(pause);
+      await fireEvent.click(pause);
+      await fireEvent.pointerDown(pause);
+      await fireEvent.click(pause);
+
+      expect(cmd.sent.map((entry) => entry.command.kind)).toEqual(['pause']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('hands the panel over on the Visual chip, without waiting to be left alone', async () => {
+    mountApp();
+
+    await fireEvent.click(screen.getByText('Visual'));
+
+    expect(chromeShown()).toBe(false);
   });
 });

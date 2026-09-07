@@ -26,6 +26,7 @@
   import Scrubber from './components/Scrubber.svelte';
   import StatusRail from './components/StatusRail.svelte';
   import Transport from './components/Transport.svelte';
+  import Visualiser from './components/Visualiser.svelte';
   import { resolvedArtwork } from './lib/artwork.js';
   import { controlsDisabled, noticeFor } from './lib/notices.js';
   import { dismissible } from './lib/dismissible.js';
@@ -39,6 +40,8 @@
   import type { DeviceSource } from './lib/device-source.js';
   import type { QueueSource } from './lib/queue-source.js';
   import type { SearchSource } from './lib/search-source.js';
+  import { createModeMachine, type ModeState } from './gl/modes.js';
+  import { DEFAULT_THEME, playingItemKey } from '@joshify/core';
   import type { LibraryItem, LibrarySection } from './lib/thumbnails.js';
 
   interface Props {
@@ -57,6 +60,16 @@
     /** Injected so the clock is testable, and so a device with no RTC can be
      *  handed the server's time later rather than showing 1970 (D-023). */
     now?: () => Date;
+    /**
+     * The monotonic clock the visualiser mode runs on.
+     *
+     * Deliberately separate from `now`. The mode machine compares an instant
+     * against the last touch, and the render loop ticks it with a frame
+     * timestamp — so both have to be on `performance.now()`'s epoch. Mixing in
+     * a wall clock makes every tick look like decades since the last touch,
+     * and the panel goes idle instantly and permanently.
+     */
+    monotonic?: () => number;
   }
 
   const {
@@ -67,6 +80,7 @@
     search,
     themeTarget,
     now = () => new Date(),
+    monotonic = () => performance.now(),
   }: Props = $props();
 
   /** The plate at rest, or the plate grown. That is the whole of navigation. */
@@ -185,6 +199,72 @@
     void client.send({ kind: 'volume', volumePercent }, { deviceId });
   };
 
+  /*
+   * The visualiser mode (P5-15).
+   *
+   * The machine is the whole policy — when to go idle, and that the touch
+   * which wakes the panel is swallowed rather than delivered (D-067). What is
+   * here is the two things it cannot do for itself: be ticked, and be told
+   * that a finger landed.
+   *
+   * It is ticked from two places on purpose. The render loop ticks it while it
+   * is running, which is the accurate path; this interval ticks it while the
+   * loop is *stopped*, which is exactly the resting state a panel has to be
+   * able to go idle from. `tick` is idempotent, so both is fine and neither
+   * alone is enough.
+   */
+  const modes = createModeMachine();
+  let modeState = $state<ModeState>(modes.state());
+  /** The loop is stopped at rest, where the canvas is transparent anyway. */
+  const visualiserActive = $derived(modeState.mode !== 'now-playing');
+  let visualiserAvailable = $state(true);
+
+  const tickModes = (): void => {
+    modes.tick(monotonic());
+    modeState = modes.state();
+  };
+
+  /**
+   * Capture, and on `pointerdown` rather than `click`.
+   *
+   * Capture because the whole point is to decide before the control underneath
+   * sees the event; `pointerdown` because a tap that wakes the panel should
+   * bring the plate back as the finger lands, not when it lifts.
+   */
+  let swallowClick = false;
+
+  const onPointerDown = (event: PointerEvent): void => {
+    const { deliver } = modes.touched(monotonic());
+    modeState = modes.state();
+    // Set on every pointer down, so a swallow that never produced a click —
+    // a drag, a touch that slid off — cannot leak into the next tap.
+    swallowClick = !deliver;
+    if (deliver) return;
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
+  /**
+   * The second half of the swallow.
+   *
+   * Stopping the `pointerdown` is not enough on its own: controls act on
+   * `click`, and whether `preventDefault` on a pointer event suppresses the
+   * click that follows it is implementation-defined. So the decision is made
+   * once, when the finger lands, and the click it goes on to produce is
+   * cancelled explicitly rather than hopefully.
+   */
+  const onClick = (event: MouseEvent): void => {
+    if (!swallowClick) return;
+    swallowClick = false;
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
+  const showVisuals = (): void => {
+    modes.setMode('full', monotonic());
+    modeState = modes.state();
+  };
+
   const tickClock = (): void => {
     const at = now();
     clock = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
@@ -196,8 +276,12 @@
     // Once a minute is enough for a wall clock, and it costs nothing next to
     // the poll loop.
     const ticking = setInterval(tickClock, 30_000);
+    // A second is far finer than a 45-second idle timeout needs, and it is the
+    // resolution at which "the panel went quiet" stops feeling like a lag.
+    const modeTicking = setInterval(tickModes, 1000);
     return () => {
       clearInterval(ticking);
+      clearInterval(modeTicking);
       devices.close();
       queue.close();
       connection.close();
@@ -205,9 +289,25 @@
   });
 </script>
 
-<Panel>
+<svelte:window onpointerdowncapture={onPointerDown} onclickcapture={onClick} />
+
+<Panel chromeVisible={modeState.chromeVisible}>
   {#snippet stage()}
     <Backdrop src={art.backdrop} />
+    {#if visualiserAvailable}
+      <Visualiser
+        art={art.hero}
+        theme={playback?.theme ?? DEFAULT_THEME}
+        trackKey={playingItemKey(item)}
+        {modes}
+        active={visualiserActive}
+        onUnavailable={() => {
+          // Not an error: a panel with the CSS wash and no visualiser is a
+          // complete product, and the controls must not go down with it.
+          visualiserAvailable = false;
+        }}
+      />
+    {/if}
     <Hero src={art.hero} dimmed={item === null} />
   {/snippet}
 
@@ -288,6 +388,8 @@
           </button>
           <button class="chip jf-label" type="button" onclick={showQueue}>Queue</button>
           <button class="chip jf-label" type="button" onclick={showSearch}>Search</button>
+          <button class="chip jf-label" type="button" onclick={showVisuals}>Visual</button
+          >
         </div>
       {/if}
     </Plate>

@@ -1594,3 +1594,62 @@ degrader's own tests could have caught it, because in those tests nobody was
 calling the setters.
 
 **Status:** ✅ Accepted.
+
+---
+
+### D-076 · The visualiser does not change the panel's resting appearance
+**Context:** wiring the visualiser in (P5-15) raised a question the mode
+machine's own comment had already half-answered: at `now-playing`, does the
+canvas draw a quiet version of the effects, or nothing at all?
+
+**Chose:** nothing at all. The canvas is transparent at `now-playing`, the
+approved CSS wash is what the panel shows at rest, and the render loop is
+**stopped** rather than drawing a frame nobody sees. The visualiser fades in for
+`ambient` and takes the panel in `full`.
+
+**Two reasons, and the second is the one that decided it.**
+
+The cheap reason: on a fanless board that runs for weeks, an invisible render
+loop is heat and power for nothing, and it is the kind of waste that never shows
+up as a bug — the panel just runs warm.
+
+The real reason: the resting look was prototyped, published and approved
+(D-016), and the `flat` scene is the cover full-bleed and sharp, not a blurred
+wash. Quietly swapping one for the other is a visual redesign arriving inside a
+wiring task, which is exactly what the prototype-first rule exists to stop.
+Making the visualiser the resting backdrop may well be right — but it is a
+change to review on a page, not to slip in.
+
+**Consequence to be aware of:** `MODE_INTENSITY['now-playing']` is 0.15 and
+nothing reads it while the loop is stopped. It is left as the machine's own
+answer to "how much effect does this mode want", which stays true if the resting
+backdrop is ever handed over.
+
+**Status:** ✅ Accepted.
+
+---
+
+### D-077 · The swallowed wake-up touch is cancelled twice
+**Context:** D-067 says the touch that wakes the panel out of `full` is
+swallowed, so that a tap meant to bring the controls back does not also land on
+whichever control was under the finger. The machine returns `deliver: false`;
+something has to act on it.
+
+**Chose:** cancel the `pointerdown` *and* the `click` it goes on to produce,
+from two window-level capture handlers, with the decision made once when the
+finger lands.
+
+**Why not just the pointerdown:** every control in the panel acts on `click`,
+and whether `preventDefault()` on a pointer event suppresses the compatibility
+click that follows is implementation-defined — the spec is explicit about
+`mousedown` and `mouseup` and vague about `click`. Cancelling the pointer event
+alone passed a test that fired only a pointer event, and let the pause command
+through the moment the test fired the click a real finger would have caused.
+
+**The shape that makes it safe:** the flag is written on *every* pointerdown,
+not only on a swallow. A swallow that never produced a click — a drag, a finger
+that slid off the panel — cannot leak into the next tap, because the next
+pointer down overwrites it. One tap is swallowed, never two: waking the panel
+must not cost two taps for everything afterwards.
+
+**Status:** ✅ Accepted.

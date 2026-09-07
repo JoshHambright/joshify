@@ -19,9 +19,15 @@
     rail?: Snippet;
     stage?: Snippet;
     plate?: Snippet;
+    /**
+     * False while the visualiser has the panel. The stage stays — SCREENS.md
+     * is explicit that the album does not go anywhere — so this hides the rail
+     * and the plate and nothing else.
+     */
+    chromeVisible?: boolean;
   }
 
-  const { rail, stage, plate }: Props = $props();
+  const { rail, stage, plate, chromeVisible = true }: Props = $props();
 </script>
 
 <div class="frame">
@@ -29,10 +35,10 @@
     <div class="stage">
       {@render stage?.()}
     </div>
-    <div class="rail">
+    <div class="rail" data-chrome={chromeVisible}>
       {@render rail?.()}
     </div>
-    <div class="plate">
+    <div class="plate" data-chrome={chromeVisible}>
       {@render plate?.()}
     </div>
   </div>
@@ -83,5 +89,22 @@
   .plate {
     position: absolute;
     inset: auto var(--jf-gap) var(--jf-gap) var(--jf-gap);
+  }
+
+  /*
+   * Hidden, and unclickable while hidden. `pointer-events` is the load-bearing
+   * half: a faded-out plate that still takes touches means the tap meant to
+   * bring the controls back also lands on whatever control it was over — the
+   * same mistake D-067 avoids in the mode machine, made again in CSS.
+   */
+  .rail[data-chrome='false'],
+  .plate[data-chrome='false'] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .rail,
+  .plate {
+    transition: opacity var(--jf-theme-fade) ease;
   }
 </style>
