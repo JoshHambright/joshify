@@ -156,17 +156,20 @@ describe('a solid, tessellated', () => {
     }
   });
 
-  it.each(SHAPES)('gives %s one normal per face and no vertex to two of them', (kind, faces, corners) => {
-    const mesh = tessellateSolid(SOLID_SHAPES[kind]);
-    const byNormal = new Map<string, number>();
+  it.each(SHAPES)(
+    'gives %s one normal per face and no vertex to two of them',
+    (kind, faces, corners) => {
+      const mesh = tessellateSolid(SOLID_SHAPES[kind]);
+      const byNormal = new Map<string, number>();
 
-    for (const normal of mesh.normals) {
-      byNormal.set(key(normal), (byNormal.get(key(normal)) ?? 0) + 1);
-    }
+      for (const normal of mesh.normals) {
+        byNormal.set(key(normal), (byNormal.get(key(normal)) ?? 0) + 1);
+      }
 
-    expect(byNormal.size).toBe(faces);
-    for (const count of byNormal.values()) expect(count).toBe(corners);
-  });
+      expect(byNormal.size).toBe(faces);
+      for (const count of byNormal.values()) expect(count).toBe(corners);
+    },
+  );
 
   /**
    * Winding is computed from the geometry rather than declared in the face
@@ -219,27 +222,30 @@ describe('a solid, tessellated', () => {
     }
   });
 
-  it.each(SHAPES)('centres the cover on each %s facet, inside the sleeve', (kind, faces, corners) => {
-    const mesh = tessellateSolid(SOLID_SHAPES[kind]);
+  it.each(SHAPES)(
+    'centres the cover on each %s facet, inside the sleeve',
+    (kind, faces, corners) => {
+      const mesh = tessellateSolid(SOLID_SHAPES[kind]);
 
-    for (let face = 0; face < faces; face += 1) {
-      let sumU = 0;
-      let sumV = 0;
-      for (let corner = 0; corner < corners; corner += 1) {
-        const uv = mesh.uvs[face * corners + corner] ?? [Number.NaN, Number.NaN];
-        expect(uv[0]).toBeGreaterThanOrEqual(0);
-        expect(uv[0]).toBeLessThanOrEqual(1);
-        expect(uv[1]).toBeGreaterThanOrEqual(0);
-        expect(uv[1]).toBeLessThanOrEqual(1);
-        sumU += uv[0];
-        sumV += uv[1];
+      for (let face = 0; face < faces; face += 1) {
+        let sumU = 0;
+        let sumV = 0;
+        for (let corner = 0; corner < corners; corner += 1) {
+          const uv = mesh.uvs[face * corners + corner] ?? [Number.NaN, Number.NaN];
+          expect(uv[0]).toBeGreaterThanOrEqual(0);
+          expect(uv[0]).toBeLessThanOrEqual(1);
+          expect(uv[1]).toBeGreaterThanOrEqual(0);
+          expect(uv[1]).toBeLessThanOrEqual(1);
+          sumU += uv[0];
+          sumV += uv[1];
+        }
+        // The projection is centred on the face, so the crop is centred on the
+        // cover — a facet showing a corner of the sleeve would read as an error.
+        expect(sumU / corners).toBeCloseTo(0.5, 10);
+        expect(sumV / corners).toBeCloseTo(0.5, 10);
       }
-      // The projection is centred on the face, so the crop is centred on the
-      // cover — a facet showing a corner of the sleeve would read as an error.
-      expect(sumU / corners).toBeCloseTo(0.5, 10);
-      expect(sumV / corners).toBeCloseTo(0.5, 10);
-    }
-  });
+    },
+  );
 
   it.each(SHAPES)('has no NaN anywhere in %s', (kind) => {
     const mesh = tessellateSolid(SOLID_SHAPES[kind]);
@@ -251,6 +257,73 @@ describe('a solid, tessellated', () => {
     ];
 
     for (const value of numbers) expect(Number.isFinite(value)).toBe(true);
+  });
+});
+
+describe('a face table written the wrong way round', () => {
+  /**
+   * Winding is computed rather than declared, so a table whose cycles all run
+   * the other way must come out identical. This is the assertion that the
+   * hand-written face tables above cannot silently invert one solid.
+   */
+  it('comes out with the same outward faces as the table it inverts', () => {
+    const forwards = tessellateSolid(SOLID_SHAPES.cube);
+    const backwards = tessellateSolid({
+      vertices: SOLID_SHAPES.cube.vertices,
+      faces: SOLID_SHAPES.cube.faces.map((face) => [...face].reverse()),
+    });
+
+    expect(backwards.normals).toHaveLength(forwards.normals.length);
+    for (let vertex = 0; vertex < backwards.normals.length; vertex += 1) {
+      const normal = backwards.normals[vertex] ?? [0, 0, 0];
+      const position = backwards.positions[vertex] ?? [0, 0, 0];
+      const offset = backwards.offsets[vertex] ?? Number.NaN;
+      expect(dot(normal, position)).toBeCloseTo(offset, 10);
+      expect(offset).toBeGreaterThan(0);
+    }
+    // Same set of faces, whichever way the table wrote them.
+    expect(new Set(backwards.normals.map(key))).toEqual(
+      new Set(forwards.normals.map(key)),
+    );
+  });
+});
+
+describe('a shape the tessellator cannot use', () => {
+  it('refuses a face with no area', () => {
+    expect(() =>
+      tessellateSolid({
+        vertices: [
+          [1, 0, 0],
+          [-1, 0, 0],
+        ],
+        faces: [[0, 1]],
+      }),
+    ).toThrow(/three corners/);
+  });
+
+  it('refuses a face naming a corner the solid has not', () => {
+    expect(() => tessellateSolid({ vertices: [[1, 0, 0]], faces: [[0, 1, 2]] })).toThrow(
+      /no element/,
+    );
+  });
+
+  /**
+   * The assumption the whole back-face test rests on: the solid is convex and
+   * wrapped around the origin, so every face plane is in front of it. A face
+   * through the origin has no outward side, and the shader would cull it in
+   * half. Better a build error than a solid that flickers inside out.
+   */
+  it('refuses a face whose plane passes through the origin', () => {
+    expect(() =>
+      tessellateSolid({
+        vertices: [
+          [1, 0, 0],
+          [-1, 0, 0],
+          [0, 1, 0],
+        ],
+        faces: [[0, 1, 2]],
+      }),
+    ).toThrow(/not convex/);
   });
 });
 
@@ -372,9 +445,7 @@ describe('the scene mesh', () => {
       const far = sorted[solid - 1];
       const near = sorted[solid];
       if (far === undefined || near === undefined) throw new Error('roster hole');
-      expect(far.depth - near.depth).toBeGreaterThan(
-        (far.radius + near.radius) * worst,
-      );
+      expect(far.depth - near.depth).toBeGreaterThan((far.radius + near.radius) * worst);
     }
     const nearest = sorted[sorted.length - 1];
     if (nearest === undefined) throw new Error('roster hole');
@@ -552,8 +623,8 @@ describe('the ambient scene', () => {
    * not be able to ask for more than the roster was checked against.
    */
   it('caps size and swell at the values the depth check was made against', () => {
-    expect(AMBIENT_SCENE.params.size?.max).toBe(SIZE_CEILING);
-    expect(AMBIENT_SCENE.params.swell?.max).toBe(SWELL_CEILING);
+    expect(AMBIENT_SCENE.params['size']?.max).toBe(SIZE_CEILING);
+    expect(AMBIENT_SCENE.params['swell']?.max).toBe(SWELL_CEILING);
   });
 
   /**

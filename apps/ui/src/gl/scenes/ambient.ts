@@ -428,9 +428,8 @@ export const ATTRIBUTE_TRAIT = 5;
 const KIND_SOLID = 0;
 const KIND_BACKDROP = 1;
 
-/** Four corners and two triangles, drawn before anything else. */
+/** Four corners of the field quad, drawn before anything else. */
 const BACKDROP_VERTEX_COUNT = 4;
-const BACKDROP_INDEX_COUNT = 6;
 
 /** `GlContext.draw` binds a `Uint16Array`, so a bigger mesh draws garbage. */
 const MAX_VERTICES = 65536;

@@ -363,10 +363,11 @@ out vec4 fragColour;
 void main() {
   float radius = length(vLocal);
 
-  // No discard — it is banned in this engine and it costs early-z on tiled
-  // hardware — and the scene stage draws unblended. So the quad's corners have
-  // to *be* the background, and they are: the falloff reaches zero inside the
-  // inscribed circle and the pipeline clears the target to black. The cost of
+  // Nothing is cut out of the quad — the engine bans the keyword that would do
+  // it, and it costs early-z on tiled hardware anyway — and the scene stage
+  // draws unblended. So the quad's corners have to *be* the background, and
+  // they are: the falloff reaches zero inside the inscribed circle and the
+  // pipeline clears the target to black. The cost of
   // that is an occasional bite where two quads overlap, which is a pixel or two
   // and cannot be sorted away: the stars' depth order changes every frame and
   // the index buffer is uploaded once.
