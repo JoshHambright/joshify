@@ -146,7 +146,7 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | P4-07 | Touch scrubbing on the progress bar | ✅ | Reachable and composed into the panel. On release the tracker re-anchors at the chosen position so the bar runs on through the round trip instead of snapping back. A track change under a held finger drops the drag — the fraction was chosen against the old duration |
 | P4-08 | Navigation model between surfaces | ✅ | The plate grows, and a flick down shrinks it — the idiom every touchscreen has used for a decade. Two ways to qualify: a slow drag that goes far enough, or a fast flick that does not. Upward drag is rubber-banded, because the plate has nowhere to go up (D-057). The Done button stays: a control reachable only by a known gesture is one most people never find |
 | P4-09 | Shuffle / repeat toggles wired to real state | ✅ | Reachable and composed into the panel. Repeat cycles off → context → track, matching Spotify's own clients; `aria-pressed` cannot express three states, so the mode rides on `data-repeat` |
-| P4-10 | Component + interaction tests for all control surfaces | ⬜ | |
+| P4-10 | Component + interaction tests for all control surfaces | ✅ | Transport, Scrubber, VolumeSlider, DeviceList, QueueList, SearchScreen, Keyboard, VirtualList, PlaybackNotice, Backdrop, Hero and the four surfaces in `App.svelte`. Closed by the last gap, `Thumbnail` — whose stated rules (absent artwork is a state and draws no `<img>`, the URL comes from the cache under the row key, a row seen before appears rather than fading again) were only ever asserted about the cache, never about the row |
 
 ---
 
