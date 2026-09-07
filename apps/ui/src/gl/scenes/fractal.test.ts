@@ -342,10 +342,6 @@ describe('the fractal scene', () => {
     expect(FRACTAL_PARAMS['inset']?.default).toBe(CARDIOID_INSET);
   });
 
-  it('runs without a depth buffer, like every fullscreen scene', () => {
-    expect(FRACTAL_SCENE.depthTest).toBe(false);
-  });
-
   it('binds its one attribute where the vertex shader declares it', () => {
     expect(FRACTAL_SCENE.vertex).toContain(
       `layout(location = ${String(ATTRIBUTE_POSITION)}) in vec2 aPosition;`,

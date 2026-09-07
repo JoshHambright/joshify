@@ -592,10 +592,9 @@ void main() {
 /**
  * The reef.
  *
- * `depthTest: false` because the chain's targets have no depth attachment
- * (D-070) — asking for the test would be asking for something that silently
- * always passes. Order here is the lane invariant plus a far-to-near emission,
- * not a z-buffer.
+ * There is no depth test to ask for: the chain's targets have no depth
+ * attachment (D-074), so the engine disables it and the scene sorts itself.
+ * Order here is the lane invariant plus a far-to-near emission.
  *
  * Every default is chosen for the 11pm case rather than the demo: the drift is
  * a crossing a minute, the caustics are the brightest thing on screen and still
@@ -607,7 +606,6 @@ export const REEF_SCENE: SceneDefinition = {
   vertex: REEF_VERTEX,
   fragment: REEF_FRAGMENT,
   geometry: REEF_MESH,
-  depthTest: false,
   params: {
     /** How fast the silhouettes cross. 1 is ~29s near, ~77s far, at full intensity. */
     drift: { default: 1, min: 0, max: 4 },

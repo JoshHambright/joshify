@@ -221,6 +221,49 @@ const LOOKS: readonly LookSpec[] = [
       ['grain', { amount: 0.05 }],
     ],
   },
+  {
+    // The cover as a heightfield, flown over. The scene is already doing the
+    // geometry work, so the chain is two nearly-free PS1 passes to put it in
+    // the right decade, and the bars overlay because this one is meant to be
+    // watched rather than left running.
+    id: 'relief',
+    name: 'Relief',
+    scene: 'terrain',
+    sceneParams: {
+      speed: 6,
+      height: 6.5,
+      contrast: 0.75,
+      relief: 0.4,
+      grid: 0.3,
+      pulse: 0.25,
+    },
+    chain: [
+      ['fifteenbit', {}],
+      ['twoforty', {}],
+      ['bars', { gain: 1, tilt: 0.6, gap: 0.3, height: 0.22, cap: 0.01 }],
+    ],
+  },
+  {
+    // The other one you can leave running. Feedback over a mostly-black frame
+    // is motion trails for almost nothing, and there is deliberately no `bars`
+    // overlay: a spectrum bar fights a look whose whole job is to be ignorable.
+    id: 'drift',
+    name: 'Drift',
+    scene: 'starfield',
+    sceneParams: {
+      speed: 0.06,
+      spread: 5,
+      size: 0.2,
+      parallax: 0.7,
+      warp: 0.4,
+      glow: 0.45,
+    },
+    chain: [
+      ['feedback', { zoom: 0.004, decay: 0.82 }],
+      ['bloom', { threshold: 0.5, radius: 1, amount: 0.5 }],
+      ['grain', { amount: 0.05 }],
+    ],
+  },
 ];
 
 /**

@@ -141,22 +141,20 @@ const randomFrom = (seed: number): (() => number) => {
 };
 
 /**
- * A shuffled 0..count-1, Fisher-Yates against the same stream.
+ * A shuffled 0..count-1, off the same stream.
  *
  * This is what decorrelates depth and layer from lattice position. Straight
- * `index / count` depth over a lattice puts the field on a diagonal plane, and
- * `index % layers` stripes the parallax layers across the sky.
+ * `index / count` depth over a lattice puts the whole field on a diagonal
+ * plane, and `index % layers` stripes the parallax layers across the sky.
+ *
+ * Sorted by a random key rather than swapped Fisher-Yates style, because a
+ * swap needs indexed *reads* — and under `noUncheckedIndexedAccess` those come
+ * with `??` fallbacks that can never be reached and can never be tested.
  */
-const shuffledOrder = (count: number, random: () => number): readonly number[] => {
-  const order = Array.from({ length: count }, (_unused, index) => index);
-  for (let index = count - 1; index > 0; index -= 1) {
-    const swap = Math.floor(random() * (index + 1));
-    const held = order[index] ?? index;
-    order[index] = order[swap] ?? swap;
-    order[swap] = held;
-  }
-  return order;
-};
+const shuffledOrder = (count: number, random: () => number): readonly number[] =>
+  Array.from({ length: count }, (_unused, index) => ({ index, key: random() }))
+    .sort((first, second) => first.key - second.key)
+    .map((entry) => entry.index);
 
 /**
  * The field, as the buffers the pipeline uploads once at startup.
@@ -188,20 +186,20 @@ export const buildStarfieldGeometry = (
   const positions = new Float32Array(vertexCount * 4);
   const corners = new Float32Array(vertexCount * 2);
   const indices = new Uint16Array(stars * 6);
-  for (let star = 0; star < stars; star += 1) {
+  // Iterated rather than indexed, for the same reason the shuffle is sorted:
+  // every `array[i]` read here would be an untestable `??` fallback.
+  for (const [star, slot] of order.entries()) {
     const column = star % lattice;
     const row = Math.floor(star / lattice);
     // -1..1 across the field. The same coordinate, remapped to 0..1, is where
     // this star reads the album cover.
     const x = ((column + random()) / lattice) * 2 - 1;
     const y = ((row + random()) / lattice) * 2 - 1;
-    const slot = order[star] ?? star;
     const depth = (slot + random()) / stars;
     const layer = slot % layers;
 
-    for (let corner = 0; corner < STAR_CORNERS.length; corner += 1) {
+    for (const [corner, offset] of STAR_CORNERS.entries()) {
       const vertex = star * STAR_CORNERS.length + corner;
-      const offset = STAR_CORNERS[corner] ?? [0, 0];
       positions[vertex * 4] = x;
       positions[vertex * 4 + 1] = y;
       positions[vertex * 4 + 2] = depth;
@@ -369,10 +367,10 @@ void main() {
   // it, and it costs early-z on tiled hardware anyway — and the scene stage
   // draws unblended. So the quad's corners have to *be* the background, and
   // they are: the falloff reaches zero inside the inscribed circle and the
-  // pipeline clears the target to black. The cost of
-  // that is an occasional bite where two quads overlap, which is a pixel or two
-  // and cannot be sorted away: the stars' depth order changes every frame and
-  // the index buffer is uploaded once.
+  // pipeline clears the target to black. What that costs is the occasional
+  // bite where two quads overlap, which is a pixel or two and cannot be sorted
+  // away — the stars' depth order changes every frame and the index buffer is
+  // uploaded once.
   float core = 1.0 - smoothstep(0.0, mix(0.35, 0.7, uGlow), radius);
   float skirt = 1.0 - smoothstep(0.0, 1.0, radius);
 
@@ -392,9 +390,8 @@ void main() {
 /**
  * The field.
  *
- * `depthTest: false` because the chain's render targets carry no depth
- * attachment — `createFramebuffer` attaches colour only — so the test would be
- * a silent no-op rather than a guarantee. Stars are unsorted for the reason in
+ * The chain's render targets carry no depth attachment, so there is no depth
+ * test in the engine to rely on (D-074). Stars are unsorted for the reason in
  * the fragment shader, and at this size it costs a pixel.
  */
 export const STARFIELD_SCENE: SceneDefinition = {
@@ -402,7 +399,6 @@ export const STARFIELD_SCENE: SceneDefinition = {
   vertex: STARFIELD_VERTEX,
   fragment: STARFIELD_FRAGMENT,
   geometry: STARFIELD_MESH,
-  depthTest: false,
   params: {
     /** Field lengths per second. 0.08 crosses the field in twelve seconds. */
     speed: { default: 0.08, min: 0, max: 1 },

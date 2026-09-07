@@ -53,9 +53,9 @@
  *
  * **3 · There is no depth buffer.** `createFramebuffer` in `gl-context.ts`
  * attaches colour only, and the scene always renders into one of the chain's
- * targets — so `depthTest: true` would enable a test against a buffer that is
- * not there, which is a silent no-op rather than an error. Occlusion therefore
- * has to be real draw order, exactly as it is for the tunnel (D-070). A
+ * targets, so there is nothing for a depth test to read. The engine no longer
+ * offers one to ask for (D-074). Occlusion therefore has to be real draw
+ * order, exactly as it is for the tunnel (D-070). A
  * heightfield is the easy case: every cell occupies a disjoint slice of z, so
  * sorting by row is not an approximation, it is exact. Indices are emitted far
  * row first, which is also how the era's flight simulators did it.
@@ -506,17 +506,15 @@ void main() {
 /**
  * The heightfield.
  *
- * `depthTest: false` for the reason in the file docblock: the chain's targets
- * have no depth attachment, so asking for the test would be a no-op that reads
- * like a guarantee. `buildTerrainGeometry` emits the back-to-front row order
- * that actually resolves occlusion, and for a heightfield that order is exact.
+ * For the reason in the file docblock, nothing here relies on a depth test.
+ * `buildTerrainGeometry` emits the back-to-front row order that actually
+ * resolves occlusion, and for a heightfield that order is exact.
  */
 export const TERRAIN_SCENE: SceneDefinition = {
   id: 'terrain',
   vertex: TERRAIN_VERTEX,
   fragment: TERRAIN_FRAGMENT,
   geometry: TERRAIN_MESH,
-  depthTest: false,
   params: {
     /** Rows of terrain crossed per second. 6 is a walk over a 96-unit cover. */
     speed: { default: 6, min: 0, max: 30 },

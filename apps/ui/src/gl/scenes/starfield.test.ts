@@ -196,15 +196,18 @@ describe('how deep the stars are', () => {
     expect(Math.min(...depths)).toBeLessThan(1 / depths.length);
     expect(Math.max(...depths)).toBeGreaterThan(1 - 2 / depths.length);
 
+    // Occupancy, on the real 1024-star field. Stratification puts exactly one
+    // star in every 1/1024 slice, so a tenth of the field holds 102.4 of them
+    // give or take the two slices its boundaries cut through — a tolerance
+    // uniform random would miss by ten times over.
+    const full = perStar(STARFIELD_MESH, 2);
     const buckets = Array.from({ length: 10 }, () => 0);
-    for (const depth of depths) {
+    for (const depth of full) {
       const bucket = Math.min(9, Math.floor(depth * 10));
       buckets[bucket] = (buckets[bucket] ?? 0) + 1;
     }
-    const expected = depths.length / 10;
     for (const count of buckets) {
-      expect(count).toBeGreaterThanOrEqual(Math.floor(expected));
-      expect(count).toBeLessThanOrEqual(Math.ceil(expected) + 1);
+      expect(Math.abs(count - full.length / 10)).toBeLessThanOrEqual(2);
     }
   });
 
@@ -380,10 +383,6 @@ describe('the starfield scene', () => {
     // normalize() of the centre star's position is a division by zero, and one
     // NaN vertex takes its whole quad with it.
     expect(STARFIELD_SCENE.vertex).toContain('radius > 0.0001');
-  });
-
-  it('runs without a depth buffer, because there is not one to run with', () => {
-    expect(STARFIELD_SCENE.depthTest).toBe(false);
   });
 
   it('binds its attributes where the vertex shader declares them', () => {

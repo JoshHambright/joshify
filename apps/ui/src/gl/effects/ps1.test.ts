@@ -169,10 +169,12 @@ describe('all six artefacts have a switch', () => {
       if (artefact.stage === 'post') {
         expect(PS1_PASSES.map((pass) => pass.id)).toContain(artefact.toggle);
       } else if (artefact.stage === 'scene-state') {
-        // The only artefact that is pipeline state rather than a shader: no
-        // depth buffer, which is a field on the scene and cannot be a param.
-        expect(artefact.toggle).toBe('depthTest');
-        expect(TUNNEL_SCENE.depthTest).toBe(false);
+        // The only artefact that is not a shader and not a switch: the engine
+        // has no depth attachment on any target, so occlusion comes from the
+        // order the indices were emitted in (D-074). Nothing can turn it off,
+        // which is why it resolves to the ordering rather than to a field.
+        expect(artefact.toggle).toBe('index-order');
+        expect(TUNNEL_SCENE.geometry.indices).toBeDefined();
       } else {
         expect(Object.keys(TUNNEL_SCENE.params)).toContain(artefact.toggle);
       }

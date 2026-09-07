@@ -510,15 +510,13 @@ export const FRACTAL_PARAMS: ParamSpec = {
 /**
  * The scene.
  *
- * `depthTest: false` for the same reason `flat` has it off: one triangle
- * covering the viewport has nothing to sort against itself, and asking for a
- * depth attachment would cost a buffer nothing reads.
+ * Nothing here would want a depth test even if the engine had one: a single
+ * triangle covering the viewport has nothing to sort against itself.
  */
 export const FRACTAL_SCENE: SceneDefinition = {
   id: 'fractal',
   vertex: FRACTAL_VERTEX,
   fragment: FRACTAL_FRAGMENT,
   geometry: FRACTAL_GEOMETRY,
-  depthTest: false,
   params: FRACTAL_PARAMS,
 };

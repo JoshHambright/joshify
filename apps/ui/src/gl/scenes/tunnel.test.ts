@@ -333,11 +333,6 @@ describe('the tunnel scene', () => {
     }
   });
 
-  /** Artefact 04 is a property of the scene, not a pass. */
-  it('runs without a depth buffer', () => {
-    expect(TUNNEL_SCENE.depthTest).toBe(false);
-  });
-
   it('binds its attributes where the vertex shader declares them', () => {
     expect(TUNNEL_SCENE.vertex).toContain(
       `layout(location = ${String(ATTRIBUTE_RING)}) in vec3 aRing;`,

@@ -25,6 +25,8 @@ import { TUNNEL_SCENE } from './scenes/tunnel.js';
 import { FRACTAL_SCENE } from './scenes/fractal.js';
 import { REEF_SCENE } from './scenes/reef.js';
 import { AMBIENT_SCENE } from './scenes/ambient.js';
+import { TERRAIN_SCENE } from './scenes/terrain.js';
+import { STARFIELD_SCENE } from './scenes/starfield.js';
 
 export interface PassParam {
   readonly default: number;
@@ -53,11 +55,6 @@ export interface SceneDefinition {
   readonly vertex: string;
   readonly fragment: string;
   readonly geometry: GeometrySpec;
-  /**
-   * The tunnel deliberately runs without one (PS1 artefact 04), and a flat
-   * quad has no use for one, so this is per scene rather than global.
-   */
-  readonly depthTest: boolean;
   readonly params: ParamSpec;
 }
 
@@ -265,8 +262,6 @@ void main() {
 }
 `,
   geometry: FULLSCREEN_TRIANGLE,
-  // A single quad has nothing to sort against itself.
-  depthTest: false,
   params: { flash: { default: 0.15, min: 0, max: 1 } },
 };
 
@@ -357,7 +352,15 @@ void main() {
  * parallel without touching the same file.
  */
 export const BUILT_IN_CATALOGUE: Catalogue = {
-  scenes: [FLAT_SCENE, TUNNEL_SCENE, FRACTAL_SCENE, REEF_SCENE, AMBIENT_SCENE],
+  scenes: [
+    FLAT_SCENE,
+    TUNNEL_SCENE,
+    FRACTAL_SCENE,
+    REEF_SCENE,
+    AMBIENT_SCENE,
+    TERRAIN_SCENE,
+    STARFIELD_SCENE,
+  ],
   passes: [
     FEEDBACK_PASS,
     GRAIN_PASS,

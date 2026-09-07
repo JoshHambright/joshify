@@ -394,7 +394,11 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
     if (scene !== undefined && sceneProgram !== undefined) {
       gl.bindFramebuffer(targetFor(plan.scene.target).framebuffer);
       gl.viewport(plan.renderSize.width, plan.renderSize.height);
-      gl.setDepthTest(scene.depthTest);
+      // Off here, and off for every draw after it. The engine has no depth
+      // buffer to test against: `createFramebuffer` attaches colour only, so
+      // enabling the test would be a no-op that always passes rather than a
+      // z-buffer. Scenes sort themselves (D-074).
+      gl.setDepthTest(false);
       gl.setBlend('none');
       // Only the scene clears: every post pass covers its whole target, so a
       // clear before one is a full-screen write nobody reads.
@@ -410,8 +414,7 @@ export const createPipeline = (gl: GlContext, options: PipelineOptions): Pipelin
       if (program === undefined) continue;
       gl.bindFramebuffer(targetFor(step.target).framebuffer);
       gl.viewport(plan.renderSize.width, plan.renderSize.height);
-      // The chain is flat compositing whatever the scene drew (D-014); depth
-      // belongs to the scene stage and nothing after it.
+      // The chain is flat compositing whatever the scene drew (D-014).
       gl.setDepthTest(false);
       gl.useProgram(program);
       bindInputs(targetFor(step.source).texture);

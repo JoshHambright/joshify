@@ -14,8 +14,8 @@
  * | 2 | Affine texture map    | this vertex + fragment pair — it is what  |
  * |   |                       | the interpolator does between them        |
  * | 3 | 15-bit colour + dither| a post pass (`fifteenbit`)                |
- * | 4 | No z-buffer           | `depthTest: false` plus the back-to-front |
- * |   |                       | index order this file builds              |
+ * | 4 | No z-buffer           | the engine has none (D-074), plus the     |
+ * |   |                       | back-to-front index order this file builds|
  * | 5 | Distance fog          | this fragment shader — post has no depth  |
  * | 6 | 240p output           | a post pass (`twoforty`)                  |
  *
@@ -331,10 +331,11 @@ void main() {
 /**
  * The tube.
  *
- * `depthTest: false` is artefact 04 and not an oversight: the PSX had no depth
- * buffer and sorted polygons on the CPU, so surfaces punch through each other
- * at glancing angles. `buildTunnelGeometry` supplies the back-to-front order
- * that makes the rest of the tunnel read correctly anyway.
+ * Running with no depth buffer is artefact 04 and not an oversight: the PSX had
+ * none and sorted polygons on the CPU, so surfaces punch through each other at
+ * glancing angles. The engine happens to have none either (D-074), so the
+ * artefact costs nothing to keep; `buildTunnelGeometry` supplies the
+ * back-to-front order that makes the rest of the tunnel read correctly anyway.
  *
  * Every parameter is either a shape control or one of the two beat-bound
  * modulations P5-26 needs (`pulse`, `flash`) — left here, at their spike
@@ -345,7 +346,6 @@ export const TUNNEL_SCENE: SceneDefinition = {
   vertex: TUNNEL_VERTEX,
   fragment: TUNNEL_FRAGMENT,
   geometry: TUNNEL_MESH,
-  depthTest: false,
   params: {
     /** Rings travelled per second. Beat-bindable (P5-26). */
     speed: { default: 4.5, min: 0, max: 20 },

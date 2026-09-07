@@ -419,11 +419,6 @@ describe('the reef scene', () => {
     }
   });
 
-  /** The chain's targets carry no depth attachment (D-070). */
-  it('runs without a depth buffer', () => {
-    expect(REEF_SCENE.depthTest).toBe(false);
-  });
-
   it('binds its attributes where the vertex shader declares them', () => {
     expect(REEF_SCENE.vertex).toContain(
       `layout(location = ${String(ATTRIBUTE_CORNER)}) in vec3 aCorner;`,

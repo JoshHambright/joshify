@@ -1514,3 +1514,51 @@ shuffle-on-track-change (P5-36) accumulates chrome from every theme it has
 passed through — a bug that only appears after the fourth track.
 
 **Status:** ✅ Accepted.
+
+---
+
+### D-074 · The engine has no depth buffer, so it offers no depth test
+**Context:** `SceneDefinition` carried a `depthTest: boolean`, and the pipeline
+enabled the depth test per scene from it. It never worked.
+`GlContext.createFramebuffer` attaches `COLOR_ATTACHMENT0` and nothing else, and
+every scene renders into one of the chain's targets — so enabling the depth test
+put the GPU in a state where, per GLES, the test **always passes**. It was a
+no-op wearing a z-buffer's name.
+
+**How it was found:** four scenes were written against this engine in parallel,
+and all four authors independently discovered the fact and wrote their own
+paragraph about it. That is the argument. One person rediscovering something is
+an anecdote; four is a defect in the contract.
+
+**Worse than dead code, it was a *verified* fiction.** `pipeline.test.ts` had a
+fixture scene declaring `depthTest: true` and a test asserting the engine
+honoured it — passing against a fake GL that has no framebuffer to be
+incomplete. The test certified behaviour the real device cannot deliver.
+
+**Chose:** delete the field. Occlusion is draw order, everywhere, and the
+pipeline disables the depth test explicitly at every stage so the state cannot
+drift. `pipeline.test.ts` now asserts depth is off for *every* draw, which is
+the test that stops someone switching it back on after reading `setDepthTest`
+and assuming it did something.
+
+**Rejected:** making it true, by attaching a depth renderbuffer per target. That
+is real memory on a Pi, real bug surface around clears and resizes, and it is
+unverifiable in CI — and no scene wants it. Every scene in the library sorts
+itself, and for three of them the sort is *exact* rather than an approximation:
+a heightfield's cells occupy disjoint slices of z, a convex solid's front-facing
+set never self-overlaps, and spheres separated along the view axis always have a
+separating plane. Where a real z-buffer would be needed is intersecting
+non-convex geometry, which nothing here has.
+
+**The cost of the choice, stated:** a future scene with intersecting geometry
+has to add the depth attachment before it can be written, rather than finding
+the field already there. Given that the field being there is what cost four
+people an afternoon, that trade is the right way round.
+
+**Also renamed:** PS1 artefact 4's toggle in `PS1_ARTEFACTS`, from `depthTest`
+to `index-order`. The table's contract is that every artefact resolves to
+something that exists, and artefact 4 no longer resolves to a switch — it
+resolves to the order indices are emitted in, which nothing can turn off. That
+is the honest entry, and it is what the era's hardware actually did.
+
+**Status:** ✅ Accepted.

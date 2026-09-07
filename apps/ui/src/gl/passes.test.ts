@@ -29,7 +29,6 @@ const catalogue: Catalogue = {
         indices: new Uint16Array([0, 0, 0]),
         count: 3,
       },
-      depthTest: true,
       params: { speed: { default: 4, min: 0, max: 20 } },
     },
   ],
@@ -57,7 +56,7 @@ describe('a preset is data', () => {
     expect(result.value.name).toBe('Ghost');
   });
 
-  it('accepts a scene with its own geometry and depth without special-casing it', () => {
+  it('accepts a scene with its own geometry without special-casing it', () => {
     const result = parsed({ id: 'n2o', scene: 'tube', sceneParams: { speed: 9 } });
 
     expect(isOk(result) && result.value.sceneParams).toEqual({ speed: 9 });

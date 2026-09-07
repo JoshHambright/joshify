@@ -385,14 +385,6 @@ describe('the terrain scene', () => {
     expect(TERRAIN_SCENE.fragment).toContain('kMeshDepth');
   });
 
-  /**
-   * `createFramebuffer` attaches colour only, so a depth test on a chain target
-   * is a no-op that reads like a guarantee. The index order is the occlusion.
-   */
-  it('runs without a depth buffer, because there is not one to run with', () => {
-    expect(TERRAIN_SCENE.depthTest).toBe(false);
-  });
-
   it('binds its attributes where the vertex shader declares them', () => {
     expect(TERRAIN_SCENE.vertex).toContain(
       `layout(location = ${String(ATTRIBUTE_CELL)}) in vec2 aCell;`,

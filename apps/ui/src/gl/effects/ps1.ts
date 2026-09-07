@@ -9,7 +9,7 @@
  * - **Affine texture mapping** is a property of the interpolation between a
  *   vertex shader and a fragment shader. By the time the chain runs, the
  *   texturing has already happened, correctly.
- * - **No z-buffer** is `depthTest: false` plus a back-to-front index order —
+ * - **No z-buffer** is the engine's own state plus a back-to-front index order —
  *   pipeline state and geometry, not a shader at all.
  * - **Distance fog** needs distance. The chain's targets are RGBA8 colour with
  *   no depth attachment and nothing carrying a per-fragment z, so a "fog" pass
@@ -157,7 +157,7 @@ export interface Ps1Artefact {
   readonly stage: Ps1Stage;
   /**
    * A scene parameter name, a pass id, or — for the one artefact that is
-   * neither — the `SceneDefinition` field that carries it.
+   * neither — the engine property that carries it.
    */
   readonly toggle: string;
 }
@@ -166,7 +166,10 @@ export const PS1_ARTEFACTS: readonly Ps1Artefact[] = [
   { index: 1, name: 'vertex snap', stage: 'scene-vertex', toggle: 'snap' },
   { index: 2, name: 'affine texture mapping', stage: 'scene-vertex', toggle: 'affine' },
   { index: 3, name: '15-bit colour + dither', stage: 'post', toggle: 'fifteenbit' },
-  { index: 4, name: 'no z-buffer', stage: 'scene-state', toggle: 'depthTest' },
+  // Not a switch at all any more, and that is the honest entry: the engine's
+  // render targets carry no depth attachment, so occlusion is decided by the
+  // order indices are emitted in and nothing can turn that off (D-074).
+  { index: 4, name: 'no z-buffer', stage: 'scene-state', toggle: 'index-order' },
   { index: 5, name: 'distance fog', stage: 'scene-fragment', toggle: 'fog' },
   { index: 6, name: '240p output', stage: 'post', toggle: 'twoforty' },
 ];

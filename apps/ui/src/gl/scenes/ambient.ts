@@ -17,9 +17,10 @@
  * the chain is colour-only. `setDepthTest(true)` against a framebuffer with no
  * depth attachment behaves as if the test always passes — it is not a
  * z-buffer, it is a no-op that *looks* like one. `GlContext` has no face
- * culling either. So `depthTest: false` here is a statement of fact rather
- * than an aesthetic choice like the tunnel's (PS1 artefact 04), and the scene
- * has to solve hidden surfaces itself. It does it twice, exactly:
+ * culling either. So the absence of depth here is a fact about the engine
+ * (D-074) rather than an aesthetic choice like the tunnel's (PS1 artefact 04),
+ * and the scene has to solve hidden surfaces itself. It does it twice,
+ * exactly:
  *
  *  - **Within a solid**, by rejecting back faces in the vertex shader: each
  *    vertex carries its face's plane (normal + offset), the shader works out
@@ -803,19 +804,18 @@ void main() {
 /**
  * Slow solids on a field of album art.
  *
- * `depthTest: false` is not the tunnel's artefact 04 restated — it is the
- * pipeline's actual capability. No render target has a depth attachment
- * (`gl-context.ts` attaches colour and nothing else), so asking for the test
- * would enable a comparison against a buffer that is not there. The scene
- * sorts itself instead: exact back-face rejection inside each convex solid,
- * and a build-time-verified far-to-near order between them.
+ * The absence of depth here is not the tunnel's artefact 04 restated — it is
+ * the pipeline's actual capability. No render target has a depth attachment
+ * (`gl-context.ts` attaches colour and nothing else), which is why the engine
+ * offers no depth test at all (D-074). The scene sorts itself instead: exact
+ * back-face rejection inside each convex solid, and a build-time-verified
+ * far-to-near order between them.
  */
 export const AMBIENT_SCENE: SceneDefinition = {
   id: 'ambient',
   vertex: AMBIENT_VERTEX,
   fragment: AMBIENT_FRAGMENT,
   geometry: AMBIENT_MESH,
-  depthTest: false,
   params: {
     /** Turns per second, as a multiple of each solid's own rate. */
     spin: { default: 1, min: 0, max: 4 },

@@ -627,16 +627,6 @@ describe('the ambient scene', () => {
     expect(AMBIENT_SCENE.params['swell']?.max).toBe(SWELL_CEILING);
   });
 
-  /**
-   * Not an aesthetic choice like the tunnel's: no render target in the pipeline
-   * has a depth attachment, so the test would be a comparison against a buffer
-   * that is not there. The scene sorts itself instead.
-   */
-  it('runs without a depth buffer, because there is not one to run with', () => {
-    expect(AMBIENT_SCENE.depthTest).toBe(false);
-    expect(AMBIENT_SCENE.vertex).toContain('vec4(2.0, 2.0, 2.0, 1.0)');
-  });
-
   it('binds its attributes where the vertex shader declares them', () => {
     const declared: readonly (readonly [number, number, string])[] = [
       [ATTRIBUTE_POSITION, 3, 'vec3 aPosition'],

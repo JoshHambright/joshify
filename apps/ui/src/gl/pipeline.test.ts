@@ -39,7 +39,6 @@ const TUBE_SCENE = {
     indices: new Uint16Array([0, 1, 2]),
     count: 3,
   },
-  depthTest: true,
   params: {},
 };
 
@@ -408,7 +407,14 @@ describe('drawing a frame', () => {
 
   // Depth belongs to the scene stage and nothing after it: the chain is flat
   // compositing, and the tunnel deliberately runs without a z-buffer.
-  it('takes the depth test from the scene and turns it off for the chain', () => {
+  /*
+   * Not "off for the chain, on for the scene": off everywhere, because there
+   * is nothing to test against. `createFramebuffer` attaches colour only, so
+   * enabling the depth test would silently always pass — a no-op wearing a
+   * z-buffer's name (D-074). This test is what stops it being switched on by
+   * someone who read `setDepthTest` and assumed it did something.
+   */
+  it('never enables the depth test, because there is no depth buffer', () => {
     const pipeline = createPipeline(fake.gl, {
       preset: preset(['grain'], 'tube'),
       outputSize: PANEL,
@@ -419,7 +425,7 @@ describe('drawing a frame', () => {
     pipeline.render(frame());
     const draws = fake.draws();
 
-    expect(draws[0]?.depthTest).toBe(true);
+    expect(draws[0]?.depthTest).toBe(false);
     expect(draws[1]?.depthTest).toBe(false);
     expect(draws[2]?.depthTest).toBe(false);
   });
