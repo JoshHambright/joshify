@@ -87,8 +87,8 @@ body.hud-off #osd .stamp.a{bottom:34px}
 #tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto}
 #tabs button{
   flex:1;background:transparent;border:0;border-right:1px solid var(--line);
-  color:var(--dust);font-family:var(--disp);font-weight:600;font-size:9.5px;letter-spacing:.12em;
-  padding:9px 2px;cursor:pointer;position:relative;
+  color:var(--dust);font-family:var(--disp);font-weight:600;font-size:8.5px;letter-spacing:.08em;
+  padding:9px 1px;cursor:pointer;position:relative;
 }
 #tabs button:last-child{border-right:0}
 #tabs button[aria-selected="true"]{color:var(--bone)}
@@ -160,6 +160,17 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
 .seg button[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone)}
 .seg button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 .seg.warm button[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+
+/* ---------- colour organ meters ---------- */
+.lamps{display:flex;flex-direction:column;gap:6px}
+.lamp{display:grid;grid-template-columns:38px 1fr;align-items:center;gap:9px}
+.lamp span{font-family:var(--disp);font-size:8px;font-weight:600;letter-spacing:.08em;color:var(--dust)}
+.lamp .bar{height:12px;background:var(--ink2);border:1px solid var(--line);overflow:hidden}
+.lamp .bar i{display:block;height:100%;width:0%;transition:width .04s linear}
+.lamp .bar.r i{background:#FF3B4E;box-shadow:0 0 10px #FF3B4E}
+.lamp .bar.g i{background:#4BE06A;box-shadow:0 0 10px #4BE06A}
+.lamp .bar.b i{background:#3E8BFF;box-shadow:0 0 10px #3E8BFF}
+@media (prefers-reduced-motion:reduce){ .lamp .bar i{transition:none} }
 
 .hdr{font-family:var(--disp);font-size:9px;font-weight:600;letter-spacing:.16em;color:var(--dust);
   border-bottom:1px solid var(--line);padding-bottom:5px;display:flex;justify-content:space-between}
@@ -269,6 +280,7 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
       <button role="tab" aria-selected="false" data-tab="seq">SEQ</button>
       <button role="tab" aria-selected="false" data-tab="sound">SOUND</button>
       <button role="tab" aria-selected="false" data-tab="visual">VISUAL</button>
+      <button role="tab" aria-selected="false" data-tab="light">LIGHT</button>
     </nav>
 
     <section class="pane on" data-pane="perform">
@@ -459,6 +471,54 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
       <b>RENDER</b> is the internal buffer resolution; drop it first if the frame
       rate sags.</p>
     </section>
+
+    <section class="pane" data-pane="light">
+      <div class="hdr">COLOUR ORGAN <span>THREE LAMPS, THREE BANDS</span></div>
+      <div class="lamps">
+        <div class="lamp"><span>LOW</span><div class="bar r"><i id="mLo"></i></div></div>
+        <div class="lamp"><span>MID</span><div class="bar g"><i id="mMd"></i></div></div>
+        <div class="lamp"><span>HIGH</span><div class="bar b"><i id="mHi"></i></div></div>
+      </div>
+      <div class="row">
+        <div class="ctl big"><label>ORGAN<i id="vOrgan">55</i></label>
+          <input type="range" id="sOrgan" min="0" max="100" value="55"></div>
+        <div class="ctl"><label>LAG<i id="vLag">55</i></label>
+          <input type="range" id="sLag" min="0" max="100" value="55"></div>
+      </div>
+
+      <div class="hdr">COLOUR WHEEL <span>SIX GELS</span></div>
+      <div class="row">
+        <div class="ctl big"><label>WHEEL<i id="vWheel">0</i></label>
+          <input type="range" id="sWheel" min="0" max="100" value="0"></div>
+        <div class="ctl"><label>SPIN<i id="vSpin">35</i></label>
+          <input type="range" id="sSpin" min="0" max="100" value="35"></div>
+      </div>
+
+      <div class="hdr">WET SLIDE <span>OIL, WATER, DYE</span></div>
+      <div class="row">
+        <div class="ctl big"><label>OIL<i id="vOil">0</i></label>
+          <input type="range" id="sOil" min="0" max="100" value="0"></div>
+        <div class="ctl"><label>VISCOSITY<i id="vVisc">45</i></label>
+          <input type="range" id="sVisc" min="0" max="100" value="45"></div>
+      </div>
+      <div class="row">
+        <div class="ctl"><label>DYE SURVIVAL<i id="vDye">60</i></label>
+          <input type="range" id="sDye" min="0" max="100" value="60"></div>
+      </div>
+      <div class="seg warm" id="dyesets"></div>
+
+      <p class="note">The dyes are transparent, so overlapping blobs
+      <b>multiply</b> rather than add — two colours cross to a deeper third
+      instead of washing toward white. The bright line at every boundary is the
+      caustic where the oil-water interface refracts the lamp.
+      <b>VISCOSITY</b> is the merge threshold: low pools the blobs into one
+      mass, high keeps them separate and tightens the rims.</p>
+      <p class="note"><b>DYE SURVIVAL</b> is how much of the image's own colour
+      lives through the film stock's grade. At zero you get the stock's
+      monochrome transfer; at full, the dye and lamp colours come through
+      whatever stock is loaded. The four-tone stocks ignore it — they are
+      monochrome by design.</p>
+    </section>
   </main>
 </div>
 
@@ -506,6 +566,7 @@ const P = {
   vmode:0, stock:1,
   trail:.78, chroma:.42, scan:.45, drift:.22, rscale:.62,
   flowAmt:.58, breath:.62, evolve:.55,
+  organ:.55, lag:.55, wheel:.00, spin:.35, oil:.00, visc:.45, dye:.60, dyeSet:0,
   fade:.50, track:.35, bleed:.50, halo:.40, curve:.32,
   fx:{stut:0,rev:0,crsh:0,drop:0,grain:0,fill:0,stop:0,wobl:0},
   latch:false, running:false, osd:true
@@ -532,6 +593,16 @@ const STOCKS = [
   {n:'DMG',    poster:1, fade:.30, c:[[.058,.078,.048],[.190,.310,.160],[.440,.600,.260],[.760,.850,.430]]},
   {n:'AMBER',  poster:1, fade:.26, c:[[.048,.036,.026],[.230,.115,.020],[.790,.430,.055],[1.00,.790,.330]]}
 ];
+
+/* Dye sets for the wet slide. Real light-show dyes are transparent, so they
+   mix subtractively — overlapping blobs multiply rather than add. */
+const DYES = [
+  {n:'SPECTRUM', c:[[1.00,.18,.42],[1.00,.55,.10],[.95,.90,.20],[.20,.90,.45],[.15,.60,1.0],[.62,.25,1.0]]},
+  {n:'WARM',     c:[[1.00,.20,.16],[1.00,.42,.08],[1.00,.70,.16],[.94,.28,.44],[.86,.14,.30],[1.00,.56,.32]]},
+  {n:'COOL',     c:[[.14,.70,1.00],[.20,.95,.80],[.42,.42,1.00],[.10,.50,.86],[.55,.30,1.00],[.20,.86,.95]]},
+  {n:'SPLIT',    c:[[1.00,.20,.50],[.15,.85,.95],[1.00,.20,.50],[.15,.85,.95],[1.00,.62,.14],[.15,.85,.95]]}
+];
+const NB = 6;   // blobs on the slide
 
 /* ------------------------------------------------------------
    PATTERN
@@ -975,6 +1046,7 @@ async function startAudio(){
   AU.ready = true;
   freqData = new Uint8Array(AU.an.frequencyBinCount);
   waveData = new Uint8Array(AU.an.fftSize);
+  computeBands();
 }
 
 /* ------------------------------------------------------------
@@ -1002,6 +1074,10 @@ uniform float uTime,uVt,uBass,uMid,uHigh,uLevel,uGlitch,uTrail,uDrift,uMode,uTil
 uniform float uFlow,uBreath,uSwirl,uInk,uAngle;
 uniform vec2 uV0,uV1,uV2;
 uniform vec3 uSpin;
+uniform float uOil,uVisc;
+uniform vec2 uBlob[6];
+uniform float uBlobR[6];
+uniform vec3 uDyeCol[6];
 
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
 float fq(float t){ return texture2D(uAud, vec2(clamp(t,0.0,1.0),0.25)).r; }
@@ -1093,6 +1169,32 @@ void main(){
     ink *= 0.85;
   }
 
+  /* ---- the wet slide -------------------------------------------------
+     Oil and water on a warm overhead. A metaball field gives blobs that
+     merge and split; the dyes are transparent, so they multiply rather than
+     add — overlapping colours go deep instead of washing to white, which is
+     the whole difference between a real light show and an additive fake.
+     The bright line at each boundary is the caustic where the oil-water
+     interface refracts the lamp. */
+  if(uOil > 0.004){
+    float fld = 0.0;
+    vec3  dye = vec3(1.0);
+    for(int i=0;i<6;i++){
+      vec2 d = (uv - uBlob[i])*vec2(asp,1.0);
+      float q = uBlobR[i]/(dot(d,d) + 0.0016);
+      fld += q;
+      dye *= mix(vec3(1.0), uDyeCol[i], clamp(q*1.3, 0.0, 1.0));
+    }
+    float t    = fld - mix(0.55, 1.70, uVisc);
+    float body = smoothstep(-0.20, 0.20, t);
+    float rim  = exp(-abs(t)*mix(3.0, 9.0, uVisc));
+    /* The caustic is far brighter than the dye field it borders — that ratio
+       is most of what sells it as refracted light rather than painted shapes.
+       Levels chosen so the body settles mid-tone and only the rim clips. */
+    vec3 oilCol = dye*body*0.30 + vec3(1.0,0.97,0.90)*rim*0.55;
+    ink = mix(ink, oilCol, uOil);
+  }
+
   /* A feedback buffer settles at ink/(1-decay). Scaling the deposit by
      (1-decay) holds that equilibrium fixed, so TRAIL changes how far the smear
      reaches without changing how bright the image gets — otherwise long trails
@@ -1115,7 +1217,21 @@ uniform sampler2D uSrc;
 uniform vec2 uRes;
 uniform float uTime,uChroma,uScan,uGlitch,uHigh;
 uniform float uTrack,uBleed,uHalo,uCurve,uFade,uPoster;
-uniform vec3 uC0,uC1,uC2,uC3;
+uniform float uOrgan,uWheel,uWheelAmt,uDye;
+uniform vec3 uC0,uC1,uC2,uC3,uLamp;
+
+/* Theatrical gel colours on a six-sector wheel. A real wheel puts one gel in
+   the beam at a time; only at a sector boundary do two split it, so the
+   crossover is quick rather than a smooth hue sweep. */
+vec3 gel(float i){
+  float k = mod(i, 6.0);
+  if(k < 0.5) return vec3(1.00,0.20,0.42);
+  if(k < 1.5) return vec3(1.00,0.62,0.12);
+  if(k < 2.5) return vec3(0.85,0.95,0.25);
+  if(k < 3.5) return vec3(0.16,0.90,0.55);
+  if(k < 4.5) return vec3(0.16,0.62,1.00);
+  return vec3(0.62,0.26,1.00);
+}
 
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
 float lum(vec2 p){ return dot(texture2D(uSrc,clamp(p,0.0,1.0)).rgb, vec3(0.333)); }
@@ -1151,7 +1267,8 @@ void main(){
   /* Colour-under: chroma carries less bandwidth than luma and lags to the
      right. Four taps rightward for red and blue, luma sampled clean. */
   float ca = 0.0012 + uChroma*0.010 + uHigh*0.004;
-  float lg = lum(uv);
+  vec3  src = texture2D(uSrc, clamp(uv,0.0,1.0)).rgb;
+  float lg = dot(src, vec3(0.333));
   float lr = 0.0, lb = 0.0;
   for(int i=0;i<4;i++){
     float o = float(i)*uBleed*0.006;
@@ -1166,6 +1283,16 @@ void main(){
 
   vec3 col = vec3(ramp(lr).r, ramp(lg).g, ramp(lb).b);
 
+  /* The stock grade maps luminance, which throws the hue away — fine for a
+     monochrome transfer, fatal for dye and lamp colour. Re-apply the source's
+     own colour as a ratio so the grade keeps its tonal character while the
+     chroma survives. Never on the four-tone stocks: they are mono by design. */
+  float dyeAmt = uDye*(1.0-uPoster);
+  if(dyeAmt > 0.004){
+    vec3 chroma = src / max(lg, 0.004);
+    col *= mix(vec3(1.0), clamp(chroma, 0.0, 2.6), dyeAmt);
+  }
+
   /* halation — light blooming into the emulsion around it */
   if(uHalo > 0.01){
     float h = 0.0;
@@ -1174,6 +1301,17 @@ void main(){
     h += lum(uv+vec2( 0.008,-0.012));
     h += lum(uv+vec2(-0.009,-0.010));
     col += ramp(h*0.25)*uHalo*0.32;
+  }
+
+  /* colour organ: three lamps on the audio bands. The floor keeps the image
+     from going black between hits — a filament never fully cools either. */
+  if(uOrgan > 0.004) col *= mix(vec3(1.0), (vec3(0.45)+uLamp*0.85)*1.25, uOrgan);
+
+  /* colour wheel in front of the lamp */
+  if(uWheelAmt > 0.004){
+    float wp = uWheel*0.9549297;
+    vec3 wcol = mix(gel(floor(wp)), gel(floor(wp)+1.0), smoothstep(0.70,1.0,fract(wp)));
+    col *= mix(vec3(1.0), wcol*1.30, uWheelAmt);
   }
 
   /* tracking band lifts the whole area, like gain riding on a bad transport */
@@ -1312,6 +1450,50 @@ const D = {
 // slows the structure without freezing the fast artefacts driven by uTime.
 let vt=0, vAngle=0, vSwirl=0;
 const VC=[[0.5,0.5],[0.5,0.5],[0.5,0.5]];
+const SP=[0,0,0];
+
+/* ---- colour organ -------------------------------------------------------
+   Three lamps on three bands. What makes it read as hardware rather than a
+   level meter is the ballistics: a filament heats fast and cools slowly, so
+   attack and decay are asymmetric by an order of magnitude.               */
+let lampR=0, lampG=0, lampB=0;
+let BAND=null;
+function computeBands(){
+  const N = AU.an.frequencyBinCount, nyq = AU.ctx.sampleRate/2;
+  const b = hz => clamp(Math.round(hz/nyq*N), 0, N-1);
+  BAND = { lo:[b(30),b(180)], mid:[b(180),b(1200)], hi:[b(1200),b(7000)] };
+}
+function bandAvg(r){
+  let s=0; for(let i=r[0];i<r[1];i++) s+=freqData[i];
+  return r[1]>r[0] ? s/((r[1]-r[0])*255) : 0;
+}
+
+/* ---- the wet slide ------------------------------------------------------
+   Blobs are advected by the same vortex field the feedback buffer uses, so
+   the oil and the smear move as one system rather than two.               */
+function flowAt(x,y){
+  let vx=0, vy=0;
+  for(let i=0;i<3;i++){
+    const dx=x-VC[i][0], dy=y-VC[i][1];
+    const r2=dx*dx+dy*dy+0.045;
+    vx += -dy*SP[i]/r2; vy += dx*SP[i]/r2;
+  }
+  vx += 0.55*Math.sin(y*7.3 - vt*0.21);
+  vy += 0.55*Math.cos(x*6.1 + vt*0.17);
+  const m = 1/(1+Math.hypot(vx,vy)*0.55);
+  return [vx*m, vy*m];
+}
+const blobs=[];
+for(let i=0;i<NB;i++) blobs.push({
+  x:rnd(), y:rnd(),
+  r0:lerp(0.009,0.021,rnd()),
+  rw:0.13+rnd()*0.24, rp:rnd()*TAU,
+  px:rnd()*TAU, py:rnd()*TAU,
+  pxs:0.041+rnd()*0.052, pys:0.037+rnd()*0.049
+});
+const blobPos=new Float32Array(NB*2), blobRad=new Float32Array(NB);
+const dyeCol =new Float32Array(NB*3);
+let wheelAng=0;
 
 function frame(now){
   requestAnimationFrame(frame);
@@ -1329,22 +1511,21 @@ function frame(now){
   const fFlow=D.flow.tick(dEv), fBreath=D.breath.tick(dEv), fInk=D.ink.tick(dEv);
   vAngle += D.angVel.tick(dEv)*dtS*(0.3+ev);
   const s0=D.spin[0].tick(dEv), s1=D.spin[1].tick(dEv), s2=D.spin[2].tick(dEv);
+  SP[0]=s0; SP[1]=s1; SP[2]=s2;
   vSwirl = (s0+s1+s2)/3;
   for(let i=0;i<3;i++){
     VC[i][0] = 0.5 + 0.33*Math.sin(vt*(0.101+i*0.037) + i*2.399);
     VC[i][1] = 0.5 + 0.33*Math.cos(vt*(0.087+i*0.041) + i*1.117);
   }
+  wheelAng += dtS*P.spin*1.9;
 
   let bass=0,mid=0,high=0,lvl=0;
   if(AU.ready && P.running){
     AU.an.getByteFrequencyData(freqData);
     AU.an.getByteTimeDomainData(waveData);
-    const N=freqData.length;
-    for(let i=0;i<N;i++){
-      const v=freqData[i]/255;
-      if(i< N*0.08) bass+=v; else if(i<N*0.35) mid+=v; else high+=v;
-    }
-    bass/=(N*0.08); mid/=(N*0.27); high/=(N*0.65);
+    // real Hz ranges, not fractions of the bin count — at fftSize 512 a bin is
+    // ~86 Hz, so "the first 8% of bins" reached 1.7 kHz and was never bass
+    bass = bandAvg(BAND.lo); mid = bandAvg(BAND.mid); high = bandAvg(BAND.hi);
     lvl = peak;
   } else {
     bass = 0.25+0.25*Math.sin(t*1.3);
@@ -1356,7 +1537,36 @@ function frame(now){
   bassE=lerp(bassE,bass,0.22); midE=lerp(midE,mid,0.22);
   highE=lerp(highE,high,0.30); lvlE=lerp(lvlE,lvl,0.25);
 
+  // lamp ballistics, made frame-rate independent so a slow device glows the same
+  const kA = 1-Math.pow(1-0.42, dtS*60);
+  const kD = 1-Math.pow(1-lerp(0.17,0.020,P.lag), dtS*60);
+  lampR += (bass-lampR)*(bass>lampR?kA:kD);
+  lampG += (mid -lampG)*(mid >lampG?kA:kD);
+  lampB += (high-lampB)*(high>lampB?kA:kD);
+
+  // blobs: advected by the flow field, pulled back toward a drifting home so
+  // they stay distributed instead of collecting in one vortex
+  if(P.oil > 0.004){
+    const push = P.flowAmt*fFlow*0.048;
+    for(let i=0;i<NB;i++){
+      const b=blobs[i];
+      const [fx,fy]=flowAt(b.x,b.y);
+      const hx = 0.5+0.34*Math.sin(vt*b.pxs+b.px);
+      const hy = 0.5+0.34*Math.cos(vt*b.pys+b.py);
+      b.x = clamp(b.x + fx*push*dtS + (hx-b.x)*0.30*dtS, -0.2, 1.2);
+      b.y = clamp(b.y + fy*push*dtS + (hy-b.y)*0.30*dtS, -0.2, 1.2);
+      blobPos[i*2]=b.x; blobPos[i*2+1]=b.y;
+      // the lamp is also the heat source, so bass swells the blobs
+      blobRad[i] = b.r0*(0.70+0.55*Math.sin(vt*b.rw+b.rp))*(1+lampR*0.55);
+    }
+    const dset = DYES[P.dyeSet].c;
+    for(let i=0;i<NB;i++){
+      dyeCol[i*3]=dset[i][0]; dyeCol[i*3+1]=dset[i][1]; dyeCol[i*3+2]=dset[i][2];
+    }
+  }
+
   updateOsd(now);
+  updateLamps();
   if(!gl) return;
 
   // A procedural bed under the analyser data, fading out as real signal
@@ -1411,6 +1621,13 @@ function frame(now){
   gl.uniform2f(pFeed.u.uV1,VC[1][0],VC[1][1]);
   gl.uniform2f(pFeed.u.uV2,VC[2][0],VC[2][1]);
   gl.uniform3f(pFeed.u.uSpin,s0,s1,s2);
+  gl.uniform1f(pFeed.u.uOil,P.oil);
+  gl.uniform1f(pFeed.u.uVisc,P.visc);
+  if(P.oil>0.004){
+    gl.uniform2fv(pFeed.u['uBlob[0]'],blobPos);
+    gl.uniform1fv(pFeed.u['uBlobR[0]'],blobRad);
+    gl.uniform3fv(pFeed.u['uDyeCol[0]'],dyeCol);
+  }
   drawQuad(pFeed);
 
   if(P.vmode===3){
@@ -1459,6 +1676,11 @@ function frame(now){
   gl.uniform1f(pPres.u.uCurve,P.curve);
   gl.uniform1f(pPres.u.uFade,P.fade);
   gl.uniform1f(pPres.u.uPoster,stk.poster);
+  gl.uniform1f(pPres.u.uOrgan,P.organ);
+  gl.uniform1f(pPres.u.uWheel,wheelAng);
+  gl.uniform1f(pPres.u.uWheelAmt,P.wheel);
+  gl.uniform1f(pPres.u.uDye,P.dye);
+  gl.uniform3f(pPres.u.uLamp,lampR,lampG,lampB);
   gl.uniform3fv(pPres.u.uC0,stk.c[0]);
   gl.uniform3fv(pPres.u.uC1,stk.c[1]);
   gl.uniform3fv(pPres.u.uC2,stk.c[2]);
@@ -1531,6 +1753,13 @@ bindSlider('#sDrift','#vDrift','drift');
 bindSlider('#sFlow','#vFlow','flowAmt');
 bindSlider('#sBreath','#vBreath','breath');
 bindSlider('#sEvolve','#vEvolve','evolve');
+bindSlider('#sOrgan','#vOrgan','organ');
+bindSlider('#sLag','#vLag','lag');
+bindSlider('#sWheel','#vWheel','wheel');
+bindSlider('#sSpin','#vSpin','spin');
+bindSlider('#sOil','#vOil','oil');
+bindSlider('#sVisc','#vVisc','visc');
+bindSlider('#sDye','#vDye','dye');
 bindSlider('#sFade','#vFade','fade');
 bindSlider('#sTrack','#vTrack','track');
 bindSlider('#sBleed','#vBleed','bleed');
@@ -1550,6 +1779,7 @@ sScale.addEventListener('input',()=>{
 segment('#scales', SCALES.map(s=>s.n), 'scaleIx', updateKeyLabel);
 segment('#dtimes', DIVS.map(d=>d.n),   'delayDiv');
 segment('#vmodes', VMODES,             'vmode');
+segment('#dyesets', DYES.map(d=>d.n), 'dyeSet');
 segment('#stocks', STOCKS.map(s=>s.n), 'stock', (i)=>{
   // each stock carries the wash it was born with; the slider still overrides
   P.fade = STOCKS[i].fade; syncCtl('fade');
@@ -1599,7 +1829,17 @@ const PRESETS=[
     cutoff:.34,rot:.60,smear:.62,space:.74,drive:.30,delayDiv:4,dcrush:.90,
     vmode:3,stock:5,trail:.92,chroma:.72,scan:.44,drift:.40,
     flowAmt:1.0,breath:.90,evolve:.26,
-    fade:.72,track:.60,bleed:.66,halo:.58,curve:.38}}
+    organ:.30,lag:.70,wheel:.00,spin:.20,oil:.00,visc:.45,dye:.30,
+    fade:.72,track:.60,bleed:.66,halo:.58,curve:.38}},
+
+  {n:'LIQUID', p:{bpm:76,swing:.30,scaleIx:3,root:5,density:.36,chaos:.12,
+    bass:.62,lead:.42,perc:.50,bell:.82,drone:.44,
+    age:.34,wow:.36,hiss:.22,dust:.28,wear:.14,
+    cutoff:.60,rot:.06,smear:.40,space:.62,drive:.20,delayDiv:3,dcrush:.34,
+    vmode:1,stock:0,trail:.88,chroma:.26,scan:.22,drift:.16,
+    flowAmt:.62,breath:.74,evolve:.42,
+    organ:.44,lag:.62,wheel:.34,spin:.22,oil:.88,visc:.42,dye:.95,dyeSet:0,
+    fade:.20,track:.06,bleed:.34,halo:.62,curve:.34}}
 ];
 function applyPreset(i){
   const p = PRESETS[i].p;
@@ -1753,6 +1993,13 @@ const osdDate = (()=> {
   return MONTHS[m]+' '+(d<10?'0':'')+d+' '+y;
 })();
 $('#osdDate').textContent = osdDate;
+const mLo=$('#mLo'), mMd=$('#mMd'), mHi=$('#mHi');
+function updateLamps(){
+  mLo.style.width=(clamp(lampR,0,1)*100).toFixed(1)+'%';
+  mMd.style.width=(clamp(lampG,0,1)*100).toFixed(1)+'%';
+  mHi.style.width=(clamp(lampB,0,1)*100).toFixed(1)+'%';
+}
+
 let osdT0=performance.now();
 function updateOsd(now){
   if(!P.osd) return;

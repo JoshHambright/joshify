@@ -19,7 +19,8 @@ so it survives the container.
 | Audio | One `ScriptProcessorNode`. Every sample — sequencer, voices, effects, media decay — computed in JS |
 | Visual | WebGL1 ping-pong feedback, driven by an `AnalyserNode` uploaded as a 256×2 texture, graded through a four-colour stock |
 | Motion | The previous frame is advected along a vortex flow field; the long-form structure comes from random walks with no period |
-| Control | Multi-touch XY field, eight momentary pads, a 16-step × 5-track grid, five whole-instrument scenes |
+| Light | A colour organ on three bands, a six-gel colour wheel, and an oil-and-water wet slide with subtractive dyes |
+| Control | Multi-touch XY field, eight momentary pads, a 16-step × 5-track grid, six whole-instrument scenes |
 
 Five voices — bass, pulse lead, noise perc, 2-op FM bell, three-saw drone — run
 off swung Euclidean patterns with a per-step chaos probability. Master chain:
@@ -47,6 +48,8 @@ Everything from `TAPE` on is scaled by one **AGE** macro.
 | Feedback buffers are the whole visual | Six modes share one ping-pong pass; the modes differ only in what ink they add on top |
 | Advection, not scaling, is what reads as organic | A vortex field moves material along curved paths; an affine zoom moves every pixel toward one point, which is why it looked static |
 | A random walk is the only real cure for "it loops" | Sine-driven motion has a period the eye finds in seconds; the drifts have no period at all |
+| Transparent dyes must multiply, not add | Overlapping blobs cross to a deeper third colour instead of washing to white — the difference between a light show and an additive fake |
+| A luminance grade cannot carry a colour effect | Re-applying source chroma as a ratio keeps the stock's tone curve while letting dye and lamp colour through |
 | Low internal resolution reads as *more* glitch | Feedback renders at 30–100% (`RENDER`), presents at full — same finding as D-011 |
 
 ## Techniques worth keeping
@@ -164,6 +167,60 @@ col += ink*(0.70+uLevel*0.45)*uInk*(1.0-decay)*2.6;
 This was a real bug, not a tuning preference: it only became visible once a mode
 laid down broad soft ink instead of thin lines.
 
+**Subtractive dye mixing is the whole liquid light show.** Real wet-slide dyes
+are transparent, so overlapping layers *multiply*. Additive RGB washes overlaps
+toward white; multiplication takes them to a deeper third colour. Accumulating
+the metaball field and the dye product in the same loop costs nothing extra:
+
+```glsl
+float fld = 0.0;
+vec3  dye = vec3(1.0);
+for(int i=0;i<6;i++){
+  vec2 d = (uv - uBlob[i])*vec2(asp,1.0);
+  float q = uBlobR[i]/(dot(d,d) + 0.0016);
+  fld += q;                                              // metaball field
+  dye *= mix(vec3(1.0), uDyeCol[i], clamp(q*1.3,0.0,1.0)); // transparent layers
+}
+```
+
+The second signature is the **caustic**: the oil-water interface refracts the
+lamp, so every blob boundary carries a line far brighter than the dye it
+borders. `exp(-abs(fld - threshold)*k)` puts a band exactly at the interface,
+and the body/rim brightness ratio (0.30 vs 0.55) is most of what makes it read
+as refracted light rather than painted shapes.
+
+**Blobs are advected by the same vortex field as the feedback buffer.** Six
+points integrated on the CPU through the identical function the shader uses,
+with a restoring pull toward a slowly drifting home so they stay distributed
+instead of collecting in one vortex. The oil and the smear are then one system,
+not two effects that happen to share a screen.
+
+**Colour organ ballistics.** Three lamps on three bands is trivial; what makes
+it read as hardware is that a filament heats fast and cools slowly. Attack and
+decay differ by an order of magnitude, and the coefficients are frame-rate
+normalised so a slow device glows the same:
+
+```js
+const kA = 1-Math.pow(1-0.42, dtS*60);                 // heating
+const kD = 1-Math.pow(1-lerp(0.17,0.020,P.lag), dtS*60); // cooling
+lampR += (bass-lampR)*(bass>lampR ? kA : kD);
+```
+
+The band split also had to be fixed to real Hz. At `fftSize` 512 a bin is
+~86 Hz, so the old "first 8% of bins" reached 1.7 kHz and was never bass.
+
+**Chroma has to survive the stock grade.** The present pass maps *luminance*
+through the four-colour ramp, which is right for a monochrome transfer and
+fatal for dye and lamp colour. Re-applying the source's colour as a ratio keeps
+the grade's tonal character while letting hue through:
+
+```glsl
+vec3 chroma = src / max(lg, 0.004);
+col *= mix(vec3(1.0), clamp(chroma,0.0,2.6), uDye*(1.0-uPoster));
+```
+
+Gated off for the four-tone stocks, which are monochrome by design.
+
 **Four-colour stocks as uniforms, not shader branches.** `c0` ground, `c1`
 shadow, `c2` accent, `c3` highlight, passed as four `vec3`s and applied as one
 luminance ramp. Adding a stock is a JS literal; the shader never changes. The
@@ -208,6 +265,7 @@ Computing distance-to-curve per fragment would be ~48 texture fetches per pixel.
 | BASEMENT | 88 BPM Phrygian, VHS, moderate damage |
 | TRACKING | Transport failure — dropouts, head-switch tear, chroma smear |
 | ARCADE | 132 BPM pentatonic, DMG four-tone green, minimal decay |
+| LIQUID | Wet slide over a tunnel, colour organ up, dye survival near full |
 | RUINED | AGE at maximum. Barely holds together, which is the point |
 
 ## Mobile notes
