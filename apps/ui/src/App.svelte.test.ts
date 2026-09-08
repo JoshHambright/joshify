@@ -881,11 +881,163 @@ describe('the visualiser mode', () => {
     }
   });
 
-  it('hands the panel over on the Visual chip, without waiting to be left alone', async () => {
+  /*
+   * The chip opens the list rather than going straight to full screen. The
+   * panel gets to full on its own after forty-five seconds, so the thing the
+   * chip is actually useful for is choosing what it will show when it does.
+   */
+  it('opens the visuals list from the chip', async () => {
     mountApp();
 
     await fireEvent.click(screen.getByText('Visual'));
 
+    expect(screen.getByRole('heading', { name: 'Visuals' })).toBeDefined();
+    expect(chromeShown()).toBe(true);
+  });
+
+  it('hands the panel over from the list, without waiting to be left alone', async () => {
+    mountApp();
+
+    await fireEvent.click(screen.getByText('Visual'));
+    await fireEvent.click(screen.getByText('Take the panel'));
+
     expect(chromeShown()).toBe(false);
+  });
+
+  // The plate is about to be hidden. A surface left open behind it means the
+  // next touch brings back a screen nobody asked for.
+  it('closes the visuals list on the way to full screen', async () => {
+    mountApp();
+
+    await fireEvent.click(screen.getByText('Visual'));
+    await fireEvent.click(screen.getByText('Take the panel'));
+    await fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('heading', { name: 'Visuals' })).toBeNull();
+  });
+});
+
+/*
+ * Choosing a theme (P5-36).
+ *
+ * A theme is a whole machine (D-017), so one tap has to move three things: the
+ * look the visualiser renders, the chrome tokens, and — only where the idiom
+ * demands it — the palette. The first is asserted in the visualiser's own
+ * tests; the two that are CSS are asserted here, against the same injected
+ * style target the album colour is.
+ */
+describe('choosing a theme', () => {
+  /** A distinctly non-default album colour, so a fallback is unambiguous. */
+  const AMBER = {
+    surface: '#12100e',
+    foreground: '#f6f1ea',
+    accent: '#e0a23c',
+    onAccent: '#12100e',
+    controlTint: '#9c7a3f',
+  };
+
+  const openVisuals = async () => {
+    await fireEvent.click(screen.getByText('Visual'));
+  };
+
+  it('lists the shipped themes with the look each one names', async () => {
+    mountApp();
+    await openVisuals();
+
+    expect(screen.getByRole('button', { name: /Night/ })).toBeDefined();
+    expect(screen.getByRole('button', { name: /VGA/ })).toBeDefined();
+  });
+
+  it('starts on the default, with the album still driving the colour', () => {
+    const { theme } = mountApp({
+      connection: fakeConnection({ state: playing({ theme: AMBER }) }),
+    });
+
+    expect(theme.properties.get('--joshify-surface')).toBe(AMBER.surface);
+  });
+
+  // The one place in the product where the album stops choosing the colour:
+  // eight stops per channel cannot absorb an arbitrary sleeve hue.
+  it('takes the pinned palette of a theme that has one', async () => {
+    const { theme } = mountApp();
+    await openVisuals();
+
+    await fireEvent.click(screen.getByRole('button', { name: /VGA/ }));
+
+    expect(theme.properties.get('--joshify-surface')).toBe('#0c0c3a');
+  });
+
+  it('writes that theme’s chrome as well as its colour', async () => {
+    const { theme } = mountApp();
+    await openVisuals();
+
+    await fireEvent.click(screen.getByRole('button', { name: /VGA/ }));
+
+    expect(theme.properties.get('--jf-plate-radius')).toBe('0px');
+    expect(theme.properties.get('--jf-plate-blur')).toBe('0px');
+  });
+
+  /*
+   * The half that is easy to leave out. An inline custom property outranks the
+   * stylesheet, so a theme that says nothing about a token only gets the
+   * default back if the previous theme's value is actually removed — otherwise
+   * the panel accumulates chrome from every theme it has passed through
+   * (D-073).
+   */
+  it('unsets the chrome of the theme it replaced', async () => {
+    const { theme } = mountApp();
+    await openVisuals();
+
+    await fireEvent.click(screen.getByRole('button', { name: /VGA/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /Night/ }));
+
+    expect(theme.properties.has('--jf-plate-radius')).toBe(false);
+  });
+
+  it('hands the album back the colour when a pinning theme is left', async () => {
+    const { theme } = mountApp({
+      connection: fakeConnection({ state: playing({ theme: AMBER }) }),
+    });
+    await openVisuals();
+
+    await fireEvent.click(screen.getByRole('button', { name: /VGA/ }));
+    expect(theme.properties.get('--joshify-surface')).toBe('#0c0c3a');
+
+    await fireEvent.click(screen.getByRole('button', { name: /Reef/ }));
+    expect(theme.properties.get('--joshify-surface')).toBe(AMBER.surface);
+  });
+
+  it('never writes a chrome token a theme is not allowed to reach', async () => {
+    const { theme } = mountApp();
+    await openVisuals();
+
+    await fireEvent.click(screen.getByRole('button', { name: /VGA/ }));
+
+    for (const property of ['--jf-ink', '--jf-plate-scrim', '--jf-touch']) {
+      expect(theme.properties.has(property), property).toBe(false);
+    }
+  });
+
+  // Shuffle changes the *look* on every track and leaves the chrome and
+  // palette alone: shuffling whole themes would repaint the panel and reshape
+  // its corners every three minutes, which is a fault rather than a mode.
+  it('offers look shuffle separately from the theme', async () => {
+    mountApp();
+    await openVisuals();
+
+    const toggle = screen.getByRole('button', { name: 'Shuffle looks' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+
+    await fireEvent.click(toggle);
+    expect(
+      screen.getByRole('button', { name: 'Shuffle looks' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('says so when the browser cannot run the scene, rather than hiding the list', async () => {
+    mountApp();
+    await openVisuals();
+
+    expect(screen.getByText(/no WebGL2/)).toBeDefined();
   });
 });

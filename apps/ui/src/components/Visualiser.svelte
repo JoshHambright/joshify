@@ -43,6 +43,10 @@
     modes: ModeMachine;
     /** False in `now-playing`, where the canvas is transparent anyway. */
     active: boolean;
+    /** The look the chosen theme names, or null before one has resolved. */
+    lookId?: string | null | undefined;
+    /** Change the look on every track, keeping the theme's chrome and palette. */
+    shuffle?: boolean | undefined;
     /** Called once if this browser cannot give us a context. */
     onUnavailable?: (() => void) | undefined;
     /** All four injected so the whole component can be mounted in jsdom. */
@@ -60,6 +64,8 @@
     trackKey,
     modes,
     active,
+    lookId = null,
+    shuffle = false,
     onUnavailable,
     createContext = realContext,
     schedule = (run) => requestAnimationFrame(run),
@@ -159,6 +165,12 @@
   });
   $effect(() => {
     engine?.setTrack(trackKey);
+  });
+  $effect(() => {
+    if (lookId !== null) engine?.selectLook(lookId);
+  });
+  $effect(() => {
+    engine?.setShuffle(shuffle);
   });
   $effect(() => {
     if (engine === null) return;

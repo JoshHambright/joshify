@@ -201,11 +201,15 @@ export const buildThemes = (
  * Exists so the caller never writes `theme.palette ?? albumTheme` by hand and
  * gets the fallback backwards once — which is a panel that ignores the album
  * on every theme, and looks like the extractor broke.
+ *
+ * Takes a nullable theme because "no theme resolved" and "this theme pins
+ * nothing" want the same answer, and making the caller special-case one of
+ * them is how the fallback gets written backwards in the first place.
  */
 export const paletteFor = (
-  theme: Theme,
+  theme: Theme | null,
   album: ThemeTokens = DEFAULT_THEME,
-): ThemeTokens => theme.palette ?? album;
+): ThemeTokens => theme?.palette ?? album;
 
 /** The ids, in picker order. Exported so a test can hold the order still. */
 export const THEME_IDS: readonly string[] = THEMES.map((theme) => theme.id);

@@ -27,6 +27,7 @@
   import StatusRail from './components/StatusRail.svelte';
   import Transport from './components/Transport.svelte';
   import Visualiser from './components/Visualiser.svelte';
+  import VisualList from './components/VisualList.svelte';
   import { resolvedArtwork } from './lib/artwork.js';
   import { controlsDisabled, noticeFor } from './lib/notices.js';
   import { dismissible } from './lib/dismissible.js';
@@ -41,6 +42,8 @@
   import type { QueueSource } from './lib/queue-source.js';
   import type { SearchSource } from './lib/search-source.js';
   import { createModeMachine, type ModeState } from './gl/modes.js';
+  import { buildThemes, paletteFor } from './gl/themes.js';
+  import { createChromeApplier, type ChromeApplier } from './lib/chrome.js';
   import { DEFAULT_THEME, playingItemKey } from '@joshify/core';
   import type { LibraryItem, LibrarySection } from './lib/thumbnails.js';
 
@@ -84,7 +87,24 @@
   }: Props = $props();
 
   /** The plate at rest, or the plate grown. That is the whole of navigation. */
-  let surface = $state<'now-playing' | 'devices' | 'queue' | 'search'>('now-playing');
+  let surface = $state<'now-playing' | 'devices' | 'queue' | 'search' | 'visuals'>(
+    'now-playing',
+  );
+  /*
+   * The theme roster (P5-31), built once.
+   *
+   * A theme that will not resolve is dropped rather than shown — `buildThemes`
+   * returns why — so this list is only ever themes that actually work. There
+   * is always at least one: `night` names the default look, and a build with
+   * no themes at all would have failed its own test long before here.
+   */
+  const { themes: visualThemes } = buildThemes();
+  let themeId = $state(visualThemes[0]?.id ?? 'night');
+  let shuffleLooks = $state(false);
+  const activeTheme = $derived(
+    visualThemes.find((theme) => theme.id === themeId) ?? visualThemes[0] ?? null,
+  );
+
   /** How far a dismiss gesture has dragged the grown surface. */
   let dragOffset = $state(0);
   let clock = $state('--:--');
@@ -124,8 +144,29 @@
     // Built on first run rather than at init: writing five custom properties
     // is a side effect, and side effects belong in an effect.
     applier ??= createThemeApplier(themeTarget ?? document.documentElement);
-    const theme = playback?.theme;
-    if (theme !== undefined) applier.apply(theme);
+    const album = playback?.theme;
+    // Nothing to say yet: no theme has pinned a palette and no album has
+    // arrived. Writing the neutral default here would be the flicker D-050
+    // exists to avoid, one frame before the real colour lands.
+    if ((activeTheme?.palette ?? null) === null && album === undefined) return;
+    applier.apply(paletteFor(activeTheme, album ?? DEFAULT_THEME));
+  });
+
+  /**
+   * The chosen theme's chrome (P5-32).
+   *
+   * A separate applier from the palette's because the two change on different
+   * clocks: the palette moves with the album, several times an hour, and the
+   * chrome moves only when somebody picks a different theme. It also *unsets*
+   * what the last theme wrote, which is the half that is easy to leave out —
+   * an inline custom property outranks the stylesheet, so a theme that says
+   * nothing about a token only gets the default if the previous value is
+   * removed (D-073).
+   */
+  let chrome: ChromeApplier | null = null;
+  $effect(() => {
+    chrome ??= createChromeApplier(themeTarget ?? document.documentElement);
+    chrome.apply(activeTheme?.chrome ?? {});
   });
   const controlsOff = $derived(controlsDisabled(notice));
 
@@ -260,9 +301,21 @@
     event.preventDefault();
   };
 
-  const showVisuals = (): void => {
+  const takePanel = (): void => {
     modes.setMode('full', monotonic());
     modeState = modes.state();
+    // The plate is about to be hidden; leaving a grown surface open behind it
+    // means the next touch brings back a screen nobody asked for.
+    surface = 'now-playing';
+  };
+
+  const showVisuals = (): void => {
+    surface = 'visuals';
+    // Nothing to open: the theme roster is built at start-up and polls nothing.
+    // Closing the other two matters, though — a list left polling behind a
+    // surface nobody is looking at is the exact waste D-051 set out to stop.
+    devices.close();
+    queue.close();
   };
 
   const tickClock = (): void => {
@@ -301,6 +354,8 @@
         trackKey={playingItemKey(item)}
         {modes}
         active={visualiserActive}
+        lookId={activeTheme?.preset.id ?? null}
+        shuffle={shuffleLooks}
         onUnavailable={() => {
           // Not an error: a panel with the CSS wash and no visualiser is a
           // complete product, and the controls must not go down with it.
@@ -370,6 +425,30 @@
             onQueryChange={runQuery}
             onPlay={play}
             onLoadMore={loadMore}
+          />
+        </div>
+      {:else if surface === 'visuals'}
+        <div class="grown" style="--drag: {dragOffset}px">
+          <div
+            class="grown-head"
+            use:dismissible={{ onDismiss: showNowPlaying, onOffset: setDrag }}
+          >
+            <span class="grip" aria-hidden="true"></span>
+            <h2 class="jf-label heading">Visuals</h2>
+            <button class="close" type="button" onclick={showNowPlaying}>Done</button>
+          </div>
+          <VisualList
+            themes={visualThemes}
+            currentId={activeTheme?.id ?? ''}
+            shuffle={shuffleLooks}
+            available={visualiserAvailable}
+            onSelect={(id: string) => {
+              themeId = id;
+            }}
+            onShuffle={(on: boolean) => {
+              shuffleLooks = on;
+            }}
+            onFullScreen={takePanel}
           />
         </div>
       {:else if notice !== null}
