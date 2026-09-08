@@ -4,41 +4,236 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Joshify — panel</title>
+
+    <!--
+      The two label faces SCREENS.md specifies, from Google Fonts.
+
+      Self-hosted on the device (Q7) and fetched here, because a review that
+      renders the type in a fallback face is reviewing a different design. The
+      bench is the only thing on this page allowed to need the network.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700;800&family=Barlow+Condensed:wght@500;600&family=Share+Tech+Mono&display=swap"
+    />
+
     <style>
-      body {
-        display: grid;
-        grid-template-rows: 1fr auto;
-        height: 100vh;
-        margin: 0;
-        background: #000;
+      /* ==========================================================================
+   The bench. Everything below is review chrome and ships on no device.
+
+   It is deliberately quiet: the panel is the only thing on this page with a
+   colour that moves, and any accent out here would compete with the album's.
+   The two label faces are the ones SCREENS.md already specifies — loaded from
+   Google Fonts here, self-hosted on the Pi, because a review that renders the
+   type wrong is reviewing the wrong thing.
+   ========================================================================== */
+      :root {
+        --bench: #0a0a0c;
+        --bench-rail: #15151b;
+        --bench-line: #26262f;
+        --bench-ink: #b6b2c2;
+        --bench-ink-dim: #74707f;
       }
-      #harness {
+
+      /* tokens.css legitimately claims the whole document on the device, where the
+   panel *is* the page. Here it is one object on a bench, so the claim is
+   handed back. */
+      html,
+      body {
+        height: auto;
+        overflow: visible;
+        background: var(--bench);
+        color: var(--bench-ink);
+      }
+
+      .bench {
         display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        padding: 28px 16px 40px;
+        min-height: 100vh;
+        box-sizing: border-box;
+        background: var(--bench);
+      }
+
+      .masthead {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+      }
+
+      .masthead h1 {
+        margin: 0;
+        font-family: 'Archivo', system-ui, sans-serif;
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #e9e6f0;
+      }
+
+      .spec {
+        margin: 0;
+        font-family: 'Share Tech Mono', ui-monospace, monospace;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--bench-ink-dim);
+      }
+
+      /* The device sits at true pixels, halved.
+   On the Pi the panel *is* the page and sizes itself from the viewport; on a
+   bench it is one object among several, so the scale is pinned here instead.
+   `zoom` rather than `transform`, for the same reason the panel uses it:
+   transform scales the paint but not the layout box, which is precisely the
+   bug that made the first prototype overflow its own stage. */
+      .device {
+        --review-scale: 0.5;
+        width: calc(720px * var(--review-scale));
+        height: calc(1280px * var(--review-scale));
+        border: 1px solid var(--bench-line);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgb(0 0 0 / 0.6);
+      }
+
+      #panel,
+      #panel > :first-child {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      #panel .panel {
+        zoom: var(--review-scale);
+      }
+
+      /* A tall enough window can show it larger; a short one must not push the
+   controls off the bottom, which is the only way to review a state you cannot
+   reach. */
+      @media (min-height: 1000px) {
+        .device {
+          --review-scale: 0.62;
+        }
+      }
+
+      .rail {
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         justify-content: center;
-        padding: 10px;
-        background: #101014;
-        font:
-          12px system-ui,
-          sans-serif;
+        align-items: center;
+        padding: 10px 14px;
+        border: 1px solid var(--bench-line);
+        border-radius: 12px;
+        background: var(--bench-rail);
       }
-      #harness button {
-        padding: 7px 12px;
-        border: 1px solid #333;
-        border-radius: 6px;
-        background: #1a1a20;
-        color: #ccc;
-        font: inherit;
+
+      .rail-label {
+        font-family: 'Barlow Condensed', system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--bench-ink-dim);
+        padding-right: 4px;
       }
-      #harness button:active {
-        border-color: #888;
-        color: #fff;
+
+      .rail button {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--bench-line);
+        border-radius: 8px;
+        background: #1d1d25;
+        color: var(--bench-ink);
+        font-family: 'Barlow Condensed', system-ui, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .rail button:hover {
+        border-color: #3b3b47;
+        color: #efecf6;
+      }
+      .rail button:active {
+        background: #262630;
+      }
+      .rail button:focus-visible {
+        outline: 2px solid #6f6a80;
+        outline-offset: 2px;
+      }
+
+      .note {
+        max-width: 62ch;
+        margin: 0;
+        font-family: 'Archivo', system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.6;
+        text-align: center;
+        color: var(--bench-ink-dim);
+      }
+
+      .note strong {
+        color: var(--bench-ink);
+        font-weight: 700;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
   <body>
-    <div id="panel"></div>
-    <div id="harness"></div>
+    <div class="bench">
+      <header class="masthead">
+        <h1>Joshify</h1>
+        <p class="spec">
+          720 &times; 1280 &middot; portrait &middot; Raspberry Pi Touch Display 2
+        </p>
+      </header>
+
+      <div class="device">
+        <div id="panel"></div>
+      </div>
+
+      <div class="rail">
+        <span class="rail-label">States</span>
+        <span id="harness" style="display: contents"></span>
+      </div>
+
+      <p class="note">
+        This is the real app, not a mockup &mdash; the same Svelte components, the same
+        tokens, the same CSS that will run on the Pi. Only the socket, the command client
+        and the device source are faked, so nothing here needs a Spotify account.
+        <strong
+          >Tap the transport, drag the scrubber, then try the four chips: the speaker
+          name, Queue, Search and Visual.</strong
+        >
+        Skip a track and watch the accent follow the album a beat later &mdash; the delay
+        is real, not an affectation: extraction needs the image, and the image needs a
+        decode.
+      </p>
+
+      <p class="note">
+        <strong>Visual</strong> opens the theme list. A theme is a whole machine: its
+        look, its chrome and, where the idiom cannot take an arbitrary sleeve hue, its
+        palette &mdash; so <strong>VGA</strong> squares the plate&rsquo;s corners and
+        drops the glass as well as changing what renders. Take the panel, or leave it
+        alone for forty-five seconds, and the visualiser has the screen; any touch brings
+        the controls back, and that first touch is deliberately swallowed rather than
+        delivered to whatever was under your finger.
+      </p>
+    </div>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

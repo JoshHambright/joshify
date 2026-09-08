@@ -41,7 +41,7 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
     files: ['apps/ui/demo/*.mjs'],
     languageOptions: {
-      globals: { console: 'readonly', URL: 'readonly' },
+      globals: { console: 'readonly', URL: 'readonly', process: 'readonly' },
       parserOptions: { projectService: false, project: false },
     },
   },

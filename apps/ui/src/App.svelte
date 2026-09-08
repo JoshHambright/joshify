@@ -347,6 +347,16 @@
 <Panel chromeVisible={modeState.chromeVisible}>
   {#snippet stage()}
     <Backdrop src={art.backdrop} />
+    <Hero src={art.hero} dimmed={item === null} />
+    <!--
+      Above the hero, not below it.
+
+      The scene draws the cover itself, so covering the artwork with the
+      visualiser is not hiding the album — it is the album, run through the
+      chain. Underneath the hero it would be invisible at every intensity,
+      which is how it was wired first: full screen looked exactly like the
+      resting panel with the controls missing.
+    -->
     {#if visualiserAvailable}
       <Visualiser
         art={art.hero}
@@ -363,7 +373,6 @@
         }}
       />
     {/if}
-    <Hero src={art.hero} dimmed={item === null} />
   {/snippet}
 
   {#snippet rail()}
