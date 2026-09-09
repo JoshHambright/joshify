@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Joshify — Build Log</title>
-<meta name="description" content="A touchscreen Spotify control surface for a Raspberry Pi 5, with a PS1-era visualiser. Live demos and build progress.">
+<meta name="description" content="A touchscreen Spotify control surface for a Raspberry Pi 5, with a visualiser that treats album art as its input. Live demos and build progress.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
@@ -85,6 +85,11 @@
 
   /* ---------- findings ---------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:1px;background:var(--edge);border:1px solid var(--edge)}
+  /* Two claims of different kinds, so two grids: four scenes, then the two
+     floors. One six-cell auto-fit grid left two dead cells on a wide screen. */
+  .grid-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .subhead{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--dim-2);margin:34px 0 10px}
   .cell{background:var(--panel);padding:16px 17px}
   .cell .verdict{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase}
   .v-dead{color:var(--magenta)} .v-route{color:var(--lime)} .v-trap{color:var(--amber)}
@@ -111,6 +116,19 @@
   .ph.now .st{color:var(--void);background:var(--cyan);border-color:var(--cyan);font-weight:700}
   .ph.hero .nm{color:var(--magenta)}
   .ph.hero .st{color:var(--magenta);border-color:var(--magenta)}
+  .ph.done .st{color:var(--lime);border-color:#4a6b1f}
+  .ph.done .nm{color:var(--ink)}
+
+  /* ---------- live links ---------- */
+  .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+  .cta{display:flex;flex-direction:column;gap:3px;text-decoration:none;
+    border:1px solid var(--edge-2);background:var(--panel);padding:11px 15px;min-width:210px}
+  .cta:hover{border-color:var(--cyan);background:var(--panel-2)}
+  .cta:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .cta b{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:.02em;
+    text-transform:uppercase;color:var(--ink)}
+  .cta span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--dim-2)}
+  .cta:hover b{color:var(--cyan)}
 
   /* ---------- stack + footer ---------- */
   .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -125,23 +143,30 @@
 
 <header>
   <div class="wrap">
-    <p class="eyebrow">Build log · updated 2 Sep 2026</p>
+    <p class="eyebrow">Build log · updated 9 Sep 2026</p>
     <h1 class="h1">Joshify</h1>
     <p class="tag">A touchscreen control surface for Spotify, running on a Raspberry Pi 5 —
-      with a visualiser that renders your album art as a <b>1998 PlayStation tunnel</b>.</p>
+      with a visualiser that treats your album art as <b>the input, not the wallpaper</b>.
+      The panel is built and playable. The Pi is still in a shopping basket.</p>
     <div class="stats">
-      <div class="stat"><b>9</b><span>Phases</span></div>
-      <div class="stat"><b>113</b><span>Tasks mapped</span></div>
-      <div class="stat"><b>16</b><span>Decisions logged</span></div>
-      <div class="stat"><b>1</b><span>Spike shipped</span></div>
-      <div class="stat warn"><b>P0</b><span>Current phase</span></div>
+      <div class="stat"><b>102</b><span>Tasks done</span></div>
+      <div class="stat"><b>130</b><span>Tasks mapped</span></div>
+      <div class="stat"><b>1,945</b><span>Tests green</span></div>
+      <div class="stat"><b>77</b><span>Decisions logged</span></div>
+      <div class="stat warn"><b>P5</b><span>Current phase</span></div>
+    </div>
+    <div class="ctas">
+      <a class="cta" href="https://claude.ai/code/artifact/047af4a9-d1b0-402b-b961-d886ffc1d0fc">
+        <b>Open the panel →</b><span>The real app, on a bench</span></a>
+      <a class="cta" href="https://claude.ai/code/artifact/a2276f71-3c9c-4096-841d-a90fe36c360d">
+        <b>Open the visualiser →</b><span>26 passes · 7 scenes · 15 looks</span></a>
     </div>
   </div>
 </header>
 
 <section id="demo">
   <div class="wrap">
-    <p class="eyebrow">Demo 01 · Phase 5 render spike</p>
+    <p class="eyebrow">Where it started · the Phase 5 render spike</p>
     <h2>N2O Tunnel Mode</h2>
     <p class="intro">Album art mapped onto a tube-shooter tunnel, rendered through a
       reconstructed <b>PlayStation 1 graphics pipeline</b>. Every artefact is a real
@@ -188,7 +213,80 @@
       </div>
     </div>
     <p class="hint"><b>Try this:</b> switch off Vertex snap and Affine UV. The whole thing
-      collapses into generic modern 3D — those two artefacts <em>are</em> the PS1 look.</p>
+      collapses into generic modern 3D — those two artefacts <em>are</em> the PS1 look.<br>
+      This is the original standalone spike, kept as it was. Everything below is what the
+      real engine grew into afterwards.</p>
+  </div>
+</section>
+
+<section id="engine">
+  <div class="wrap">
+    <p class="eyebrow">Phase 5 · what the spike turned into</p>
+    <h2>The album is the input</h2>
+    <p class="intro">The tunnel was one scene. The engine that replaced it runs
+      <b>26 post-process passes over 7 scenes as 15 named looks</b>, and every look is a
+      row of data — a scene id, an ordered list of pass ids, some numbers. There is no code
+      path per look, which was the whole test of whether "presets are data" was true or
+      merely asserted.</p>
+    <p class="intro">The rule that shaped it: a scene has to <b>need</b> the artwork. Not
+      tint itself with a colour sampled from it — need it, so that turning the cover off
+      leaves nothing to look at.</p>
+
+    <div class="grid">
+      <div class="cell">
+        <div class="verdict v-route">Orbit</div>
+        <h4>The cover is the trap</h4>
+        <p>A Julia orbit trap where the album art <em>is</em> the trap texture. It walks the
+        parameter instead of zooming: <code>fp32</code> runs out of mantissa about twenty
+        seconds into a zoom, and staying inside the main cardioid guarantees the set can
+        never fall to dust.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-route">Reef</div>
+        <h4>The cover is the light</h4>
+        <p>The only source in the scene is the surface overhead, and what it transmits is the
+        record — sampled through the same warped domain that bends the caustics. Two octaves
+        of cancelling sine sheets, <strong>8 transcendentals</strong> against roughly 36 for
+        the Worley noise it replaces.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-route">Relief</div>
+        <h4>The cover is the terrain</h4>
+        <p>Sleeve luminance as a heightfield, sampled in the <em>vertex</em> shader — legal
+        because a sampler uniform is program-scoped, and GLES 3.0 mandates 16 vertex texture
+        units where GLES 2.0's minimum was zero. Mirrored, not tiled: a repeat puts a cliff
+        at every seam, and a cliff in a heightfield is a wall.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-route">Drift</div>
+        <h4>The cover is the sky</h4>
+        <p>A 32×32 jittered lattice, one star per 8×8 block of the sleeve, coloured by that
+        block's hue and weighted by its luminance. A high-contrast cover gives a sparse field
+        of bright stars; a flat one gives an even wash.</p>
+      </div>
+    </div>
+
+    <p class="subhead">Two floors, proved once each — so they cover effects nobody has written</p>
+    <div class="grid grid-2">
+      <div class="cell">
+        <div class="verdict v-trap">Contrast</div>
+        <h4>Legibility, proved once</h4>
+        <p>Text over a live visualiser is a contrast problem with no fixed background. So the
+        4.5:1 floor is proved as a property of the <strong>plate</strong>, not of any preset —
+        if every possible backdrop composites to something the ink still clears, no effect can
+        break it, <em>including ones nobody has written</em>. It found a real bug: 2.7:1 over a
+        white sleeve, before any visualiser existed.</p>
+      </div>
+      <div class="cell">
+        <div class="verdict v-trap">Photosensitivity</div>
+        <h4>Three flashes a second is 180 BPM</h4>
+        <p>WCAG's flash limit lands on an ordinary tempo, not an exotic one — drum and bass
+        crosses it. Capping it per effect would be a promise. It is enforced on
+        <code>uBeat</code> in the uniform build instead, so no shader can route around it, and
+        a screen left running unattended on a wall is safe by construction rather than by
+        everyone remembering.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -275,6 +373,21 @@
         contract</b> — procedural, BPM-locked, and true FFT. The shaders never know which one is
         feeding them, and quality degrades gracefully instead of failing.</p>
     </div>
+    <p class="eyebrow" style="margin-top:34px">Decision D-074</p>
+    <h2 style="font-size:clamp(19px,2.6vw,24px)">The switch that did nothing</h2>
+    <div class="quote">
+      <p><span class="strike">Every scene declares <code>depthTest</code>, and the engine
+        enables the depth test for it.</span></p>
+      <p><b>It never worked.</b> The render targets attach colour and nothing else, so
+        enabling the depth test put the GPU in a state where, per GLES, <em>the test always
+        passes</em>. A no-op wearing a z-buffer's name — and the pipeline test asserted the
+        engine honoured it, passing against a fake with no framebuffer to be incomplete. A
+        verified fiction.</p>
+      <p>It was found the way these things are: <b>four scene authors rediscovered it
+        independently</b> and each wrote their own paragraph about it. One person is an
+        anecdote; four is a defect in the contract. The field is gone, occlusion is draw
+        order, and each scene sorts itself — exactly, not approximately.</p>
+    </div>
     <p class="intro" style="margin-bottom:0">The decision log keeps superseded entries with the
       reasoning intact. <b>Knowing why a wrong turn was wrong is worth as much as the right
       answer</b> — and it stops a future session re-litigating it.</p>
@@ -283,21 +396,23 @@
 
 <section id="roadmap">
   <div class="wrap">
-    <p class="eyebrow">113 tasks · exit criterion per phase</p>
+    <p class="eyebrow">130 tasks · 102 done · exit criterion per phase</p>
     <h2>Roadmap</h2>
-    <p class="intro">Phases 1–2 are deliberately headless: the polling scheduler and state engine
-      are fully built and tested before a single pixel exists, because <b>debugging a timing
-      engine through a UI is misery</b>.</p>
+    <p class="intro">Phases 1–2 were deliberately headless: the polling scheduler and state
+      engine were fully built and tested before a single pixel existed, because <b>debugging a
+      timing engine through a UI is misery</b>. What is left is mostly what a container cannot
+      answer — every remaining Phase 3 and Phase 7 task is a <b>measurement on real
+      hardware</b>, and a measurement invented in a VM is worse than a missing one.</p>
     <div class="phases">
-      <div class="ph now"><span class="n">P0</span><span class="nm">Foundation</span><span class="ct">8 tasks</span><span class="st">Current</span></div>
-      <div class="ph"><span class="n">P1</span><span class="nm">Spotify identity &amp; API client</span><span class="ct">11 tasks</span><span class="st">Planned</span></div>
-      <div class="ph"><span class="n">P2</span><span class="nm">Playback state engine</span><span class="ct">10 tasks</span><span class="st">Planned</span></div>
-      <div class="ph"><span class="n">P3</span><span class="nm">Now Playing</span><span class="ct">12 tasks</span><span class="st">Planned</span></div>
-      <div class="ph"><span class="n">P4</span><span class="nm">Control surfaces</span><span class="ct">10 tasks</span><span class="st">Planned</span></div>
-      <div class="ph hero"><span class="n">P5</span><span class="nm">Visualiser + librespot</span><span class="ct">30 tasks</span><span class="st">1 spike done</span></div>
-      <div class="ph"><span class="n">P6</span><span class="nm">Search &amp; library</span><span class="ct">9 tasks</span><span class="st">Planned</span></div>
-      <div class="ph"><span class="n">P7</span><span class="nm">Appliance &amp; hardening</span><span class="ct">12 tasks</span><span class="st">Planned</span></div>
-      <div class="ph"><span class="n">P8</span><span class="nm">Packaging &amp; CI/CD</span><span class="ct">11 tasks</span><span class="st">Planned</span></div>
+      <div class="ph done"><span class="n">P0</span><span class="nm">Foundation</span><span class="ct">8 / 8</span><span class="st">Complete</span></div>
+      <div class="ph done"><span class="n">P1</span><span class="nm">Spotify identity &amp; API client</span><span class="ct">10 / 11</span><span class="st">Awaiting a real account</span></div>
+      <div class="ph done"><span class="n">P2</span><span class="nm">Playback state engine</span><span class="ct">10 / 10</span><span class="st">Complete</span></div>
+      <div class="ph done"><span class="n">P3</span><span class="nm">Now Playing</span><span class="ct">13 / 14</span><span class="st">Needs hardware</span></div>
+      <div class="ph done"><span class="n">P4</span><span class="nm">Control surfaces</span><span class="ct">10 / 10</span><span class="st">Complete</span></div>
+      <div class="ph now"><span class="n">P5</span><span class="nm">Visualiser + librespot</span><span class="ct">30 / 45</span><span class="st">Current</span></div>
+      <div class="ph done"><span class="n">P6</span><span class="nm">Search &amp; library</span><span class="ct">8 / 9</span><span class="st">Needs hardware</span></div>
+      <div class="ph"><span class="n">P7</span><span class="nm">Appliance &amp; hardening</span><span class="ct">8 / 12</span><span class="st">Soak tests need a Pi</span></div>
+      <div class="ph"><span class="n">P8</span><span class="nm">Packaging &amp; CI/CD</span><span class="ct">5 / 11</span><span class="st">Written, never tagged</span></div>
     </div>
   </div>
 </section>
@@ -323,15 +438,25 @@
       to cut fragment cost 4×, then kept because it looked like the lo-fi aesthetic we wanted.
       It turns out that's <b>almost exactly the PS1's native output</b>. The performance dial,
       the art direction and the period reference are the same slider.</p>
+    <p class="intro" style="margin:18px 0 0">1,945 tests run in Node against a recording fake
+      of the GL context and a fake Spotify server — <b>CI never needs a real credential</b>.
+      The suite is not the last check, though. A published page runs on a GPU and the suite
+      does not, and the bugs that reached the Pi-shaped end of this project were all invisible
+      to it: a cover uploaded upside down, a shader that would not link because one uniform
+      was <code>highp</code> in one stage and <code>mediump</code> in another, and a visualiser
+      mounted <em>underneath</em> the artwork that covers the whole screen — the loop running,
+      the shaders compiling, the canvas correct and invisible.</p>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
     <b>Joshify</b> — built in the open, one phase at a time.<br>
-    Album covers in the demo are generated procedurally; the accent colour driving the fog and
-    beat flash is sampled from the artwork at load.<br>
-    The visualiser is an <b>homage</b> to the 1997–2001 console era, built from original assets.
+    Album covers in the demos are generated procedurally, so both pages run with no network at
+    all; the colour driving each scene is extracted from that artwork the same way it will be
+    from a real sleeve.<br>
+    Every period aesthetic here is an <b>homage</b>, built from original assets. No trademark is
+    reproduced and no theme is named after one.
   </div>
 </footer>
 

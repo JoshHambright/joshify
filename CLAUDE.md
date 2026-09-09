@@ -51,7 +51,7 @@ A fresh session starts with a clean clone and no container state. To resume:
 1. `git log --oneline -10` on the branch — the last push is where we actually are.
 2. Read `docs/TRACKING.md` — task statuses are the source of truth for progress.
 3. Read `docs/DECISIONS.md` — do not re-litigate settled decisions.
-4. **Republish, don't re-create.** The two review pages below have stable URLs.
+4. **Republish, don't re-create.** The three published pages below have stable URLs.
    Publishing without the URL makes a *third* page and orphans the link Josh
    already has.
 
@@ -88,7 +88,7 @@ different hardware.
 Applies to effect presets, theme extraction, the on-screen keyboard, list-scroll
 feel, UI chrome. Rationale in `DECISIONS.md` D-016.
 
-### The two published pages
+### The three published pages
 
 Both are **generated from the repo**, never assembled by hand. The page is not
 storage; the generator is. Pass the URL when republishing, or you make a new
@@ -98,10 +98,13 @@ page and orphan the link Josh already has.
 |---|---|---|
 | **Panel** — the real app on a bench | `https://claude.ai/code/artifact/047af4a9-d1b0-402b-b961-d886ffc1d0fc` | `pnpm -F @joshify/ui build:panel` → `apps/ui/dist-demo/artifact.html` |
 | **Visualiser** — the shader playground | `https://claude.ai/code/artifact/a2276f71-3c9c-4096-841d-a90fe36c360d` | `pnpm -F @joshify/ui build:visualiser` → `apps/ui/dist-visualiser/artifact.html` |
+| **Build log** — the public write-up | `https://claude.ai/code/artifact/76c4748f-0e32-4898-9f0a-49102c733060` | `node apps/ui/demo/build-artifact.mjs "$PWD/site" index.html "Joshify Build Log"` → `site/artifact.html` |
 
-`demo/build-artifact.mjs` folds Vite's output into the single document the
-publisher wants. Copy on the page — masthead, notes, font links — lives in
-`demo/index.html` and `demo/visualiser.html`, **not** in the published artifact.
+`demo/build-artifact.mjs` folds a built page into the single document the
+publisher wants — and takes an absolute directory, so the hand-written build log
+under `site/` folds the same way. Copy on every page — masthead, notes, font
+links — lives in the source HTML, **never** only in the published artifact. The
+build log's numbers come from `docs/TRACKING.md`; re-derive them, do not guess.
 
 Note: this session cannot receive comments left on artifact pages, and the
 artifact service has refused wake subscriptions here, so feedback comes back

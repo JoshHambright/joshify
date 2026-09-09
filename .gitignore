@@ -22,3 +22,4 @@ dist-demo/
 test-results/
 playwright-report/
 dist-visualiser/
+site/artifact.html

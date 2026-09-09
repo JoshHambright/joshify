@@ -11,25 +11,38 @@
  * container dies, and a review page that can only be rebuilt by hand is a page
  * that quietly stops matching the code it is supposed to be showing.
  *
- *   node demo/build-artifact.mjs <dist-dir> <page.html> "<Title>"
+ *   node demo/build-artifact.mjs <dir> <page.html> "<Title>"
  *
- * Both review pages go through it, so neither can drift into being assembled
- * by hand — which is how the published page stops matching the code.
+ * `<dir>` is relative to `apps/ui/`, or absolute — the build log under `site/`
+ * has no bundler but needs the same fold. All three published pages go through
+ * it, so none of them can drift into being assembled by hand, which is how a
+ * published page stops matching the source it is supposed to be showing.
  */
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const [distName = 'dist-visualiser', pageName = 'visualiser.html', title = 'Joshify'] =
   process.argv.slice(2);
 
-const dist = fileURLToPath(new URL(`../${distName}/`, import.meta.url));
+const dist = distName.startsWith('/')
+  ? distName.replace(/\/?$/, '/')
+  : fileURLToPath(new URL(`../${distName}/`, import.meta.url));
 const page = readFileSync(`${dist}${pageName}`, 'utf8');
 
-const assets = readdirSync(`${dist}assets`).filter((name) => name.endsWith('.js'));
-if (assets.length !== 1) {
-  throw new Error(`expected exactly one bundle, found ${String(assets.length)}`);
+/*
+ * A bundled page keeps its module in `assets/`; a hand-written one (the build
+ * log) has its script inline in the body and no `assets/` at all. Both fold the
+ * same way — an inline `<script>` survives the body extraction untouched, so
+ * there is simply nothing to append.
+ */
+const assets = existsSync(`${dist}assets`)
+  ? readdirSync(`${dist}assets`).filter((name) => name.endsWith('.js'))
+  : [];
+if (assets.length > 1) {
+  throw new Error(`expected at most one bundle, found ${String(assets.length)}`);
 }
-const bundle = readFileSync(`${dist}assets/${assets[0]}`, 'utf8');
+const bundle =
+  assets[0] === undefined ? '' : readFileSync(`${dist}assets/${assets[0]}`, 'utf8');
 
 const between = (source, open, close) => {
   const start = source.indexOf(open);
@@ -81,7 +94,7 @@ writeFileSync(
     links,
     `<style>${style}</style>`,
     body.trim(),
-    `<script type="module">\n${bundle}\n</script>`,
+    bundle === '' ? '' : `<script type="module">\n${bundle}\n</script>`,
     '',
   ].join('\n'),
 );
