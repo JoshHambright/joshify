@@ -51,6 +51,9 @@ A fresh session starts with a clean clone and no container state. To resume:
 1. `git log --oneline -10` on the branch — the last push is where we actually are.
 2. Read `docs/TRACKING.md` — task statuses are the source of truth for progress.
 3. Read `docs/DECISIONS.md` — do not re-litigate settled decisions.
+4. **Republish, don't re-create.** The two review pages below have stable URLs.
+   Publishing without the URL makes a *third* page and orphans the link Josh
+   already has.
 
 This is why the tracker is updated **in the same commit as the work it
 describes.** It is not documentation; it is the handoff mechanism.
@@ -85,8 +88,40 @@ different hardware.
 Applies to effect presets, theme extraction, the on-screen keyboard, list-scroll
 feel, UI chrome. Rationale in `DECISIONS.md` D-016.
 
-Note: this session cannot receive comments left on artifact pages, so feedback
-comes back through chat.
+### The two published pages
+
+Both are **generated from the repo**, never assembled by hand. The page is not
+storage; the generator is. Pass the URL when republishing, or you make a new
+page and orphan the link Josh already has.
+
+| Page | URL | Rebuild |
+|---|---|---|
+| **Panel** — the real app on a bench | `https://claude.ai/code/artifact/047af4a9-d1b0-402b-b961-d886ffc1d0fc` | `pnpm -F @joshify/ui build:panel` → `apps/ui/dist-demo/artifact.html` |
+| **Visualiser** — the shader playground | `https://claude.ai/code/artifact/a2276f71-3c9c-4096-841d-a90fe36c360d` | `pnpm -F @joshify/ui build:visualiser` → `apps/ui/dist-visualiser/artifact.html` |
+
+`demo/build-artifact.mjs` folds Vite's output into the single document the
+publisher wants. Copy on the page — masthead, notes, font links — lives in
+`demo/index.html` and `demo/visualiser.html`, **not** in the published artifact.
+
+Note: this session cannot receive comments left on artifact pages, and the
+artifact service has refused wake subscriptions here, so feedback comes back
+through chat.
+
+### Look at it in a real browser before publishing
+
+A published page runs on a GPU; the test suite does not. Every bug that has
+survived a green suite this far was invisible to it:
+
+- The album cover uploaded upside down — `UNPACK_FLIP_Y_WEBGL` unset.
+- A GLSL link failure from one uniform declared `highp` in a vertex shader and
+  `mediump` in a fragment shader.
+- The visualiser mounted *underneath* the artwork that covers the whole stage:
+  the loop ran, the shaders compiled, and the canvas was correct and invisible.
+
+Drive the built page with Playwright and read the screenshots. Chromium is
+pre-installed but the version Playwright expects may not match — pass
+`executablePath` from `ls /opt/pw-browsers` rather than running
+`playwright install`.
 
 ## Documentation map
 
@@ -94,7 +129,7 @@ comes back through chat.
 |---|---|
 | `docs/PRODUCT.md` | What we're building, design principles, platform constraints |
 | `docs/ROADMAP.md` | 9 phases, each with an exit criterion |
-| `docs/TRACKING.md` | **Live tracker — 121 tasks.** Update with the work |
+| `docs/TRACKING.md` | **Live tracker — 130 tasks.** Update with the work |
 | `docs/DECISIONS.md` | ADR log. Read before changing an approach |
 | `docs/VISUALIZER.md` | Visualizer engine design (Phase 5) |
 | `docs/SCREENS.md` | **The interface, specified.** Read before building any UI |
@@ -124,6 +159,18 @@ visualiser is one phase of nine. New visual ideas go to the theme backlog in
   every call site buys no safety. Bare `?:` is still right for internal config
   objects a caller builds literally.
 
+- **Prove a test fails without the fix.** Write the test, break the fix, watch
+  it go red, put the fix back. Several tests in this repo passed for the wrong
+  reason before that step was added — an assertion against markup that did not
+  exist, and a swallowed touch asserted with an event the control never listened
+  for. A test that cannot fail is worse than no test, because it is counted.
+
+- **Parallel agents need a seam owner.** Disjoint file ownership is enough for
+  the files; it is not enough for the *contract between them*. Two agents once
+  produced two incompatible `Reactivity` types, each green against its own
+  brief. Whoever spawns them owns the seam and writes the test where the type
+  assignment is the assertion (D-065).
+
 - **Task IDs in commit messages**: `P2-04: <what changed>`. IDs come from
   `docs/TRACKING.md`.
 - **A task is ✅ only when its tests pass in CI**, not when the code works.
@@ -150,6 +197,38 @@ Do not rediscover or re-argue these. Full reasoning is in `DECISIONS.md`.
   MECC/Broderbund/Maxis/Sega asset, or the Magic Eye name (use "autostereogram")
   — all trademarked. No theme named after a
   trademark. Original work in the era's idiom only (D-015).
+
+### Settled in the visualiser
+
+- **There is no depth buffer.** `createFramebuffer` attaches colour only, so a
+  scene sorts itself — back-to-front index order, or exact rejection in the
+  vertex shader. Four scene authors rediscovered this independently before the
+  misleading `depthTest` field was removed (D-074). A scene that genuinely needs
+  z has to add the attachment first.
+- **The legibility floor is a property of the plate, not of any preset** (D-068),
+  and **the flash cap is enforced on `uBeat` in the uniform build** (D-071). Both
+  therefore cover effects nobody has written. Do not re-argue them per effect.
+- **Themes reach chrome through an allow-list of eight tokens** (D-073). The
+  inks, the plate substrate, the touch floor and the type scale are deliberately
+  unreachable: the contrast result was solved for *those* values, and a theme
+  that breaks it fails no test.
+- **The visualiser does not change the panel's resting appearance** (D-076). At
+  `now-playing` the canvas is transparent and the loop is stopped. Whether it
+  *should* become the resting backdrop is a live question — prototype it on a
+  page first, do not slip it into a wiring task.
+- **An effect is named for what it does, not what it evokes** (D-072). `smear`
+  is a thresholded running maximum, not a pixel sort.
+
+## What needs Josh, not Claude
+
+Nothing below can be finished in a session, so don't plan around it:
+
+- **Run `joshify auth` against the real Spotify account.** Phase 1's last exit
+  criterion. Everything else runs against the fake server.
+- **Buy the hardware** (Pi 5, Touch Display 2, 27W PSU, active cooling, 22→15-way
+  DSI adapter). P3-01, P5-30, P6-09 and P7-09..12 are all measurements, and a
+  measurement invented in a container is worse than a missing one.
+- **Q5**: which USB DAC, for the optional librespot module.
 
 ## Secrets
 

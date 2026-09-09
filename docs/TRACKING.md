@@ -3,7 +3,7 @@
 **This is the live source of truth for build progress.** Update it in the same
 commit as the work it describes.
 
-Last updated: 2026-09-06
+Last updated: 2026-09-09
 
 ---
 
@@ -39,12 +39,12 @@ titles: `P2-04: add progress interpolation to PlaybackState`.
 | 1 | Spotify identity & API client | 11 | **10** | ✅ Code complete (1 cut) — awaiting a real-account run |
 | 2 | Playback state engine | 10 | **10** | ✅ **Complete** |
 | 3 | Now Playing | 14 | 13 | 🟨 Code complete — P3-01 needs hardware |
-| 4 | Control surfaces | 10 | 8 | 🟨 In progress |
-| 5 | **Visualizer + librespot** | 39 | 18 | 🟨 In progress (3 cut) |
+| 4 | Control surfaces | 10 | **10** | ✅ **Complete** |
+| 5 | **Visualizer + librespot** | 45 | 30 | 🟨 In progress (3 cut). Engine, effects, scenes, themes and the panel wiring are done; librespot and the BPM source are not |
 | 6 | Search & library | 9 | 8 | 🟨 In progress |
 | 7 | Appliance & hardening | 12 | 8 | 🟨 In progress |
 | 8 | Packaging, CI/CD & audio module | 11 | 5 | 🟨 In progress |
-| | **Total** | **123** | **90** | |
+| | **Total** | **130** | **102** | |
 
 ---
 
