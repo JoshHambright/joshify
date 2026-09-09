@@ -298,3 +298,27 @@ Accepted costs: active cooling (a fan near the music) and ~2.7W idle.
 | ~~V2~~ | ~~Add a microphone for room-listening FFT?~~ | ✅ **Not for now.** Reuses the same PCM path, so it stays cheap to add later. |
 | V3 | Which BPM source wins the P5-02 bake-off? | Coverage vs. offline capability. Resolve with real data from Josh's library. |
 | V4 | Which USB DAC? The **Pi 5 has no 3.5mm jack**, and a DAC HAT can foul the display case. | Blocks P5-20. |
+
+---
+
+## Related work outside this repo
+
+**Signal Rot** — `github.com/JoshHambright/glitch-synth`
+
+Started as `spikes/signal-rot/` here, outgrew a spike, and now has its own repo.
+It is a standalone browser instrument, not a Joshify feature, but two of its
+findings apply directly to this engine and are worth reading before building
+Tier 3:
+
+- **An audio-reactive field needs a procedural bed underneath it** that fades
+  out as real signal arrives — otherwise the visual goes black every time the
+  music is quiet. Joshify has *no* audio analysis on Tier 3 (D-010), so its
+  visualiser is *entirely* that bed: the same construction with the live-signal
+  term pinned to zero.
+- **Long-form motion must not come from LFOs.** A sine has a period the eye
+  finds within seconds, which is exactly the "static but repetitive" failure.
+  Smoothstep-interpolated random walks on independent durations have no period
+  at all.
+
+Its `docs/TECHNIQUES.md` also covers feedback-buffer normalisation, vortex
+advection and the four-colour stock grade, all of which are reusable here.
