@@ -51,8 +51,8 @@ A fresh session starts with a clean clone and no container state. To resume:
 1. `git log --oneline -10` on the branch — the last push is where we actually are.
 2. Read `docs/TRACKING.md` — task statuses are the source of truth for progress.
 3. Read `docs/DECISIONS.md` — do not re-litigate settled decisions.
-4. **Republish, don't re-create.** The three published pages below have stable URLs.
-   Publishing without the URL makes a *third* page and orphans the link Josh
+4. **Republish, don't re-create.** The three published pages below have stable
+   URLs. Publishing without the URL makes a *new* page and orphans the link Josh
    already has.
 
 This is why the tracker is updated **in the same commit as the work it
@@ -90,7 +90,7 @@ feel, UI chrome. Rationale in `DECISIONS.md` D-016.
 
 ### The three published pages
 
-Both are **generated from the repo**, never assembled by hand. The page is not
+All three are **generated from the repo**, never assembled by hand. The page is not
 storage; the generator is. Pass the URL when republishing, or you make a new
 page and orphan the link Josh already has.
 
